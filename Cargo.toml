@@ -1,4 +1,12 @@
-[workspace]
-resolver="2"
+[package]
+authors    =["Pluto Authors"]
+description="""ronkathon"""
+edition    ="2021"
+license    ="Apache2.0 OR MIT"
+name       ="ronkathon"
+repository ="https://github.com/thor314/ronkathon"
+version    ="0.1.0"
 
-members=["ronkathon", "field", "util"]
+[dependencies]
+anyhow   ="1.0"
+p3-field = { version = "0.1.0", git = "https://github.com/Plonky3/Plonky3.git"}
