@@ -8,4 +8,5 @@ repository ="https://github.com/thor314/ronkathon"
 version    ="0.1.0"
 
 [dependencies]
-anyhow   ="1.0"
+anyhow  ="1.0"
+p3-field={ git="https://github.com/Plonky3/Plonky3.git" }
