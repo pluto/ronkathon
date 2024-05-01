@@ -1,5 +1,5 @@
 [package]
-authors    =["Thor Kampefner <thorck@pm.me>"]
+authors    =["Pluto Authors"]
 description="""ronkathon"""
 edition    ="2021"
 license    ="Apache2.0 OR MIT"
