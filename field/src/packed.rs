@@ -1,8 +1,10 @@
-use core::ops::{Add, AddAssign, Div, Mul, MulAssign, Sub, SubAssign};
-use core::{mem, slice};
+use core::{
+  mem,
+  ops::{Add, AddAssign, Div, Mul, MulAssign, Sub, SubAssign},
+  slice,
+};
 
-use crate::field::Field;
-use crate::AbstractField;
+use crate::{field::Field, AbstractField};
 
 /// A trait to constrain types that can be packed into a packed value.
 ///
@@ -14,66 +16,65 @@ pub trait Packable: 'static + Default + Copy + Send + Sync + PartialEq + Eq {}
 /// - If `P` implements `PackedField` then `P` must be castable to/from `[P::Value; P::WIDTH]`
 ///   without UB.
 pub unsafe trait PackedValue: 'static + Copy + From<Self::Value> + Send + Sync {
-    type Value: Packable;
+  type Value: Packable;
 
-    const WIDTH: usize;
+  const WIDTH: usize;
 
-    fn from_slice(slice: &[Self::Value]) -> &Self;
-    fn from_slice_mut(slice: &mut [Self::Value]) -> &mut Self;
+  fn from_slice(slice: &[Self::Value]) -> &Self;
+  fn from_slice_mut(slice: &mut [Self::Value]) -> &mut Self;
 
-    /// Similar to `core:array::from_fn`.
-    fn from_fn<F>(f: F) -> Self
-    where
-        F: FnMut(usize) -> Self::Value;
+  /// Similar to `core:array::from_fn`.
+  fn from_fn<F>(f: F) -> Self
+  where F: FnMut(usize) -> Self::Value;
 
-    fn as_slice(&self) -> &[Self::Value];
-    fn as_slice_mut(&mut self) -> &mut [Self::Value];
+  fn as_slice(&self) -> &[Self::Value];
+  fn as_slice_mut(&mut self) -> &mut [Self::Value];
 
-    fn pack_slice(buf: &[Self::Value]) -> &[Self] {
-        // Sources vary, but this should be true on all platforms we care about.
-        // This should be a const assert, but trait methods can't access `Self` in a const context,
-        // even with inner struct instantiation. So we will trust LLVM to optimize this out.
-        assert!(mem::align_of::<Self>() <= mem::align_of::<Self::Value>());
-        assert!(
-            buf.len() % Self::WIDTH == 0,
-            "Slice length (got {}) must be a multiple of packed field width ({}).",
-            buf.len(),
-            Self::WIDTH
-        );
-        let buf_ptr = buf.as_ptr().cast::<Self>();
-        let n = buf.len() / Self::WIDTH;
-        unsafe { slice::from_raw_parts(buf_ptr, n) }
-    }
+  fn pack_slice(buf: &[Self::Value]) -> &[Self] {
+    // Sources vary, but this should be true on all platforms we care about.
+    // This should be a const assert, but trait methods can't access `Self` in a const context,
+    // even with inner struct instantiation. So we will trust LLVM to optimize this out.
+    assert!(mem::align_of::<Self>() <= mem::align_of::<Self::Value>());
+    assert!(
+      buf.len() % Self::WIDTH == 0,
+      "Slice length (got {}) must be a multiple of packed field width ({}).",
+      buf.len(),
+      Self::WIDTH
+    );
+    let buf_ptr = buf.as_ptr().cast::<Self>();
+    let n = buf.len() / Self::WIDTH;
+    unsafe { slice::from_raw_parts(buf_ptr, n) }
+  }
 
-    fn pack_slice_with_suffix(buf: &[Self::Value]) -> (&[Self], &[Self::Value]) {
-        let (packed, suffix) = buf.split_at(buf.len() - buf.len() % Self::WIDTH);
-        (Self::pack_slice(packed), suffix)
-    }
+  fn pack_slice_with_suffix(buf: &[Self::Value]) -> (&[Self], &[Self::Value]) {
+    let (packed, suffix) = buf.split_at(buf.len() - buf.len() % Self::WIDTH);
+    (Self::pack_slice(packed), suffix)
+  }
 
-    fn pack_slice_mut(buf: &mut [Self::Value]) -> &mut [Self] {
-        assert!(mem::align_of::<Self>() <= mem::align_of::<Self::Value>());
-        assert!(
-            buf.len() % Self::WIDTH == 0,
-            "Slice length (got {}) must be a multiple of packed field width ({}).",
-            buf.len(),
-            Self::WIDTH
-        );
-        let buf_ptr = buf.as_mut_ptr().cast::<Self>();
-        let n = buf.len() / Self::WIDTH;
-        unsafe { slice::from_raw_parts_mut(buf_ptr, n) }
-    }
+  fn pack_slice_mut(buf: &mut [Self::Value]) -> &mut [Self] {
+    assert!(mem::align_of::<Self>() <= mem::align_of::<Self::Value>());
+    assert!(
+      buf.len() % Self::WIDTH == 0,
+      "Slice length (got {}) must be a multiple of packed field width ({}).",
+      buf.len(),
+      Self::WIDTH
+    );
+    let buf_ptr = buf.as_mut_ptr().cast::<Self>();
+    let n = buf.len() / Self::WIDTH;
+    unsafe { slice::from_raw_parts_mut(buf_ptr, n) }
+  }
 
-    fn pack_slice_with_suffix_mut(buf: &mut [Self::Value]) -> (&mut [Self], &mut [Self::Value]) {
-        let (packed, suffix) = buf.split_at_mut(buf.len() - buf.len() % Self::WIDTH);
-        (Self::pack_slice_mut(packed), suffix)
-    }
+  fn pack_slice_with_suffix_mut(buf: &mut [Self::Value]) -> (&mut [Self], &mut [Self::Value]) {
+    let (packed, suffix) = buf.split_at_mut(buf.len() - buf.len() % Self::WIDTH);
+    (Self::pack_slice_mut(packed), suffix)
+  }
 
-    fn unpack_slice(buf: &[Self]) -> &[Self::Value] {
-        assert!(mem::align_of::<Self>() >= mem::align_of::<Self::Value>());
-        let buf_ptr = buf.as_ptr().cast::<Self::Value>();
-        let n = buf.len() * Self::WIDTH;
-        unsafe { slice::from_raw_parts(buf_ptr, n) }
-    }
+  fn unpack_slice(buf: &[Self]) -> &[Self::Value] {
+    assert!(mem::align_of::<Self>() >= mem::align_of::<Self::Value>());
+    let buf_ptr = buf.as_ptr().cast::<Self::Value>();
+    let n = buf.len() * Self::WIDTH;
+    unsafe { slice::from_raw_parts(buf_ptr, n) }
+  }
 }
 
 /// # Safety
@@ -132,43 +133,33 @@ pub unsafe trait PackedField: AbstractField<F = Self::Scalar>
 }
 
 unsafe impl<T: Packable> PackedValue for T {
-    type Value = Self;
+  type Value = Self;
 
-    const WIDTH: usize = 1;
+  const WIDTH: usize = 1;
 
-    fn from_slice(slice: &[Self::Value]) -> &Self {
-        &slice[0]
-    }
+  fn from_slice(slice: &[Self::Value]) -> &Self { &slice[0] }
 
-    fn from_slice_mut(slice: &mut [Self::Value]) -> &mut Self {
-        &mut slice[0]
-    }
+  fn from_slice_mut(slice: &mut [Self::Value]) -> &mut Self { &mut slice[0] }
 
-    fn from_fn<Fn>(mut f: Fn) -> Self
-    where
-        Fn: FnMut(usize) -> Self::Value,
-    {
-        f(0)
-    }
+  fn from_fn<Fn>(mut f: Fn) -> Self
+  where Fn: FnMut(usize) -> Self::Value {
+    f(0)
+  }
 
-    fn as_slice(&self) -> &[Self::Value] {
-        slice::from_ref(self)
-    }
+  fn as_slice(&self) -> &[Self::Value] { slice::from_ref(self) }
 
-    fn as_slice_mut(&mut self) -> &mut [Self::Value] {
-        slice::from_mut(self)
-    }
+  fn as_slice_mut(&mut self) -> &mut [Self::Value] { slice::from_mut(self) }
 }
 
 unsafe impl<F: Field> PackedField for F {
-    type Scalar = Self;
+  type Scalar = Self;
 
-    fn interleave(&self, other: Self, block_len: usize) -> (Self, Self) {
-        match block_len {
-            1 => (*self, other),
-            _ => panic!("unsupported block length"),
-        }
+  fn interleave(&self, other: Self, block_len: usize) -> (Self, Self) {
+    match block_len {
+      1 => (*self, other),
+      _ => panic!("unsupported block length"),
     }
+  }
 }
 
 impl Packable for u8 {}
