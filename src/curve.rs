@@ -14,7 +14,7 @@ pub struct Point<F: Field> {
   y: F,
 }
 
-// Since EVERY point is either at "infinity" or not, the coproduct makes sense. 
+// Since EVERY point is either at "infinity" or not, the coproduct makes sense.
 #[derive(Clone, Copy)]
 pub enum PointOrInfinity<F: Field> {
   Point(Point<F>),
