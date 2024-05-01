@@ -1,0 +1,53 @@
+# Rust template: https://github.com/actions/starter-workflows/blob/main/ci/rust.yml
+# Resources: https://docs.github.com/en/actions
+# Examples: https://github.com/actions/starter-workflows
+# Process: make small changes, push them, check the Actions tab on github
+# also see templates https://github.com/rust-github/template/tree/main/.github/workflows
+name: Rust
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always # pretty colors
+
+jobs:
+  lint: 
+    name: lint project
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - nightly
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: rustup component add clippy
+      - run: cargo clippy -- -Dwarnings
+  test:
+    name: test project
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - nightly
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: cargo test --all-features --verbose
+
+  fmt:
+    name: fmt project
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - nightly
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: rustup component add rustfmt
+      - run: cargo fmt --all -- --check
+
