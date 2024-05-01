@@ -1,0 +1,43 @@
+# These settings are synced to GitHub by https://probot.github.io/apps/settings/
+# Requires sign up, and allowing Probot to manage your repos.
+
+repository:
+  # name: ronkathon # sets the repo name
+  description: ronkathon
+  # homepage: docs.rs/ronkathon
+  private: false
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  has_downloads: false
+  default_branch: main
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: false
+
+# # Labels: define labels for Issues and Pull Requests
+# labels:
+#   - name: bug
+#     color: CC0000
+#   - name: feature
+#     color: 336699
+#   - name: first-timers-only
+#     # include the old name to rename and existing label
+#     oldname: Help Wanted
+
+# # Collaborators: give specific users access to this repository.
+# collaborators:
+#   - username: bkeepers
+#     # Note: Only valid on organization-owned repositories.
+#     # The permission to grant the collaborator. Can be one of:
+#     # * `pull` - can pull, but not push to or administer this repository.
+#     # * `push` - can pull and push, but not administer this repository.
+#     # * `admin` - can pull, push and administer this repository.
+#     permission: push
+
+#   - username: hubot
+#     permission: pull
+#   - username:
+#     permission: pull
+
+

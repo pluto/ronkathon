@@ -1,0 +1,17 @@
+# Auto-update dependencies.
+# last updated 2024-03-04
+# demo: https://github.com/dependabot/demo/blob/main/.github/dependabot.yml
+---
+version: 2
+updates:
+  # look for updates to github actions every week
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  # look for updates to Cargo.toml dependencies every week
+  # docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#package-ecosystem
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: "weekly"

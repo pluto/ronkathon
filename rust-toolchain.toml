@@ -1,0 +1,24 @@
+# rustup toolchain config. We typically use nightly to enable better formatting and async support.
+# https://rust-lang.github.io/rustup/overrides.html
+
+[toolchain]
+# what toolchain to use. 
+channel="nightly" 
+
+# option to specify a date to pin to a particular release 
+# date = "2024-03-19"
+
+# profiles are groups of components to download when installing a toolchain.
+# https://rust-lang.github.io/rustup/concepts/profiles.html
+# "minimal" includes only the compiler, package manager, and standard lib.
+# "default" further includes the formatter, linter, and documentation generator.
+profile="default"
+
+# Components are additional toolchain utilities. Typically not used unless working with low-level unsafe or compiler-related code.
+# List: https://rust-lang.github.io/rustup/concepts/components.html
+# components=["miri"]
+
+# targets are additional platforms to support. Most commonly used for WASM or cross-compiling.
+# cross compilation docs: https://rust-lang.github.io/rustup/cross-compilation.html
+# list of platforms: https://doc.rust-lang.org/nightly/rustc/platform-support.html
+# targets = [ "wasm32-unknown-unknown"]
