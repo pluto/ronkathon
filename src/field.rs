@@ -6,34 +6,29 @@ use core::{
 use std::fmt;
 
 use num_bigint::BigUint;
-use p3_field::{halve_u64, AbstractField, Field, Packable};
+use p3_field::{exp_u64_by_squaring, halve_u32, AbstractField, Field, Packable};
 use serde::{Deserialize, Serialize};
 
-const PLUTO_FIELD_PRIME: u64 = 101;
-#[derive(Copy, Clone, Default, Serialize, Deserialize, Debug)]
+const PLUTO_FIELD_PRIME: u32 = 101;
+// const MONTY_BITS: u32 = 7;
+// const MONTY_MASK: u32 = (1 << MONTY_BITS) - 1;
+// const MONTY_MU: u32 = 80;
+
+#[derive(Copy, Clone, Default, Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct PlutoField {
-  value: u64,
+  value: u32,
 }
 
 impl PlutoField {
-  pub const ORDER_U64: u64 = PLUTO_FIELD_PRIME;
+  pub const ORDER_U32: u32 = PLUTO_FIELD_PRIME;
 
-  pub fn new(value: u64) -> Self { Self { value } }
-}
-
-impl PartialEq for PlutoField {
-  fn eq(&self, other: &Self) -> bool {
-    // TODO: removed canonicalization
-    self.value == other.value
-    // self.as_canonical_u64() == other.as_canonical_u64()
-  }
+  pub fn new(value: u32) -> Self { Self { value } }
 }
 
 impl fmt::Display for PlutoField {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.value) }
 }
 
-impl Eq for PlutoField {}
 impl Packable for PlutoField {}
 
 impl Div for PlutoField {
@@ -46,16 +41,11 @@ impl Field for PlutoField {
   // TODO: Add cfg-guarded Packing for AVX2, NEON, etc.
   type Packing = Self;
 
-  fn is_zero(&self) -> bool { self.value == 0 || self.value == Self::ORDER_U64 }
+  fn is_zero(&self) -> bool { self.value == 0 || self.value == Self::ORDER_U32 }
 
   #[inline]
-  fn exp_u64_generic<AF: AbstractField<F = Self>>(val: AF, _power: u64) -> AF {
-    // TODO: Fix exponentiation
-    val
-    // match power {
-    //     10540996611094048183 => exp_10540996611094048183(val), // used to compute x^{1/7}
-    //     _ => exp_u64_by_squaring(val, power),
-    // }
+  fn exp_u64_generic<AF: AbstractField<F = Self>>(val: AF, power: u64) -> AF {
+    exp_u64_by_squaring(val, power)
   }
 
   fn try_inverse(&self) -> Option<Self> {
@@ -64,7 +54,7 @@ impl Field for PlutoField {
   }
 
   #[inline]
-  fn halve(&self) -> Self { PlutoField::new(halve_u64::<PLUTO_FIELD_PRIME>(self.value)) }
+  fn halve(&self) -> Self { PlutoField::new(halve_u32::<PLUTO_FIELD_PRIME>(self.value)) }
 
   #[inline]
   fn order() -> BigUint { PLUTO_FIELD_PRIME.into() }
@@ -79,79 +69,60 @@ impl AbstractField for PlutoField {
 
   fn two() -> Self { Self::new(2) }
 
-  fn neg_one() -> Self { Self::new(Self::ORDER_U64 - 1) }
+  fn neg_one() -> Self { Self::new(Self::ORDER_U32 - 1) }
 
   #[inline]
   fn from_f(f: Self::F) -> Self { f }
 
-  fn from_bool(b: bool) -> Self { Self::new(u64::from(b)) }
+  fn from_bool(b: bool) -> Self { Self::new(u32::from(b)) }
 
-  fn from_canonical_u8(n: u8) -> Self { Self::new(u64::from(n)) }
+  fn from_canonical_u8(n: u8) -> Self { Self::new(u32::from(n)) }
 
-  fn from_canonical_u16(n: u16) -> Self { Self::new(u64::from(n)) }
+  fn from_canonical_u16(n: u16) -> Self { Self::new(u32::from(n)) }
 
-  fn from_canonical_u32(n: u32) -> Self { Self::new(u64::from(n)) }
+  fn from_canonical_u32(n: u32) -> Self { Self::new(n) }
 
-  fn from_canonical_u64(n: u64) -> Self { Self::new(n) }
-
-  fn from_canonical_usize(n: usize) -> Self { Self::new(n as u64) }
-
-  fn from_wrapped_u32(n: u32) -> Self {
-    // A u32 must be canonical, plus we don't store canonical encodings anyway, so there's no
-    // need for a reduction.
-    Self::new(u64::from(n))
+  #[inline]
+  fn from_canonical_u64(n: u64) -> Self {
+    debug_assert!(n < PLUTO_FIELD_PRIME as u64);
+    Self::from_canonical_u32(n as u32)
   }
 
-  fn from_wrapped_u64(n: u64) -> Self {
-    // There's no need to reduce `n` to canonical form, as our internal encoding is
-    // non-canonical, so there's no need for a reduction.
-    Self::new(n)
+  #[inline]
+  fn from_canonical_usize(n: usize) -> Self {
+    debug_assert!(n < PLUTO_FIELD_PRIME as usize);
+    Self::from_canonical_u32(n as u32)
   }
+
+  #[inline]
+  fn from_wrapped_u32(n: u32) -> Self { Self { value: n % PLUTO_FIELD_PRIME } }
+
+  #[inline]
+  fn from_wrapped_u64(n: u64) -> Self { Self { value: (n % PLUTO_FIELD_PRIME as u64) as u32 } }
 
   // Sage: GF(2^64 - 2^32 + 1).multiplicative_generator()
+  // TODO: Find a generator for this field
   fn generator() -> Self { Self::new(7) }
 }
-
-impl Hash for PlutoField {
-  fn hash<H: Hasher>(&self, state: &mut H) {
-    state.write_u64(self.value);
-    // state.write_u64(self.as_canonical_u64());
-  }
-}
-
-// impl PrimeField for PlutoField {
-//     fn as_canonical_biguint(&self) -> BigUint {
-//         <Self as PrimeField32>::as_canonical_u32(self).into()
-//     }
-// }
-
-// impl PrimeField64 for PlutoField {
-//     const ORDER_U64: u64 = <Self as PrimeField32>::ORDER_U32 as u64;
-
-//     #[inline]
-//     fn as_canonical_u64(&self) -> u64 {
-//         u64::from(self.as_canonical_u32())
-//     }
-// }
-
-// impl PrimeField32 for PlutoField {
-//     const ORDER_U32: u32 = P;
-
-//     #[inline]
-//     fn as_canonical_u32(&self) -> u32 {
-//         from_monty(self.value)
-//     }
-// }
 
 impl Mul for PlutoField {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self {
-    // reduce128(u128::from(self.value) * u128::from(rhs.value))
-    let mul = self.value * rhs.value;
-    Self::new(mul)
-  }
+  fn mul(self, rhs: Self) -> Self { Self { value: (self.value * rhs.value) % 101 } }
 }
+
+// /// Montgomery reduction of a value in `0..P << MONTY_BITS`.
+// #[inline]
+// #[must_use]
+// pub(crate) const fn monty_reduce(x: u32) -> u32 {
+//     let t = x.wrapping_mul(MONTY_MU) & (MONTY_MASK);
+//     let u = (t * (PLUTO_FIELD_PRIME)) & (MONTY_MASK );
+
+//     let (x_sub_u, over) = x.overflowing_sub(u);
+//     let x_sub_u_hi = (x_sub_u >> MONTY_BITS) as u32;
+//     let corr = if over { PLUTO_FIELD_PRIME } else { 0 };
+//     x_sub_u_hi.wrapping_add(corr)
+// }
 
 impl Product for PlutoField {
   fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
@@ -174,10 +145,7 @@ impl MulAssign for PlutoField {
 impl Neg for PlutoField {
   type Output = Self;
 
-  fn neg(self) -> Self::Output {
-    Self::new(Self::ORDER_U64 - self.value)
-    // Self::new(Self::ORDER_U64 - self.as_canonical_u64())
-  }
+  fn neg(self) -> Self::Output { Self::new(Self::ORDER_U32 - self.value) }
 }
 
 impl Add for PlutoField {
@@ -207,5 +175,64 @@ impl Sub for PlutoField {
     let corr = if over { PLUTO_FIELD_PRIME } else { 0 };
     diff = diff.wrapping_add(corr);
     Self::new(diff)
+  }
+}
+
+// #[inline]
+// #[must_use]
+// const fn to_monty(x: u32) -> u32 {
+//     (((x as u64) << MONTY_BITS) % PLUTO_FIELD_PRIME as u64) as u32
+// }
+
+// #[inline]
+// #[must_use]
+// const fn to_monty_64(x: u64) -> u32 {
+//     (((x as u128) << MONTY_BITS) % PLUTO_FIELD_PRIME as u128) as u32
+// }
+
+mod tests {
+  use super::*;
+
+  type F = PlutoField;
+
+  #[test]
+  fn test_overflowing_add() {
+    let a = PlutoField::new(100);
+    let b = PlutoField::new(20);
+    let c = a + b;
+    assert_eq!(c.value, 19);
+  }
+
+  #[test]
+  fn underflow_sub() {
+    let a = PlutoField::new(10);
+    let b = PlutoField::new(20);
+    let c = a - b;
+    assert_eq!(c.value, 91);
+  }
+
+  #[test]
+  fn overflowing_mul() {
+    let a = PlutoField::new(10);
+    let b = PlutoField::new(20);
+    let c = a * b;
+    println!("c: {:?}", c);
+    assert_eq!(c.value, 99);
+  }
+
+  #[test]
+  fn zero() {
+    let f = F::from_canonical_u32(0);
+    assert!(f.is_zero());
+
+    let f = F::from_wrapped_u32(F::ORDER_U32);
+    assert!(f.is_zero());
+  }
+
+  #[test]
+  fn exp_u64_generic() {
+    let f = F::from_canonical_u32(2);
+    let f = F::exp_u64_generic(f, 3);
+    assert_eq!(f, F::from_canonical_u32(8));
   }
 }
