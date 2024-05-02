@@ -7,3 +7,4 @@
 #![allow(unused_mut)]
 
 pub mod curve;
+pub mod field;
