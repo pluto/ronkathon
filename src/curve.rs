@@ -1,5 +1,4 @@
 use std::ops::Add;
-
 use p3_field::{AbstractField, Field};
 
 /// Elliptic curve in Weierstrass form: y^2 = x^3 + ax + b
@@ -43,7 +42,6 @@ impl<F: Field> CurvePoint<F> {
     assert_eq!(y * y, x * x * x + curve.a * x + curve.b, "Point is not on curve");
     CurvePoint { curve, point: PointOrInfinity::Point(Point { x, y }) }
   }
-
   pub fn negate(&self, p: PointOrInfinity<F>) -> PointOrInfinity<F> {
     match p {
       PointOrInfinity::Point(p) => PointOrInfinity::Point(Point { x: p.x, y: -p.y }),
@@ -52,22 +50,24 @@ impl<F: Field> CurvePoint<F> {
   }
 
   fn add_points(&self, p: Point<F>, q: Point<F>) -> Point<F> {
-    let (x1, y1) = (p.x, p.y);
-    let (x2, y2) = (q.x, q.y);
+    // https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplicationcv
+    let (x_p, y_p) = (p.x, p.y);
+    let (x_q, y_q) = (q.x, q.y);
 
-    if x1 == x2 && y1 == -y2 {
+    // check for zero
+    if x_p == x_q && y_p == -y_q {
       return Point { x: F::zero(), y: F::zero() };
     }
 
-    let m = if x1 == x2 && y1 == y2 {
-      (self.curve.three * x1 * x1 + self.curve.a) / (self.curve.two * y1)
+    // Check if point is itself, if it is you double (which is easier)
+    let lamda = if x_p == x_q && y_p == y_q {
+      (self.three * x_p * x_p + self.a) / (self.two * y_p)
     } else {
-      (y2 - y1) / (x2 - x1)
+      (y_q - y_p) / (x_q - x_p)
     };
 
-    let x = m * m - x1 - x2;
-    let y = m * (x1 - x) - y1;
-
+    let x = lamda * lamda - x_p - x_q;
+    let y = lamda * (x_p - x) - y_p;
     Point { x, y }
   }
 }
