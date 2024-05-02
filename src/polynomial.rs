@@ -1,6 +1,8 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Div};
 
 use p3_field::Field;
+
+// https://people.inf.ethz.ch/gander/papers/changing.pdf
 
 /// A polynomial of degree N-1
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -35,6 +37,7 @@ pub struct Nodes<const N: usize, F: Field>([F; N]);
 
 /// A polynomial in monomial basis
 impl<const N: usize, F: Field> Polynomial<N, Monomial, F> {
+  // TODO check that the polynomial degree divides the field order
   pub fn new(coefficients: [F; N]) -> Self { Self { coefficients, basis: Monomial } }
 
   /// Convert a polynomial from monomial to Lagrange basis using the Barycentric form
@@ -65,6 +68,7 @@ impl<const N: usize, F: Field> Polynomial<N, Monomial, F> {
 
 /// A polynomial in Lagrange basis
 impl<const N: usize, F: Field> Polynomial<N, Lagrange<N, F>, F> {
+  // TODO check that the polynomial degree divides the field order
   pub fn new(coefficients: [F; N], nodes: [F; N]) -> Self {
     let mut weights = [F::one(); N];
     for j in 0..N {
@@ -74,6 +78,7 @@ impl<const N: usize, F: Field> Polynomial<N, Lagrange<N, F>, F> {
         }
       }
     }
+    // l(x) = \Sigmm_{m}(x-x_m)
     let l = move |x: F| {
       let mut val = F::one();
       for i in 0..N {
@@ -81,6 +86,8 @@ impl<const N: usize, F: Field> Polynomial<N, Lagrange<N, F>, F> {
       }
       val
     };
+
+    // L(x) = l(x) * \Sigma_{j=0}^{k}  (w_j / (x - x_j)) y_j
     let L = move |x: F| {
       let mut val = F::zero();
       for j in 0..N {
@@ -97,13 +104,45 @@ impl<const N: usize, F: Field> Polynomial<N, Lagrange<N, F>, F> {
     Self { coefficients, basis }
   }
 
+  pub fn to_monomial(&self) -> Polynomial<N, Monomial, F> {
+    // This is the inverse of the conversion from monomial to Lagrange basis
+    // This uses something called the Vandermonde matrix which is defined as:
+    //
+    //     / 1 | x_0 | x_0^2 | x_0^3 | ... | x_0^(N-1) \
+    //     | 1 | x_1 | x_1^2 | x_1^3 | ... | x_1^(N-1) |
+    //     | 1 | x_2 | x_2^2 | x_2^3 | ... | x_2^(N-1) |
+    // v = | . |  .  |   .   |   .   | ... |    .      |
+    //     | . |  .  |   .   |   .   | ... |    .      |
+    //     | . |  .  |   .   |   .   | ... |    .      |
+    //     \ 1 | x_N | x_N^2 | x_N^3 | ... | x_N^(N-1) /
+    //
+    // where x_i are the nodes of the Lagrange basis
+    //
+    // Then the monomial basis m is given V^T * l = m, where l is the Lagrange basis
+    // because we know the monomial basis we need to compute to monomial coefficients a_m = V^{-1} *
+    // a_l where a_l are the coefficients of the Lagrange basis
+
+    // It also is the case that the the columns of the inverse matrix are the coefficients of the
+    // Lagrange polynomial basis TODO Finish this.
+    // let nodes = self.basis.nodes;
+    // let mut evaluations = [F::zero(); N];
+
+    // // Evaluate the polynomial at N distinct points
+    // for i in 0..N {
+    //     let x = F::primitive_root().exp_u64(i as u64);
+    //     evaluations[i] = self.evaluate(x);
+    // }
+
+    // Polynomial::<N, Monomial, F>::new(evaluations)
+    todo!("Finish this after we get the roots of unity from other PR")
+  }
+
   /// Evaluate the polynomial at field element x
   pub fn evaluate(&self, x: F) -> F {
     let L = &self.basis.L;
     L(x)
   }
 }
-
 mod test {
   use super::*;
   use crate::field::PlutoField;
@@ -159,5 +198,37 @@ mod test {
     // This should panic because the nodes are not distinct
     let nodes = Nodes::<2, PlutoField>([PlutoField::new(1), PlutoField::new(1)]);
     let lagrange = polynomial.to_lagrange(nodes);
+  }
+
+  #[test]
+  fn test_by_hand() {
+    // Coefficients of the polynomial 1 + x + 2x^2
+    let a = PlutoField::new(1);
+    let b = PlutoField::new(1);
+    let c = PlutoField::new(2);
+    let polynomial = Polynomial::<3, Monomial, PlutoField>::new([a, b, c]);
+    println!("monomial coefficients {:?}", polynomial.coefficients);
+
+    // Nodes for the Lagrange basis
+    let nodes =
+      Nodes::<3, PlutoField>([PlutoField::new(1), PlutoField::new(3), PlutoField::new(2)]);
+
+    let lagrange = polynomial.to_lagrange(nodes);
+    println!("lagrange coefficients {:?}", lagrange.coefficients);
+  }
+  #[test]
+  fn lagrange_to_monomial() {
+    let a = PlutoField::new(1);
+    let b = PlutoField::new(2);
+    let c = PlutoField::new(3);
+    let polynomial =
+      Polynomial::<3, Lagrange<3, PlutoField>, PlutoField>::new([a, b, c], [a, b, c]);
+    let lagrange_eval = polynomial.evaluate(PlutoField::new(2));
+    println!("lagrange coefficients {:?}", polynomial.coefficients);
+
+    let monomial = polynomial.to_monomial();
+    println!("monomial coefficients {:?}", monomial.coefficients);
+    let monomial_eval = monomial.evaluate(PlutoField::new(2));
+    assert_eq!(lagrange_eval, monomial_eval);
   }
 }
