@@ -13,7 +13,7 @@ pub struct PlutoField {
 }
 
 impl PlutoField {
-    const ORDER_U64: u64 = PLUTO_FIELD_PRIME;
+    pub const ORDER_U64: u64 = PLUTO_FIELD_PRIME;
 
     pub fn new(value: u64) -> Self {
         Self { value }
@@ -220,7 +220,12 @@ impl Neg for PlutoField {
 impl Add for PlutoField {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
-        Self::new(self.value + rhs.value)
+        let mut sum = self.value + rhs.value;
+        let (corr_sum, over) = sum.overflowing_sub(PLUTO_FIELD_PRIME);
+        if !over {
+            sum = corr_sum;
+        }
+        Self { value: sum }
     } 
 }
 
@@ -234,7 +239,9 @@ impl Sub for PlutoField {
     type Output = Self;
     
     fn sub(self, rhs: Self) -> Self {
-        let diff = self.value-rhs.value;
+        let (mut diff, over) = self.value.overflowing_sub(rhs.value);
+        let corr = if over { PLUTO_FIELD_PRIME } else { 0 };
+        diff = diff.wrapping_add(corr);
         Self::new(diff)
     } 
 }
