@@ -23,6 +23,14 @@ impl PlutoField {
   pub const ORDER_U32: u32 = PLUTO_FIELD_PRIME;
 
   pub fn new(value: u32) -> Self { Self { value } }
+
+  pub fn primitive_root_of_unity(n: u32) -> Self {
+    let p_minus_one = PLUTO_FIELD_PRIME - 1;
+    assert!(p_minus_one % n == 0, "n must divide p - 1");
+    let pow = PlutoField::from_canonical_u32(PLUTO_FIELD_PRIME - 1)
+      * PlutoField::from_canonical_u32(n).inverse();
+    PlutoField::from_canonical_u32(2).exp_u64(pow.value as u64)
+  }
 }
 
 impl fmt::Display for PlutoField {
@@ -302,5 +310,39 @@ mod tests {
     let a = PlutoField::new(0);
     let b = PlutoField::exp_u64_generic(a, 3);
     assert_eq!(b.value, 0);
+  }
+
+  #[should_panic]
+  #[test]
+  fn not_primitive_root_of_unity() {
+    let n = 3;
+    let omega = PlutoField::primitive_root_of_unity(n);
+  }
+
+  #[test]
+  fn primitive_root_of_unity() {
+    let n = 5;
+    let omega = PlutoField::primitive_root_of_unity(n);
+    println!("omega: {:?}", omega);
+    assert_eq!(omega.value, 95);
+    let omega_n = omega.exp_u64(n as u64);
+    for i in 1..n {
+      let omega_i = omega.exp_u64(i as u64);
+      println!("omega^{}: {:?}", i, omega_i);
+      assert_ne!(omega_i.value, 1);
+    }
+    assert_eq!(omega_n.value, 1);
+
+    let n = 25;
+    let omega = PlutoField::primitive_root_of_unity(n);
+    println!("omega: {:?}", omega);
+    assert_eq!(omega.value, 16);
+    for i in 1..n {
+      let omega_i = omega.exp_u64(i as u64);
+      println!("omega^{}: {:?}", i, omega_i);
+      assert_ne!(omega_i.value, 1);
+    }
+    let omega_n = omega.exp_u64(n as u64);
+    assert_eq!(omega_n.value, 1);
   }
 }
