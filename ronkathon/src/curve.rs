@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use p3_field::{AbstractField, Field};
 
 /// Elliptic curve in Weierstrass form: y^2 = x^3 + ax + b
@@ -6,6 +8,11 @@ pub struct Curve<F: Field> {
   pub b: F,
   three: F,
   two:   F,
+}
+
+pub struct CurvePoint<F: Field> {
+  pub curve: Curve<F>,
+  pub point: PointOrInfinity<F>,
 }
 
 #[derive(Clone, Copy)]
@@ -29,22 +36,18 @@ impl<F: Field> Curve<F> {
       two: <F as AbstractField>::from_canonical_u8(2),
     }
   }
+}
+
+impl<F: Field> CurvePoint<F> {
+  pub fn new(curve: Curve<F>, x: F, y: F) -> Self {
+    assert_eq!(y * y, x * x * x + curve.a * x + curve.b, "Point is not on curve");
+    CurvePoint { curve, point: PointOrInfinity::Point(Point { x, y }) }
+  }
 
   pub fn negate(&self, p: PointOrInfinity<F>) -> PointOrInfinity<F> {
     match p {
       PointOrInfinity::Point(p) => PointOrInfinity::Point(Point { x: p.x, y: -p.y }),
       PointOrInfinity::Infinity => PointOrInfinity::Infinity,
-    }
-  }
-
-  pub fn add(&self, p: PointOrInfinity<F>, q: PointOrInfinity<F>) -> PointOrInfinity<F> {
-    match (p, q) {
-      (PointOrInfinity::Infinity, _) => q,
-      (_, PointOrInfinity::Infinity) => p,
-      (PointOrInfinity::Point(p), PointOrInfinity::Point(q)) => {
-        let r = self.add_points(p, q);
-        PointOrInfinity::Point(Point { x: r.x, y: r.y })
-      },
     }
   }
 
@@ -57,7 +60,7 @@ impl<F: Field> Curve<F> {
     }
 
     let m = if x1 == x2 && y1 == y2 {
-      (self.three * x1 * x1 + self.a) / (self.two * y1)
+      (self.curve.three * x1 * x1 + self.curve.a) / (self.curve.two * y1)
     } else {
       (y2 - y1) / (x2 - x1)
     };
@@ -66,5 +69,20 @@ impl<F: Field> Curve<F> {
     let y = m * (x1 - x) - y1;
 
     Point { x, y }
+  }
+}
+
+impl<F: Field> Add for CurvePoint<F> {
+  type Output = CurvePoint<F>;
+
+  fn add(self, other: CurvePoint<F>) -> CurvePoint<F> {
+    match (self.point, other.point) {
+      (PointOrInfinity::Infinity, _) => other,
+      (_, PointOrInfinity::Infinity) => self,
+      (PointOrInfinity::Point(p), PointOrInfinity::Point(q)) => {
+        let r = self.add_points(p, q);
+        CurvePoint { curve: self.curve, point: PointOrInfinity::Point(Point { x: r.x, y: r.y }) }
+      },
+    }
   }
 }
