@@ -3,6 +3,12 @@
 version = 3
 
 [[package]]
+name = "anyhow"
+version = "1.0.82"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f538837af36e6f6a9be0faa67f9a314f8119e4e4b5867c6ab40ed60360142519"
+
+[[package]]
 name = "autocfg"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -78,6 +84,7 @@ dependencies = [
 [[package]]
 name = "p3-field"
 version = "0.1.0"
+source = "git+https://github.com/Plonky3/Plonky3.git#2e274173200ece6254883e7e6eb8bc028574332e"
 dependencies = [
  "itertools",
  "num-bigint",
@@ -90,6 +97,7 @@ dependencies = [
 [[package]]
 name = "p3-util"
 version = "0.1.0"
+source = "git+https://github.com/Plonky3/Plonky3.git#2e274173200ece6254883e7e6eb8bc028574332e"
 dependencies = [
  "serde",
 ]
@@ -152,6 +160,7 @@ dependencies = [
 name = "ronkathon"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "itertools",
  "num-bigint",
  "p3-field",
