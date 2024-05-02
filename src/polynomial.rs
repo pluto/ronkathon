@@ -2,7 +2,6 @@ use std::{collections::HashSet, ops::Div};
 
 use p3_field::Field;
 
-
 // https://people.inf.ethz.ch/gander/papers/changing.pdf
 
 /// A polynomial of degree N-1
@@ -39,7 +38,8 @@ pub struct Nodes<const N: usize, F: Field>([F; N]);
 /// A polynomial in monomial basis
 impl<const N: usize, F: Field> Polynomial<N, Monomial, F> {
   // TODO check that the polynomial degree divides the field order
-  pub fn new(coefficients: [F; N]) -> Self { Self { coefficients, basis: Monomial }}
+  pub fn new(coefficients: [F; N]) -> Self { Self { coefficients, basis: Monomial } }
+
   /// Convert a polynomial from monomial to Lagrange basis using the Barycentric form
   pub fn to_lagrange(&self, nodes: Nodes<N, F>) -> Polynomial<N, Lagrange<N, F>, F> {
     // check that nodes are distinct
@@ -105,7 +105,6 @@ impl<const N: usize, F: Field> Polynomial<N, Lagrange<N, F>, F> {
   }
 
   pub fn to_monomial(&self) -> Polynomial<N, Monomial, F> {
-    //
     // This is the inverse of the conversion from monomial to Lagrange basis
     // This uses something called the Vandermonde matrix which is defined as:
     //
@@ -120,17 +119,17 @@ impl<const N: usize, F: Field> Polynomial<N, Lagrange<N, F>, F> {
     // where x_i are the nodes of the Lagrange basis
     //
     // Then the monomial basis m is given V^T * l = m, where l is the Lagrange basis
-    // because we know the monomial basis we need to compute to monomial coefficients a_m = V^{-1} * a_l
-    // where a_l are the coefficients of the Lagrange basis
+    // because we know the monomial basis we need to compute to monomial coefficients a_m = V^{-1} *
+    // a_l where a_l are the coefficients of the Lagrange basis
 
-    // It also is the case that the the columns of the inverse matrix are the coefficients of the Lagrange polynomial basis
-    // TODO Finish this. 
+    // It also is the case that the the columns of the inverse matrix are the coefficients of the
+    // Lagrange polynomial basis TODO Finish this.
     // let nodes = self.basis.nodes;
     // let mut evaluations = [F::zero(); N];
 
     // // Evaluate the polynomial at N distinct points
     // for i in 0..N {
-    //     let x = F::primitive_root().exp_u64(i as u64); 
+    //     let x = F::primitive_root().exp_u64(i as u64);
     //     evaluations[i] = self.evaluate(x);
     // }
 
