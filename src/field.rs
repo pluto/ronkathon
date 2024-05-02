@@ -23,6 +23,8 @@ impl PlutoField {
   pub const ORDER_U32: u32 = PLUTO_FIELD_PRIME;
 
   pub fn new(value: u32) -> Self { Self { value } }
+
+  pub const fn const_new(value: u32) -> Self { Self { value } }
 }
 
 impl fmt::Display for PlutoField {
