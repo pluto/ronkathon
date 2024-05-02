@@ -1,4 +1,5 @@
 use std::ops::Add;
+
 use p3_field::{AbstractField, Field};
 
 /// Elliptic curve in Weierstrass form: y^2 = x^3 + ax + b
@@ -42,6 +43,7 @@ impl<F: Field> CurvePoint<F> {
     assert_eq!(y * y, x * x * x + curve.a * x + curve.b, "Point is not on curve");
     CurvePoint { curve, point: PointOrInfinity::Point(Point { x, y }) }
   }
+
   pub fn negate(&self, p: PointOrInfinity<F>) -> PointOrInfinity<F> {
     match p {
       PointOrInfinity::Point(p) => PointOrInfinity::Point(Point { x: p.x, y: -p.y }),
@@ -61,7 +63,7 @@ impl<F: Field> CurvePoint<F> {
 
     // Check if point is itself, if it is you double (which is easier)
     let lamda = if x_p == x_q && y_p == y_q {
-      (self.three * x_p * x_p + self.a) / (self.two * y_p)
+      (self.curve.three * x_p * x_p + self.curve.a) / (self.curve.two * y_p)
     } else {
       (y_q - y_p) / (x_q - x_p)
     };
