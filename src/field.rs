@@ -248,12 +248,12 @@ const fn to_monty(val: u32) -> u32 {
 /// reduction, and some bit shifts and masks since R is a power of 2, saving a costly division.
 ///
 /// # Examples
-/// ```
+/// ```ignore
 /// let N = 101;
 /// let a = to_monty(10);
 /// let b = to_monty(20);
 /// let c = from_monty(a * b);
-/// assert_eq(from_monty(c), 99);
+/// assert_eq!(from_monty(c), 99);
 /// ```
 fn from_monty(x: u32) -> u32 {
   let x = x as u64;
@@ -266,7 +266,7 @@ fn from_monty(x: u32) -> u32 {
 
 // β=2^7
 // I=β^2/N
-const INV_APPROX: u32 = (1 << (MONTY_BITS)) / PLUTO_FIELD_PRIME;
+const INV_APPROX: u32 = (1 << (2 * MONTY_BITS)) / PLUTO_FIELD_PRIME;
 
 #[must_use]
 #[inline]
@@ -287,13 +287,14 @@ const INV_APPROX: u32 = (1 << (MONTY_BITS)) / PLUTO_FIELD_PRIME;
 /// - r \in [0, 2P), subtract N if t >= N
 ///
 /// # Examples
-/// ```
+/// ```ignore
 /// let x = 200 * 10;
 /// let res = barret_reduction(x);
+/// assert_eq!(res, x % PLUTO_FIELD_PRIME);
 /// ```
 fn barret_reduction(x: u32) -> u32 {
   assert!(x < (PLUTO_FIELD_PRIME.pow(2)));
-  let q = (x * INV_APPROX) >> (MONTY_BITS); // q = ⌊x*I/β^2⌋
+  let q = (x * INV_APPROX) >> (2 * MONTY_BITS); // q = ⌊x*I/β^2⌋
   let r = x - (q * PLUTO_FIELD_PRIME); // t = x - q*N
   let corr = if r >= PLUTO_FIELD_PRIME { PLUTO_FIELD_PRIME } else { 0 };
   r.wrapping_sub(corr)
