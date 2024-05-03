@@ -1,5 +1,13 @@
 use ronkathon::field::PlutoField;
 
+fn main() {
+  let f = PlutoField::new(1);
+  println!("hello field={:?}", f);
+
+  let g = generator(101);
+  println!("generator={:?}", g);
+}
+
 // algorithm to compute primitive element of field (multiplicative generator)
 fn generator(p: u32) -> i32 {
   let mut fact = Vec::new();
@@ -48,12 +56,4 @@ fn powmod(base: u32, exponent: u32, modulus: u32) -> u32 {
     exponent >>= 1;
   }
   result as u32
-}
-
-fn main() {
-  let f = PlutoField::new(1);
-  println!("hello field={:?}", f);
-
-  let g = generator(101);
-  println!("generator={:?}", g);
 }
