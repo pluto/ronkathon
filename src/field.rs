@@ -7,12 +7,16 @@ use std::fmt;
 
 use num_bigint::BigUint;
 use p3_field::{exp_u64_by_squaring, halve_u32, AbstractField, Field, Packable};
+use rand::{
+  distributions::{Distribution, Standard},
+  Rng,
+};
 use serde::{Deserialize, Serialize};
 
 const PLUTO_FIELD_PRIME: u32 = 101;
-// const MONTY_BITS: u32 = 7;
-// const MONTY_MASK: u32 = (1 << MONTY_BITS) - 1;
-// const MONTY_MU: u32 = 80;
+const MONTY_BITS: u32 = 7;
+const MONTY_MASK: u32 = (1 << MONTY_BITS) - 1;
+const MONTY_MU: u32 = 19; // (-P^-1) mod 2^MONTY_BITS
 
 #[derive(Copy, Clone, Default, Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct PlutoField {
@@ -22,9 +26,9 @@ pub struct PlutoField {
 impl PlutoField {
   pub const ORDER_U32: u32 = PLUTO_FIELD_PRIME;
 
-  pub fn new(value: u32) -> Self { Self { value } }
+  pub fn new(value: u32) -> Self { Self { value: to_monty(value) } }
 
-  pub const fn const_new(value: u32) -> Self { Self { value } }
+  pub const fn const_new(value: u32) -> Self { Self { value: to_monty(value) } }
 
   // In any field of prime order F_p:
   // - There exists an additive group.
@@ -38,9 +42,8 @@ impl PlutoField {
   pub fn primitive_root_of_unity(n: u32) -> Self {
     let p_minus_one = PLUTO_FIELD_PRIME - 1;
     assert!(p_minus_one % n == 0, "n must divide p - 1");
-    let pow =
-      PlutoField::from_canonical_u32(p_minus_one) * PlutoField::from_canonical_u32(n).inverse();
-    PlutoField::from_canonical_u32(2).exp_u64(pow.value as u64)
+    let pow = p_minus_one / n;
+    Self::generator().exp_u64(pow as u64)
   }
 }
 
@@ -72,22 +75,22 @@ impl Field for PlutoField {
       return None;
     }
     let exponent = PLUTO_FIELD_PRIME - 2; // p - 2
-    let mut result = 1;
-    let mut base = self.value;
+    let mut result = Self::one();
+    let mut base = *self;
     let mut power = exponent;
 
     while power > 0 {
       if power & 1 == 1 {
-        result = result * base % PLUTO_FIELD_PRIME;
+        result *= base;
       }
-      base = base * base % PLUTO_FIELD_PRIME;
+      base = base.square();
       power >>= 1;
     }
-    Some(Self { value: result })
+    Some(result)
   }
 
   #[inline]
-  fn halve(&self) -> Self { PlutoField::new(halve_u32::<PLUTO_FIELD_PRIME>(self.value)) }
+  fn halve(&self) -> Self { Self { value: halve_u32::<PLUTO_FIELD_PRIME>(self.value) } }
 
   #[inline]
   fn order() -> BigUint { PLUTO_FIELD_PRIME.into() }
@@ -128,10 +131,12 @@ impl AbstractField for PlutoField {
   }
 
   #[inline]
-  fn from_wrapped_u32(n: u32) -> Self { Self { value: n % PLUTO_FIELD_PRIME } }
+  fn from_wrapped_u32(n: u32) -> Self { Self::new(n % PLUTO_FIELD_PRIME) }
 
   #[inline]
-  fn from_wrapped_u64(n: u64) -> Self { Self { value: (n % PLUTO_FIELD_PRIME as u64) as u32 } }
+  fn from_wrapped_u64(n: u64) -> Self {
+    Self { value: to_monty((n % PLUTO_FIELD_PRIME as u64) as u32) }
+  }
 
   // generator for multiplicative subgroup of the field
   fn generator() -> Self { Self::new(2) }
@@ -140,7 +145,20 @@ impl AbstractField for PlutoField {
 impl Mul for PlutoField {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self { Self { value: (self.value * rhs.value) % 101 } }
+  fn mul(self, rhs: Self) -> Self { Self { value: from_monty(self.value * rhs.value) } }
+}
+
+impl Distribution<PlutoField> for Standard {
+  #[inline]
+  fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PlutoField {
+    loop {
+      let next_u31 = rng.next_u32() >> 4;
+      let is_canonical = next_u31 < PLUTO_FIELD_PRIME;
+      if is_canonical {
+        return PlutoField { value: next_u31 };
+      }
+    }
+  }
 }
 
 impl Product for PlutoField {
@@ -164,7 +182,7 @@ impl MulAssign for PlutoField {
 impl Neg for PlutoField {
   type Output = Self;
 
-  fn neg(self) -> Self::Output { Self::new(Self::ORDER_U32 - self.value) }
+  fn neg(self) -> Self::Output { Self::zero() - self }
 }
 
 impl Add for PlutoField {
@@ -193,37 +211,62 @@ impl Sub for PlutoField {
     let (mut diff, over) = self.value.overflowing_sub(rhs.value);
     let corr = if over { PLUTO_FIELD_PRIME } else { 0 };
     diff = diff.wrapping_add(corr);
-    Self::new(diff)
+    Self { value: diff }
   }
 }
+
+#[must_use]
+#[inline]
+const fn to_monty(val: u32) -> u32 {
+  (((val as u64) << MONTY_BITS) % PLUTO_FIELD_PRIME as u64) as u32
+}
+
+#[must_use]
+#[inline]
+/// Computes x*R^{-1} mod N
+fn from_monty(x: u32) -> u32 {
+  let x = x as u64;
+  let m = x.wrapping_mul(MONTY_MU as u64) & (MONTY_MASK as u64); // ab*N' % R
+  let u = m * (PLUTO_FIELD_PRIME as u64); // m*P
+  let t = ((x + u) >> MONTY_BITS) as u32; // ab+mP / R
+  let corr = if t >= PLUTO_FIELD_PRIME { PLUTO_FIELD_PRIME } else { 0 };
+  t.wrapping_sub(corr)
+}
+
 mod tests {
+  use rand::Rng;
+
   use super::*;
 
   type F = PlutoField;
 
   #[test]
   fn test_overflowing_add() {
-    let a = PlutoField::new(100);
-    let b = PlutoField::new(20);
+    let a = F::new(100);
+    let b = F::new(20);
     let c = a + b;
-    assert_eq!(c.value, 19);
+    assert_eq!(c, F::new(19));
   }
 
   #[test]
   fn underflow_sub() {
-    let a = PlutoField::new(10);
-    let b = PlutoField::new(20);
+    let a = F::new(10);
+    let b = F::new(20);
     let c = a - b;
-    assert_eq!(c.value, 91);
+    assert_eq!(c, F::new(91));
+  }
+
+  fn halve() {
+    let a = F::new(10);
+    assert_eq!(a, a.halve() * F::two());
   }
 
   #[test]
   fn overflowing_mul() {
-    let a = PlutoField::new(10);
-    let b = PlutoField::new(20);
+    let a = F::new(10);
+    let b = F::new(20);
     let c = a * b;
-    println!("c: {:?}", c);
-    assert_eq!(c.value, 99);
+    assert_eq!(c, F::new(99));
   }
 
   #[test]
@@ -239,7 +282,7 @@ mod tests {
   fn exp_u64_generic() {
     let f = F::from_canonical_u32(2);
     let f = F::exp_u64_generic(f, 3);
-    assert_eq!(f, F::from_canonical_u32(8));
+    assert_eq!(f, F::new(8));
   }
 
   #[test]
@@ -247,10 +290,33 @@ mod tests {
     let a = PlutoField::new(50);
     let b = PlutoField::new(60);
     let c = a + b;
-    assert_eq!(c.value, 9); // (50 + 60) % 101 = 9
+    assert_eq!(c, F::new(9)); // (50 + 60) % 101 = 9
 
     let d = c - a;
-    assert_eq!(d.value, 60); // (9 - 50) % 101 = 60
+    assert_eq!(d, F::new(60)); // (9 - 50) % 101 = 60
+  }
+
+  #[test]
+  fn test_add_sub_neg_mul() {
+    let mut rng = rand::thread_rng();
+    // for i in 0..1000 {
+    let x = rng.gen::<F>();
+    let y = rng.gen::<F>();
+    let z = rng.gen::<F>();
+    assert_eq!(x + (-x), F::zero());
+    assert_eq!(-x, F::zero() - x);
+    assert_eq!(x + x, x * F::two());
+    assert_eq!(x, x.halve() * F::two());
+    assert_eq!(x * (-x), -x.square());
+    assert_eq!(x + y, y + x);
+    assert_eq!(x * y, y * x);
+    assert_eq!(x * (y * z), (x * y) * z);
+    assert_eq!(x - (y + z), (x - y) - z);
+    assert_eq!((x + y) - z, x + (y - z));
+    assert_eq!(x * (y + z), x * y + x * z);
+    assert_eq!(x + y + z + x + y + z, [x, x, y, y, z, z].iter().cloned().sum());
+
+    // }
   }
 
   #[test]
@@ -258,7 +324,7 @@ mod tests {
     let a = PlutoField::new(10);
     let a_inv = a.inverse();
     let should_be_one = a * a_inv;
-    assert_eq!(should_be_one.value, 1);
+    assert_eq!(should_be_one, F::new(1));
   }
 
   #[test]
@@ -289,7 +355,7 @@ mod tests {
     let a = PlutoField::new(10);
     let a_inv = a.inverse();
     let a_inv_inv = a_inv.inverse();
-    assert_eq!(a_inv_inv.value, a.value);
+    assert_eq!(a_inv_inv, a);
   }
 
   #[test]
@@ -334,25 +400,25 @@ mod tests {
     let n = 5;
     let omega = PlutoField::primitive_root_of_unity(n);
     println!("omega: {:?}", omega);
-    assert_eq!(omega.value, 95);
+    assert_eq!(omega, F::new(95));
     let omega_n = omega.exp_u64(n as u64);
     for i in 1..n {
       let omega_i = omega.exp_u64(i as u64);
       println!("omega^{}: {:?}", i, omega_i);
-      assert_ne!(omega_i.value, 1);
+      assert_ne!(omega_i, F::new(1));
     }
-    assert_eq!(omega_n.value, 1);
+    assert_eq!(omega_n, F::new(1));
 
     let n = 25;
     let omega = PlutoField::primitive_root_of_unity(n);
     println!("omega: {:?}", omega);
-    assert_eq!(omega.value, 16);
+    assert_eq!(omega, F::new(16));
     for i in 1..n {
       let omega_i = omega.exp_u64(i as u64);
       println!("omega^{}: {:?}", i, omega_i);
-      assert_ne!(omega_i.value, 1);
+      assert_ne!(omega_i, F::new(1));
     }
     let omega_n = omega.exp_u64(n as u64);
-    assert_eq!(omega_n.value, 1);
+    assert_eq!(omega_n, F::new(1));
   }
 }
