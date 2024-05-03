@@ -28,11 +28,11 @@ pub fn setup(d: u64) -> (Vec<G1Affine>, Vec<G2Affine>) {
   let mut srs_g2_points: Vec<G2Affine> = vec![];
   for i in 1..d + 1 {
     // G1 Group
-    let result = G1Projective::from(G1Affine::generator()) * tau.pow(&[i as u64]);
+    let result = G1Projective::from(G1Affine::generator()) * tau.pow([i]);
     srs_g1_points.push(result.into_affine());
 
     // G2 Group
-    let result = G2Projective::from(G2Affine::generator()) * tau.pow(&[i as u64]);
+    let result = G2Projective::from(G2Affine::generator()) * tau.pow([i]);
     srs_g2_points.push(result.into_affine());
   }
 
@@ -82,22 +82,22 @@ pub fn check(
 ) -> bool {
   use ark_ec::pairing::Pairing;
 
-  let g1 = *g1_srs.get(0).expect("has g1 srs");
-  let g2 = *g2_srs.get(0).expect("has g2 srs");
+  let g1 = *g1_srs.first().expect("has g1 srs");
+  let g2 = *g2_srs.first().expect("has g2 srs");
 
   let lhs = Bn254::pairing(q, g2.into_group() - G2Affine::generator().mul(point));
   let rhs = Bn254::pairing(p.into_group() - g1.mul(value), G2Affine::generator());
 
-  return lhs == rhs;
+  lhs == rhs
 }
 
 pub fn evaluate(coefs: Vec<Fr>, point: Fr) -> Fr {
   coefs
     .iter()
-    .zip(0..coefs.len())
+    .enumerate()
     .map(|x| {
-      let exp = x.1 as u64;
-      x.0 * &point.pow(&[exp])
+      let exp = x.0 as u64;
+      x.1 * &point.pow([exp])
     })
     .reduce(|x, y| x + y)
     .unwrap()
