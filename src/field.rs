@@ -233,6 +233,21 @@ fn from_monty(x: u32) -> u32 {
   t.wrapping_sub(corr)
 }
 
+// β=2^7
+// I=β^2/N
+const INV_APPROX: u32 = (1 << (2 * MONTY_BITS)) / PLUTO_FIELD_PRIME;
+
+#[must_use]
+#[inline]
+// Adapted from [Algorithm 1](https://hackmd.io/@chaosma/SyAvcYFxh)
+fn barret_reduction(x: u32) -> u32 {
+  assert!(x < (PLUTO_FIELD_PRIME.pow(2)));
+  let q = (x * INV_APPROX) >> (MONTY_BITS * 2); // q = ⌊x*I/β^2⌋
+  let t = x - (q * PLUTO_FIELD_PRIME); // t = x - q*N
+  let corr = if t >= PLUTO_FIELD_PRIME { PLUTO_FIELD_PRIME } else { 0 };
+  t.wrapping_sub(corr)
+}
+
 mod tests {
   use rand::Rng;
 
@@ -267,6 +282,13 @@ mod tests {
     let b = F::new(20);
     let c = a * b;
     assert_eq!(c, F::new(99));
+  }
+
+  #[test]
+  fn test_barret_reduction() {
+    let x = 200 * 10;
+    let res = barret_reduction(x);
+    assert_eq!(res, x % PLUTO_FIELD_PRIME);
   }
 
   #[test]
