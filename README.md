@@ -15,6 +15,11 @@
   <!-- [![Documentation](https://docs.rs/ronkathon/badge.svg)](https://docs.rs/ronkathon) -->
   </div>
 
+## Math
+To see computations used in the background, go to the `math/` directory.
+From there, you can run the `.sage` files in a SageMath environment.
+In particular, the `math/field.sage` computes roots of unity in the `PlutoField` which is of size 101.
+
 ## License
 Licensed under your option of either:
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
