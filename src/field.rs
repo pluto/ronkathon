@@ -14,9 +14,12 @@ use rand::{
 use serde::{Deserialize, Serialize};
 
 const PLUTO_FIELD_PRIME: u32 = 101;
+// value chosen such that 2^k is closest power of two from modulus
 const MONTY_BITS: u32 = 7;
+// mask used in (mod R) operation for montgomery reduciton
 const MONTY_MASK: u32 = (1 << MONTY_BITS) - 1;
-const MONTY_MU: u32 = 19; // (-P^-1) mod 2^MONTY_BITS
+// (-P^-1) mod 2^MONTY_BITS
+const MONTY_MU: u32 = 19;
 
 #[derive(Copy, Clone, Default, Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct PlutoField {
@@ -217,39 +220,87 @@ impl Sub for PlutoField {
 
 #[must_use]
 #[inline]
+/// Converts a number to montgomery form: \bar{x} := x * R mod N.
+/// R is chosen such that gcd(R, N) = 1, usually nearest 2^k to N.
+///
+/// Arithmetic in finite fields involves mod N operation which involves
+/// division, a very costly operation as compared to other arithmetic operations.
+/// But, division by 2^k only involves shifting right by `k` bits. Aim of montgomery
+/// form is to make resulting number divisible by 2^k.
 const fn to_monty(val: u32) -> u32 {
   (((val as u64) << MONTY_BITS) % PLUTO_FIELD_PRIME as u64) as u32
 }
 
 #[must_use]
 #[inline]
-/// Computes x*R^{-1} mod N
+/// Computes x*R^{-1} mod N.
+/// Assumes: `x` is in montgomery form
+///
+/// Add such a multiple `m` of `N` such that `x` is divisible by `R` implies (x + mN) % R^{-1} = 0.
+/// So, m = x*(-N)^{-1} % R satisfies above relation. Precompute N' = (-N)^{-1} mod R.
+/// - Precompute: N' = (-N)^{-1}
+/// - m = x*N' mod R (1 mult)
+/// - u = m*N (1 mult)
+/// - t = x+u mod R
+/// - t \in [0, 2P), subtract N if t >= N
+///
+/// Montgomery arithmetic allows to perform modular multiplication in 3 mults, 2 mults per
+/// reduction, and some bit shifts and masks since R is a power of 2, saving a costly division.
+///
+/// # Examples
+/// ```
+/// let N = 101;
+/// let a = to_monty(10);
+/// let b = to_monty(20);
+/// let c = from_monty(a * b);
+/// assert_eq(from_monty(c), 99);
+/// ```
 fn from_monty(x: u32) -> u32 {
   let x = x as u64;
-  let m = x.wrapping_mul(MONTY_MU as u64) & (MONTY_MASK as u64); // ab*N' % R
+  let m = x.wrapping_mul(MONTY_MU as u64) & (MONTY_MASK as u64); // x*N' % R
   let u = m * (PLUTO_FIELD_PRIME as u64); // m*P
-  let t = ((x + u) >> MONTY_BITS) as u32; // ab+mP / R
+  let t = ((x + u) >> MONTY_BITS) as u32; // x+mP / R
   let corr = if t >= PLUTO_FIELD_PRIME { PLUTO_FIELD_PRIME } else { 0 };
   t.wrapping_sub(corr)
 }
 
 // β=2^7
 // I=β^2/N
-const INV_APPROX: u32 = (1 << (2 * MONTY_BITS)) / PLUTO_FIELD_PRIME;
+const INV_APPROX: u32 = (1 << (MONTY_BITS)) / PLUTO_FIELD_PRIME;
 
 #[must_use]
 #[inline]
-// Adapted from [Algorithm 1](https://hackmd.io/@chaosma/SyAvcYFxh)
+/// Adapted from [Algorithm 1](https://hackmd.io/@chaosma/SyAvcYFxh).
+///
+/// Computes x mod N using barret reduction method. Assumes x < N^2.
+/// Modular reduction involves division by N, barret's method approximates
+/// value of 1/N with m/2^k so that costly division operation is substituted with
+/// bit shifts. 2^2k is used because x < n*n < 2^k * 2^k. This allows to approximate
+/// value of q closer to x/n.
+///
+/// x = q*N + r => r = x-qN => q = x/N => approximate q as ⌊m/2^2k⌋ => approximate m as ⌊2^2k/N⌋
+///
+/// - Precompute: I = ⌊2^{2k}/N⌋. floor is used as approximation function, implicitly used in
+///   division
+/// - q = x*I / 2^2k. divide by 2^{2k} again to approximate a value closer to 1/N
+/// - r = x-qN
+/// - r \in [0, 2P), subtract N if t >= N
+///
+/// # Examples
+/// ```
+/// let x = 200 * 10;
+/// let res = barret_reduction(x);
+/// ```
 fn barret_reduction(x: u32) -> u32 {
   assert!(x < (PLUTO_FIELD_PRIME.pow(2)));
-  let q = (x * INV_APPROX) >> (MONTY_BITS * 2); // q = ⌊x*I/β^2⌋
-  let t = x - (q * PLUTO_FIELD_PRIME); // t = x - q*N
-  let corr = if t >= PLUTO_FIELD_PRIME { PLUTO_FIELD_PRIME } else { 0 };
-  t.wrapping_sub(corr)
+  let q = (x * INV_APPROX) >> (MONTY_BITS); // q = ⌊x*I/β^2⌋
+  let r = x - (q * PLUTO_FIELD_PRIME); // t = x - q*N
+  let corr = if r >= PLUTO_FIELD_PRIME { PLUTO_FIELD_PRIME } else { 0 };
+  r.wrapping_sub(corr)
 }
 
 mod tests {
-  use rand::Rng;
+  use rand::{thread_rng, Rng};
 
   use super::*;
 
