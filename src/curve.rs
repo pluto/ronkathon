@@ -1,4 +1,7 @@
-use std::{fmt, ops::Add};
+use std::{
+  fmt,
+  ops::{Add, Neg},
+};
 
 use p3_field::{AbstractField, Field};
 
@@ -14,7 +17,7 @@ pub struct Curve<F: Field> {
 
 pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord {
   /// Integer field element type
-  type FieldElement: Field;
+  type FieldElement: Field + Neg;
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
   const ORDER: u32;
   /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
@@ -56,26 +59,23 @@ impl CurveParams for C101 {
 
 /// An Affine Coordinate Point on a Weierstrass elliptic curve
 #[derive(Clone, Debug, Copy)]
-pub struct AffinePoint<C: CurveParams> {
-  x:     C::FieldElement,
-  y:     C::FieldElement,
-  /// is the point the point at infinity
-  infty: bool,
+pub enum AffinePoint<C: CurveParams> {
+  XY(C::FieldElement, C::FieldElement),
+  Infty,
 }
 
 impl<C: CurveParams> AffinePoint<C> {
   pub fn new(x: C::FieldElement, y: C::FieldElement) -> Self {
     assert_eq!(y * y, x * x * x + C::EQUATION_A * x + C::EQUATION_B, "Point is not on curve");
-    Self { x, y, infty: false }
+    Self::XY(x, y)
   }
 
-  pub fn new_infty() -> Self {
-    Self { x: C::FieldElement::zero(), y: C::FieldElement::zero(), infty: true }
-  }
+  pub fn new_infty() -> Self { Self::Infty }
 
   pub fn negate(&mut self) {
-    if !self.infty {
-      self.y = -self.y;
+    match self {
+      Self::XY(_x, ref mut y) => *y = -*y,
+      Self::Infty => (),
     }
   }
 }
@@ -85,24 +85,32 @@ impl<C: CurveParams> Add for AffinePoint<C> {
 
   fn add(self, rhs: Self) -> Self::Output {
     // infty checks
-    if self.infty {
-      return rhs;
+    match (self, rhs) {
+      (AffinePoint::Infty, _) => return rhs,
+      (_, AffinePoint::Infty) => return self,
+
+      _ => (),
     }
-    if rhs.infty {
-      return self;
-    }
-    if self.x == rhs.x && self.y == -rhs.y {
+    let (x1, y1) = match self {
+      AffinePoint::XY(x, y) => (x, y),
+      AffinePoint::Infty => unreachable!(),
+    };
+    let (x2, y2) = match rhs {
+      AffinePoint::XY(x, y) => (x, y),
+      AffinePoint::Infty => unreachable!(),
+    };
+    if x1 == x2 && y1 == -y2 {
       return AffinePoint::new_infty();
     }
     // compute new point using elliptic curve point group law
     // https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication
-    let lambda = if self.x == rhs.x && self.y == rhs.y {
-      (C::THREE * self.x * self.x + C::EQUATION_A) / (C::TWO * self.y)
+    let lambda = if x1 == x2 && y1 == y2 {
+      (C::THREE * x1 * x1 + C::EQUATION_A) / (C::TWO * y1)
     } else {
-      (rhs.y - self.y) / (rhs.x - self.x)
+      (y2 - y1) / (x2 - x1)
     };
-    let x = lambda * lambda - self.x - rhs.x;
-    let y = lambda * (self.x - x) - self.y;
+    let x = lambda * lambda - x1 - x2;
+    let y = lambda * (x1 - x) - y1;
     AffinePoint::new(x, y)
   }
 }
