@@ -1,12 +1,11 @@
 use ronkathon::field::PlutoField;
 
-fn main() {
-  let f = PlutoField::new(1);
-  println!("hello field={:?}", f);
-
-  let g = generator(101);
-  println!("generator={:?}", g);
-}
+// Tasks:
+// - Basic curve point sampling. Do it for arkworks real quick
+// - Construct simple trusted setup generation algorithm?
+// - Generator Algorithm for curve group
+// - Create and open a KZG commitment (depends on polynomial library)?
+//
 
 // algorithm to compute primitive element of field (multiplicative generator)
 fn generator(p: u32) -> i32 {
@@ -56,4 +55,12 @@ fn powmod(base: u32, exponent: u32, modulus: u32) -> u32 {
     exponent >>= 1;
   }
   result as u32
+}
+
+fn main() {
+  let f = PlutoField::new(1);
+  println!("hello field={:?}", f);
+
+  let g = generator(101);
+  println!("generator={:?}", g);
 }
