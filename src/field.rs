@@ -196,7 +196,6 @@ impl Sub for PlutoField {
     Self::new(diff)
   }
 }
-
 mod tests {
   use super::*;
 
