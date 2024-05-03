@@ -1,12 +1,5 @@
 use ronkathon::field::PlutoField;
 
-// Tasks:
-// - Basic curve point sampling. Do it for arkworks real quick
-// - Construct simple trusted setup generation algorithm?
-// - Generator Algorithm for curve group
-// - Create and open a KZG commitment (depends on polynomial library)?
-//
-
 // algorithm to compute primitive element of field (multiplicative generator)
 fn generator(p: u32) -> i32 {
   let mut fact = Vec::new();
