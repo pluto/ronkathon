@@ -164,6 +164,7 @@ dependencies = [
  "itertools",
  "num-bigint",
  "p3-field",
+ "rand",
  "serde",
 ]
 
