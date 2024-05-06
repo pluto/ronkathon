@@ -7,12 +7,19 @@ use std::fmt;
 
 use num_bigint::BigUint;
 use p3_field::{exp_u64_by_squaring, halve_u32, AbstractField, Field, Packable};
+use rand::{
+  distributions::{Distribution, Standard},
+  Rng,
+};
 use serde::{Deserialize, Serialize};
 
 const PLUTO_FIELD_PRIME: u32 = 101;
-// const MONTY_BITS: u32 = 7;
-// const MONTY_MASK: u32 = (1 << MONTY_BITS) - 1;
-// const MONTY_MU: u32 = 80;
+// value chosen such that 2^k is closest power of two from modulus
+const MONTY_BITS: u32 = 7;
+// mask used in (mod R) operation for montgomery reduciton
+const MONTY_MASK: u32 = (1 << MONTY_BITS) - 1;
+// (-P^-1) mod 2^MONTY_BITS
+const MONTY_MU: u32 = 19;
 
 #[derive(Copy, Clone, Default, Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct PlutoField {
@@ -22,9 +29,9 @@ pub struct PlutoField {
 impl PlutoField {
   pub const ORDER_U32: u32 = PLUTO_FIELD_PRIME;
 
-  pub fn new(value: u32) -> Self { Self { value } }
+  pub fn new(value: u32) -> Self { Self { value: to_monty(value) } }
 
-  pub const fn const_new(value: u32) -> Self { Self { value } }
+  pub const fn const_new(value: u32) -> Self { Self { value: to_monty(value) } }
 
   // In any field of prime order F_p:
   // - There exists an additive group.
@@ -38,9 +45,8 @@ impl PlutoField {
   pub fn primitive_root_of_unity(n: u32) -> Self {
     let p_minus_one = PLUTO_FIELD_PRIME - 1;
     assert!(p_minus_one % n == 0, "n must divide p - 1");
-    let pow =
-      PlutoField::from_canonical_u32(p_minus_one) * PlutoField::from_canonical_u32(n).inverse();
-    PlutoField::from_canonical_u32(2).exp_u64(pow.value as u64)
+    let pow = p_minus_one / n;
+    Self::generator().exp_u64(pow as u64)
   }
 }
 
@@ -72,22 +78,22 @@ impl Field for PlutoField {
       return None;
     }
     let exponent = PLUTO_FIELD_PRIME - 2; // p - 2
-    let mut result = 1;
-    let mut base = self.value;
+    let mut result = Self::one();
+    let mut base = *self;
     let mut power = exponent;
 
     while power > 0 {
       if power & 1 == 1 {
-        result = result * base % PLUTO_FIELD_PRIME;
+        result *= base;
       }
-      base = base * base % PLUTO_FIELD_PRIME;
+      base = base.square();
       power >>= 1;
     }
-    Some(Self { value: result })
+    Some(result)
   }
 
   #[inline]
-  fn halve(&self) -> Self { PlutoField::new(halve_u32::<PLUTO_FIELD_PRIME>(self.value)) }
+  fn halve(&self) -> Self { Self { value: halve_u32::<PLUTO_FIELD_PRIME>(self.value) } }
 
   #[inline]
   fn order() -> BigUint { PLUTO_FIELD_PRIME.into() }
@@ -128,10 +134,12 @@ impl AbstractField for PlutoField {
   }
 
   #[inline]
-  fn from_wrapped_u32(n: u32) -> Self { Self { value: n % PLUTO_FIELD_PRIME } }
+  fn from_wrapped_u32(n: u32) -> Self { Self::new(n % PLUTO_FIELD_PRIME) }
 
   #[inline]
-  fn from_wrapped_u64(n: u64) -> Self { Self { value: (n % PLUTO_FIELD_PRIME as u64) as u32 } }
+  fn from_wrapped_u64(n: u64) -> Self {
+    Self { value: to_monty((n % PLUTO_FIELD_PRIME as u64) as u32) }
+  }
 
   // generator for multiplicative subgroup of the field
   fn generator() -> Self { Self::new(2) }
@@ -140,7 +148,20 @@ impl AbstractField for PlutoField {
 impl Mul for PlutoField {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self { Self { value: (self.value * rhs.value) % 101 } }
+  fn mul(self, rhs: Self) -> Self { Self { value: from_monty(self.value * rhs.value) } }
+}
+
+impl Distribution<PlutoField> for Standard {
+  #[inline]
+  fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PlutoField {
+    loop {
+      let next_u31 = rng.next_u32() >> 4;
+      let is_canonical = next_u31 < PLUTO_FIELD_PRIME;
+      if is_canonical {
+        return PlutoField { value: next_u31 };
+      }
+    }
+  }
 }
 
 impl Product for PlutoField {
@@ -164,7 +185,7 @@ impl MulAssign for PlutoField {
 impl Neg for PlutoField {
   type Output = Self;
 
-  fn neg(self) -> Self::Output { Self::new(Self::ORDER_U32 - self.value) }
+  fn neg(self) -> Self::Output { Self::zero() - self }
 }
 
 impl Add for PlutoField {
@@ -193,37 +214,133 @@ impl Sub for PlutoField {
     let (mut diff, over) = self.value.overflowing_sub(rhs.value);
     let corr = if over { PLUTO_FIELD_PRIME } else { 0 };
     diff = diff.wrapping_add(corr);
-    Self::new(diff)
+    Self { value: diff }
   }
 }
+
+#[must_use]
+#[inline]
+/// Converts a number to montgomery form: \bar{x} := x * R mod N.
+/// R is chosen such that gcd(R, N) = 1, usually nearest 2^k to N.
+///
+/// Arithmetic in finite fields involves mod N operation which involves
+/// division, a very costly operation as compared to other arithmetic operations.
+/// But, division by 2^k only involves shifting right by `k` bits. Aim of montgomery
+/// form is to make resulting number divisible by 2^k.
+const fn to_monty(val: u32) -> u32 {
+  (((val as u64) << MONTY_BITS) % PLUTO_FIELD_PRIME as u64) as u32
+}
+
+#[must_use]
+#[inline]
+/// Computes x*R^{-1} mod N.
+/// Assumes: `x` is in montgomery form
+///
+/// Add such a multiple `m` of `N` such that `x` is divisible by `R` implies (x + mN) % R^{-1} = 0.
+/// So, m = x*(-N)^{-1} % R satisfies above relation. Precompute N' = (-N)^{-1} mod R.
+/// - Precompute: N' = (-N)^{-1}
+/// - m = x*N' mod R (1 mult)
+/// - u = m*N (1 mult)
+/// - t = x+u mod R
+/// - t \in [0, 2P), subtract N if t >= N
+///
+/// Montgomery arithmetic allows to perform modular multiplication in 3 mults, 2 mults per
+/// reduction, and some bit shifts and masks since R is a power of 2, saving a costly division.
+///
+/// # Examples
+/// ```ignore
+/// let N = 101;
+/// let a = to_monty(10);
+/// let b = to_monty(20);
+/// let c = from_monty(a * b);
+/// assert_eq!(from_monty(c), 99);
+/// ```
+fn from_monty(x: u32) -> u32 {
+  let x = x as u64;
+  let m = x.wrapping_mul(MONTY_MU as u64) & (MONTY_MASK as u64); // x*N' % R
+  let u = m * (PLUTO_FIELD_PRIME as u64); // m*P
+  let t = ((x + u) >> MONTY_BITS) as u32; // x+mP / R
+  let corr = if t >= PLUTO_FIELD_PRIME { PLUTO_FIELD_PRIME } else { 0 };
+  t.wrapping_sub(corr)
+}
+
+// β=2^7
+// I=β^2/N
+const INV_APPROX: u32 = (1 << (2 * MONTY_BITS)) / PLUTO_FIELD_PRIME;
+
+#[must_use]
+#[inline]
+/// Adapted from [Algorithm 1](https://hackmd.io/@chaosma/SyAvcYFxh).
+///
+/// Computes x mod N using barret reduction method. Assumes x < N^2.
+/// Modular reduction involves division by N, barret's method approximates
+/// value of 1/N with m/2^k so that costly division operation is substituted with
+/// bit shifts. 2^2k is used because x < n*n < 2^k * 2^k. This allows to approximate
+/// value of q closer to x/n.
+///
+/// x = q*N + r => r = x-qN => q = x/N => approximate q as ⌊m/2^2k⌋ => approximate m as ⌊2^2k/N⌋
+///
+/// - Precompute: I = ⌊2^{2k}/N⌋. floor is used as approximation function, implicitly used in
+///   division
+/// - q = x*I / 2^2k. divide by 2^{2k} again to approximate a value closer to 1/N
+/// - r = x-qN
+/// - r \in [0, 2P), subtract N if t >= N
+///
+/// # Examples
+/// ```ignore
+/// let x = 200 * 10;
+/// let res = barret_reduction(x);
+/// assert_eq!(res, x % PLUTO_FIELD_PRIME);
+/// ```
+fn barret_reduction(x: u32) -> u32 {
+  assert!(x < (PLUTO_FIELD_PRIME.pow(2)));
+  let q = (x * INV_APPROX) >> (2 * MONTY_BITS); // q = ⌊x*I/β^2⌋
+  let r = x - (q * PLUTO_FIELD_PRIME); // t = x - q*N
+  let corr = if r >= PLUTO_FIELD_PRIME { PLUTO_FIELD_PRIME } else { 0 };
+  r.wrapping_sub(corr)
+}
+
 mod tests {
+  use rand::{thread_rng, Rng};
+
   use super::*;
 
   type F = PlutoField;
 
   #[test]
   fn test_overflowing_add() {
-    let a = PlutoField::new(100);
-    let b = PlutoField::new(20);
+    let a = F::new(100);
+    let b = F::new(20);
     let c = a + b;
-    assert_eq!(c.value, 19);
+    assert_eq!(c, F::new(19));
   }
 
   #[test]
   fn underflow_sub() {
-    let a = PlutoField::new(10);
-    let b = PlutoField::new(20);
+    let a = F::new(10);
+    let b = F::new(20);
     let c = a - b;
-    assert_eq!(c.value, 91);
+    assert_eq!(c, F::new(91));
+  }
+
+  fn halve() {
+    let a = F::new(10);
+    assert_eq!(a, a.halve() * F::two());
   }
 
   #[test]
   fn overflowing_mul() {
-    let a = PlutoField::new(10);
-    let b = PlutoField::new(20);
+    let a = F::new(10);
+    let b = F::new(20);
     let c = a * b;
-    println!("c: {:?}", c);
-    assert_eq!(c.value, 99);
+    assert_eq!(c, F::new(99));
+  }
+
+  #[test]
+  fn test_barret_reduction() {
+    let x = 200 * 10;
+    let res = barret_reduction(x);
+    assert_eq!(res, x % PLUTO_FIELD_PRIME);
   }
 
   #[test]
@@ -239,7 +356,7 @@ mod tests {
   fn exp_u64_generic() {
     let f = F::from_canonical_u32(2);
     let f = F::exp_u64_generic(f, 3);
-    assert_eq!(f, F::from_canonical_u32(8));
+    assert_eq!(f, F::new(8));
   }
 
   #[test]
@@ -247,10 +364,33 @@ mod tests {
     let a = PlutoField::new(50);
     let b = PlutoField::new(60);
     let c = a + b;
-    assert_eq!(c.value, 9); // (50 + 60) % 101 = 9
+    assert_eq!(c, F::new(9)); // (50 + 60) % 101 = 9
 
     let d = c - a;
-    assert_eq!(d.value, 60); // (9 - 50) % 101 = 60
+    assert_eq!(d, F::new(60)); // (9 - 50) % 101 = 60
+  }
+
+  #[test]
+  fn test_add_sub_neg_mul() {
+    let mut rng = rand::thread_rng();
+    // for i in 0..1000 {
+    let x = rng.gen::<F>();
+    let y = rng.gen::<F>();
+    let z = rng.gen::<F>();
+    assert_eq!(x + (-x), F::zero());
+    assert_eq!(-x, F::zero() - x);
+    assert_eq!(x + x, x * F::two());
+    assert_eq!(x, x.halve() * F::two());
+    assert_eq!(x * (-x), -x.square());
+    assert_eq!(x + y, y + x);
+    assert_eq!(x * y, y * x);
+    assert_eq!(x * (y * z), (x * y) * z);
+    assert_eq!(x - (y + z), (x - y) - z);
+    assert_eq!((x + y) - z, x + (y - z));
+    assert_eq!(x * (y + z), x * y + x * z);
+    assert_eq!(x + y + z + x + y + z, [x, x, y, y, z, z].iter().cloned().sum());
+
+    // }
   }
 
   #[test]
@@ -258,7 +398,7 @@ mod tests {
     let a = PlutoField::new(10);
     let a_inv = a.inverse();
     let should_be_one = a * a_inv;
-    assert_eq!(should_be_one.value, 1);
+    assert_eq!(should_be_one, F::new(1));
   }
 
   #[test]
@@ -289,7 +429,7 @@ mod tests {
     let a = PlutoField::new(10);
     let a_inv = a.inverse();
     let a_inv_inv = a_inv.inverse();
-    assert_eq!(a_inv_inv.value, a.value);
+    assert_eq!(a_inv_inv, a);
   }
 
   #[test]
@@ -334,25 +474,25 @@ mod tests {
     let n = 5;
     let omega = PlutoField::primitive_root_of_unity(n);
     println!("omega: {:?}", omega);
-    assert_eq!(omega.value, 95);
+    assert_eq!(omega, F::new(95));
     let omega_n = omega.exp_u64(n as u64);
     for i in 1..n {
       let omega_i = omega.exp_u64(i as u64);
       println!("omega^{}: {:?}", i, omega_i);
-      assert_ne!(omega_i.value, 1);
+      assert_ne!(omega_i, F::new(1));
     }
-    assert_eq!(omega_n.value, 1);
+    assert_eq!(omega_n, F::new(1));
 
     let n = 25;
     let omega = PlutoField::primitive_root_of_unity(n);
     println!("omega: {:?}", omega);
-    assert_eq!(omega.value, 16);
+    assert_eq!(omega, F::new(16));
     for i in 1..n {
       let omega_i = omega.exp_u64(i as u64);
       println!("omega^{}: {:?}", i, omega_i);
-      assert_ne!(omega_i.value, 1);
+      assert_ne!(omega_i, F::new(1));
     }
     let omega_n = omega.exp_u64(n as u64);
-    assert_eq!(omega_n.value, 1);
+    assert_eq!(omega_n, F::new(1));
   }
 }
