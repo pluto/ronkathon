@@ -8,9 +8,14 @@ repository ="https://github.com/thor314/ronkathon"
 version    ="0.1.0"
 
 [dependencies]
-anyhow    ="1.0"
-p3-field  ={ version="0.1.0", git="https://github.com/Plonky3/Plonky3.git" }
-itertools ="0.12.0"
-serde     ={ version="1.0", default-features=false, features=["derive"] }
-num-bigint={ version="0.4.3", default-features=false }
-rand      ="0.8.5"
+anyhow    = "1.0"
+p3-field  = { version="0.1.0", git="https://github.com/Plonky3/Plonky3.git" }
+itertools = "0.12.0"
+rand = "0.8"
+serde     = { version="1.0", default-features=false, features=["derive"] }
+num-bigint= { version="0.4.3", default-features=false }
+ark-std = { version = "0.4.0", default-features = false }
+ark-bn254 = "0.4.0"
+ark-poly = "0.4.0"
+ark-ff = "0.4.0"
+ark-ec = "0.4.0"
