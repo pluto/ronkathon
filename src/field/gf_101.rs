@@ -83,6 +83,8 @@ impl FiniteField for GF101 {
   fn neg_one() -> Self { Self::new(Self::ORDER - 1) }
 
   fn generator() -> Self { Self::new(2) }
+
+  fn from_canonical_u32(n: u32) -> Self { Self::new(n) } // TODO: recheck
 }
 
 impl Add for GF101 {
