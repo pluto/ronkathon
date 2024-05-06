@@ -6,7 +6,6 @@ use core::{
 use std::fmt;
 
 use num_bigint::BigUint;
-use p3_field::exp_u64_by_squaring;
 use rand::{
   distributions::{Distribution, Standard},
   Rng,
