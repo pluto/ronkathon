@@ -60,7 +60,7 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Monomial, F> {
   pub fn evaluate(&self, x: F) -> F {
     let mut result = F::zero();
     for (i, c) in self.coefficients.into_iter().enumerate() {
-      result += c * x.exp(F::Storage::from(i as u32));
+      result += c * x.pow(F::Storage::from(i as u32));
     }
     result
   }

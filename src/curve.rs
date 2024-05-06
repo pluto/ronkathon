@@ -50,7 +50,7 @@ impl CurveParams for C101 {
   const EQUATION_A: Self::FieldElement = GF101::new(0);
   const EQUATION_B: Self::FieldElement = GF101::new(3);
   const GENERATOR: (Self::FieldElement, Self::FieldElement) = todo!();
-  const ORDER: u32 = GF101::PRIME;
+  const ORDER: u32 = GF101::ORDER;
   const THREE: Self::FieldElement = GF101::new(3);
   const TWO: Self::FieldElement = GF101::new(2);
 }
