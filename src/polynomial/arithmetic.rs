@@ -59,3 +59,73 @@ impl<const N: usize, B: Basis, F: FiniteField> Neg for Polynomial<N, B, F> {
     Self { coefficients, basis: self.basis }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use field::gf_101::GF101;
+
+  use super::*;
+
+  fn poly_a() -> Polynomial<4, Monomial, GF101> {
+    Polynomial::<4, Monomial, GF101>::new([
+      GF101::new(1),
+      GF101::new(2),
+      GF101::new(3),
+      GF101::new(4),
+    ])
+  }
+
+  fn poly_b() -> Polynomial<4, Monomial, GF101> {
+    Polynomial::<4, Monomial, GF101>::new([
+      GF101::new(5),
+      GF101::new(6),
+      GF101::new(7),
+      GF101::new(8),
+    ])
+  }
+
+  #[test]
+  fn add() {
+    let c = poly_a() + poly_b();
+    assert_eq!(c.coefficients, [GF101::new(6), GF101::new(8), GF101::new(10), GF101::new(12)]);
+
+    let conv_c = poly_a().to_lagrange() + poly_b().to_lagrange();
+    let lagrange_c = c.to_lagrange();
+
+    for i in 0..4 {
+      assert_eq!(conv_c.coefficients[i], lagrange_c.coefficients[i]);
+    }
+  }
+
+  #[test]
+  fn add_assign() {
+    let mut a = poly_a();
+    a += poly_b();
+    assert_eq!(a.coefficients, [GF101::new(6), GF101::new(8), GF101::new(10), GF101::new(12)]);
+  }
+
+  #[test]
+  fn sum() {
+    let sum = [poly_a(), poly_b()].into_iter().sum::<Polynomial<4, Monomial, GF101>>();
+    assert_eq!(sum.coefficients, [GF101::new(6), GF101::new(8), GF101::new(10), GF101::new(12)]);
+  }
+
+  #[test]
+  fn sub() {
+    let c = poly_a() - poly_b();
+    assert_eq!(c.coefficients, [GF101::new(97), GF101::new(97), GF101::new(97), GF101::new(97)]);
+  }
+
+  #[test]
+  fn sub_assign() {
+    let mut a = poly_a();
+    a -= poly_b();
+    assert_eq!(a.coefficients, [GF101::new(97), GF101::new(97), GF101::new(97), GF101::new(97)]);
+  }
+
+  #[test]
+  fn neg() {
+    let a = -poly_a();
+    assert_eq!(a.coefficients, [GF101::new(100), GF101::new(99), GF101::new(98), GF101::new(97)]);
+  }
+}

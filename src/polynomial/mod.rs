@@ -81,7 +81,6 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
     );
     let primitive_root = F::primitive_root_of_unity(F::Storage::from(N as u32));
     let nodes: [F; N] = core::array::from_fn(|i| primitive_root.pow(F::Storage::from(i as u32)));
-    println!("Created nodes {:?}", nodes);
     let mut weights = [F::one(); N];
     for j in 0..N {
       for m in 0..N {
@@ -90,7 +89,6 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
         }
       }
     }
-    println!("Created weights {:?}", weights);
     // l(x) = \Sigmm_{m}(x-x_m)
     let l = move |x: F| {
       let mut val = F::one();
@@ -99,7 +97,6 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
       }
       val
     };
-    println!("Created basis functions");
 
     // L(x) = l(x) * \Sigma_{j=0}^{k}  (w_j / (x - x_j)) y_j
     let L = move |x: F| {
