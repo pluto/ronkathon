@@ -1,12 +1,12 @@
 use std::{collections::HashSet, ops::Div};
 
-use p3_field::Field;
+use crate::field::FiniteField;
 
 // https://people.inf.ethz.ch/gander/papers/changing.pdf
 
 /// A polynomial of degree N-1
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Polynomial<const N: usize, B: Basis, F: Field> {
+pub struct Polynomial<const N: usize, B: Basis, F: FiniteField> {
   pub coefficients: [F; N],
   pub basis:        B,
 }
@@ -22,21 +22,21 @@ impl Basis for Monomial {
 }
 
 // https://en.wikipedia.org/wiki/Lagrange_polynomial
-pub struct Lagrange<const N: usize, F: Field> {
+pub struct Lagrange<const N: usize, F: FiniteField> {
   pub nodes:   [F; N],
   pub weights: [F; N],
   pub L:       Box<dyn Fn(F) -> F>,
 }
 
-impl<const N: usize, F: Field> Basis for Lagrange<N, F> {
+impl<const N: usize, F: FiniteField> Basis for Lagrange<N, F> {
   type Data = Self;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Nodes<const N: usize, F: Field>([F; N]);
+pub struct Nodes<const N: usize, F: FiniteField>([F; N]);
 
 /// A polynomial in monomial basis
-impl<const N: usize, F: Field> Polynomial<N, Monomial, F> {
+impl<const N: usize, F: FiniteField> Polynomial<N, Monomial, F> {
   // TODO check that the polynomial degree divides the field order
   pub fn new(coefficients: [F; N]) -> Self { Self { coefficients, basis: Monomial } }
 
@@ -60,14 +60,14 @@ impl<const N: usize, F: Field> Polynomial<N, Monomial, F> {
   pub fn evaluate(&self, x: F) -> F {
     let mut result = F::zero();
     for (i, c) in self.coefficients.into_iter().enumerate() {
-      result += c * x.exp_u64(i as u64);
+      result += c * x.pow(F::Storage::from(i as u32));
     }
     result
   }
 }
 
 /// A polynomial in Lagrange basis
-impl<const N: usize, F: Field> Polynomial<N, Lagrange<N, F>, F> {
+impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
   // TODO check that the polynomial degree divides the field order
   pub fn new(coefficients: [F; N], nodes: [F; N]) -> Self {
     let mut weights = [F::one(); N];
@@ -145,73 +145,71 @@ impl<const N: usize, F: Field> Polynomial<N, Lagrange<N, F>, F> {
 }
 mod test {
   use super::*;
-  use crate::field::PlutoField;
+  use crate::field::gf_101::GF101;
 
   #[test]
   fn evaluation() {
     // Coefficients of the polynomial 1 + 2x + 3x^2
-    let a = PlutoField::new(1);
-    let b = PlutoField::new(2);
-    let c = PlutoField::new(3);
-    let polynomial = Polynomial::<3, Monomial, PlutoField>::new([a, b, c]);
-    let y = polynomial.evaluate(PlutoField::new(2));
-    let r = PlutoField::new(17);
+    let a = GF101::new(1);
+    let b = GF101::new(2);
+    let c = GF101::new(3);
+    let polynomial = Polynomial::<3, Monomial, GF101>::new([a, b, c]);
+    let y = polynomial.evaluate(GF101::new(2));
+    let r = GF101::new(17);
     assert_eq!(y, r); // 1 + 2*(2) + 3(2)^2 = 17
   }
 
   #[test]
   fn evaluation_with_zero() {
     // Coefficients of the polynomial 1 + 3x^2
-    let a = PlutoField::new(1);
-    let b = PlutoField::new(0);
-    let c = PlutoField::new(3);
-    let polynomial = Polynomial::<3, Monomial, PlutoField>::new([a, b, c]);
-    let y = polynomial.evaluate(PlutoField::new(0));
-    let r = PlutoField::new(1);
+    let a = GF101::new(1);
+    let b = GF101::new(0);
+    let c = GF101::new(3);
+    let polynomial = Polynomial::<3, Monomial, GF101>::new([a, b, c]);
+    let y = polynomial.evaluate(GF101::new(0));
+    let r = GF101::new(1);
     assert_eq!(y, r); // 1 + 3(0)^2 = 1
   }
 
   #[test]
   fn lagrange_evaluation() {
     // Coefficients of the polynomial 1 + 2x + 3x^2
-    let a = PlutoField::new(1);
-    let b = PlutoField::new(2);
-    let c = PlutoField::new(3);
-    let polynomial = Polynomial::<3, Monomial, PlutoField>::new([a, b, c]);
+    let a = GF101::new(1);
+    let b = GF101::new(2);
+    let c = GF101::new(3);
+    let polynomial = Polynomial::<3, Monomial, GF101>::new([a, b, c]);
 
     // Nodes for the Lagrange basis
-    let nodes =
-      Nodes::<3, PlutoField>([PlutoField::new(1), PlutoField::new(2), PlutoField::new(3)]);
+    let nodes = Nodes::<3, GF101>([GF101::new(1), GF101::new(2), GF101::new(3)]);
     let lagrange = polynomial.to_lagrange(nodes);
-    let r = lagrange.evaluate(PlutoField::new(2));
-    assert_eq!(r, PlutoField::new(17));
+    let r = lagrange.evaluate(GF101::new(2));
+    assert_eq!(r, GF101::new(17));
   }
 
   #[test]
   #[should_panic]
   fn non_unique_nodes() {
     // Coefficients of the polynomial 1 + 2x
-    let a = PlutoField::new(1);
-    let b = PlutoField::new(2);
+    let a = GF101::new(1);
+    let b = GF101::new(2);
 
-    let polynomial = Polynomial::<2, Monomial, PlutoField>::new([a, b]);
+    let polynomial = Polynomial::<2, Monomial, GF101>::new([a, b]);
     // This should panic because the nodes are not distinct
-    let nodes = Nodes::<2, PlutoField>([PlutoField::new(1), PlutoField::new(1)]);
+    let nodes = Nodes::<2, GF101>([GF101::new(1), GF101::new(1)]);
     let lagrange = polynomial.to_lagrange(nodes);
   }
 
   #[test]
   fn test_by_hand() {
     // Coefficients of the polynomial 1 + x + 2x^2
-    let a = PlutoField::new(1);
-    let b = PlutoField::new(1);
-    let c = PlutoField::new(2);
-    let polynomial = Polynomial::<3, Monomial, PlutoField>::new([a, b, c]);
+    let a = GF101::new(1);
+    let b = GF101::new(1);
+    let c = GF101::new(2);
+    let polynomial = Polynomial::<3, Monomial, GF101>::new([a, b, c]);
     println!("monomial coefficients {:?}", polynomial.coefficients);
 
     // Nodes for the Lagrange basis
-    let nodes =
-      Nodes::<3, PlutoField>([PlutoField::new(1), PlutoField::new(3), PlutoField::new(2)]);
+    let nodes = Nodes::<3, GF101>([GF101::new(1), GF101::new(3), GF101::new(2)]);
 
     let lagrange = polynomial.to_lagrange(nodes);
     println!("lagrange coefficients {:?}", lagrange.coefficients);

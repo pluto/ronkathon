@@ -20,7 +20,6 @@ version = "1.0.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "25bdb32cbbdce2b519a9cd7df3a678443100e265d5e25ca763b7572a5104f5f3"
 
-[[package]]
 name = "ark-bn254"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -43,7 +42,7 @@ dependencies = [
  "ark-std",
  "derivative",
  "hashbrown",
- "itertools 0.10.5",
+ "itertools",
  "num-traits",
  "zeroize",
 ]
@@ -60,7 +59,7 @@ dependencies = [
  "ark-std",
  "derivative",
  "digest",
- "itertools 0.10.5",
+ "itertools",
  "num-bigint",
  "num-traits",
  "paste",
@@ -225,15 +224,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "itertools"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
-dependencies = [
- "either",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.154"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -273,27 +263,6 @@ name = "once_cell"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
-
-[[package]]
-name = "p3-field"
-version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3.git#2e274173200ece6254883e7e6eb8bc028574332e"
-dependencies = [
- "itertools 0.12.1",
- "num-bigint",
- "num-traits",
- "p3-util",
- "rand",
- "serde",
-]
-
-[[package]]
-name = "p3-util"
-version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3.git#2e274173200ece6254883e7e6eb8bc028574332e"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "paste"
@@ -359,15 +328,12 @@ dependencies = [
 name = "ronkathon"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "ark-bn254",
  "ark-ec",
  "ark-ff",
  "ark-poly",
  "ark-std",
- "itertools 0.12.1",
  "num-bigint",
- "p3-field",
  "rand",
  "serde",
 ]

@@ -1,7 +1,7 @@
-use ronkathon::field::PlutoField;
+use ronkathon::field::gf_101::GF101;
 
 fn main() {
-  let f = PlutoField::new(1);
+  let f = GF101::new(1);
   println!("hello field={:?}", f);
 
   let g = generator(101);

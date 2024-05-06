@@ -3,12 +3,10 @@ use std::{
   ops::{Add, Neg},
 };
 
-use p3_field::{AbstractField, Field};
-
-use crate::field::PlutoField;
+use crate::field::{gf_101::GF101, FiniteField};
 
 /// Elliptic curve in Weierstrass form: y^2 = x^3 + ax + b
-pub struct Curve<F: Field> {
+pub struct Curve<F: FiniteField> {
   pub a: F,
   pub b: F,
   three: F,
@@ -17,7 +15,7 @@ pub struct Curve<F: Field> {
 
 pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord {
   /// Integer field element type
-  type FieldElement: Field + Neg;
+  type FieldElement: FiniteField;
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
   const ORDER: u32;
   /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
@@ -47,14 +45,14 @@ pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord 
 pub struct C101;
 
 impl CurveParams for C101 {
-  type FieldElement = crate::field::PlutoField;
+  type FieldElement = GF101;
 
-  const EQUATION_A: Self::FieldElement = PlutoField::const_new(0);
-  const EQUATION_B: Self::FieldElement = PlutoField::const_new(3);
+  const EQUATION_A: Self::FieldElement = GF101::new(0);
+  const EQUATION_B: Self::FieldElement = GF101::new(3);
   const GENERATOR: (Self::FieldElement, Self::FieldElement) = todo!();
-  const ORDER: u32 = PlutoField::ORDER_U32;
-  const THREE: Self::FieldElement = PlutoField::const_new(3);
-  const TWO: Self::FieldElement = PlutoField::const_new(2);
+  const ORDER: u32 = GF101::ORDER;
+  const THREE: Self::FieldElement = GF101::new(3);
+  const TWO: Self::FieldElement = GF101::new(2);
 }
 
 /// An Affine Coordinate Point on a Weierstrass elliptic curve
