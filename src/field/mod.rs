@@ -5,6 +5,7 @@ use std::{
 };
 
 pub mod gf_101;
+pub mod gf_101_2;
 
 /// A field is a set of elements on which addition, subtraction, multiplication, and division are
 /// defined.
@@ -12,6 +13,7 @@ pub mod gf_101;
 /// We restrict to finite fields, which are fields with a finite number of elements.
 pub trait FiniteField:
   std::fmt::Debug
+  + Default
   + Sized
   + Copy
   + Clone
@@ -37,6 +39,7 @@ pub trait FiniteField:
     + Sub<Output = Self::Storage>
     + Div<Output = Self::Storage>
     + Rem<Output = Self::Storage>
+    + Mul<Output = Self::Storage>
     + Eq;
   const ORDER: Self::Storage;
   fn zero() -> Self;
@@ -45,7 +48,10 @@ pub trait FiniteField:
   fn neg_one() -> Self;
   fn inverse(&self) -> Option<Self>;
   fn pow(&self, power: Self::Storage) -> Self;
+  fn from_canonical_u32(n: u32) -> Self;
   fn generator() -> Self;
+  fn double(&self) -> Self { self.clone() + self.clone() }
+  fn square(&self) -> Self { self.clone() * self.clone() }
 
   // In any field of prime order F_p:
   // - There exists an additive group.
@@ -62,4 +68,18 @@ pub trait FiniteField:
     let pow = p_minus_one / n;
     Self::generator().pow(pow)
   }
+}
+
+pub trait ExtensionField<Base: FiniteField>:
+  FiniteField
+  + From<Base>
+  + Add<Base, Output = Self>
+  + AddAssign<Base>
+  + Sub<Base, Output = Self>
+  + SubAssign<Base>
+  + Mul<Base, Output = Self>
+  + MulAssign<Base> {
+  const D: usize;
+  fn irreducible() -> Self;
+  fn from_base(b: Base) -> Self;
 }

@@ -3,7 +3,7 @@
 cgt* # ignore instatiations of my test template
 
 # don't leak secret env vars
-.env  
+.env
 
 # exclude compiled files and binaries
 debug/
@@ -25,3 +25,5 @@ dump
 ### VIM ###
 *.swp
 *.swo
+
+*.sage.py
