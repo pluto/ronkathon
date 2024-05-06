@@ -4,7 +4,7 @@ use crate::field::FiniteField;
 
 // https://people.inf.ethz.ch/gander/papers/changing.pdf
 
-/// A polynomial of degree N-1
+/// A polynomial of degree N-1 which is generic over the basis and the field.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Polynomial<const N: usize, B: Basis, F: FiniteField> {
   pub coefficients: [F; N],
@@ -32,28 +32,30 @@ impl<const N: usize, F: FiniteField> Basis for Lagrange<N, F> {
   type Data = Self;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Nodes<const N: usize, F: FiniteField>([F; N]);
-
 /// A polynomial in monomial basis
 impl<const N: usize, F: FiniteField> Polynomial<N, Monomial, F> {
-  // TODO check that the polynomial degree divides the field order
-  pub fn new(coefficients: [F; N]) -> Self { Self { coefficients, basis: Monomial } }
+  pub fn new(coefficients: [F; N]) -> Self {
+    // Check that the polynomial degree divides the field order so that there are roots of unity.
+    assert_eq!(
+      (F::ORDER - F::Storage::from(1_u32)) % F::Storage::from(N as u32),
+      F::Storage::from(0)
+    );
+    Self { coefficients, basis: Monomial }
+  }
 
   /// Convert a polynomial from monomial to Lagrange basis using the Barycentric form
-  pub fn to_lagrange(&self, nodes: Nodes<N, F>) -> Polynomial<N, Lagrange<N, F>, F> {
-    // check that nodes are distinct
-    let mut set = HashSet::new();
-    for &node in nodes.0.iter() {
-      if !set.insert(node) {
-        panic!("Nodes must be distinct");
-      }
-    }
+  pub fn to_lagrange(&self) -> Polynomial<N, Lagrange<N, F>, F> {
+    // Get the `N-1`th roots of unity for the field and this degree of polynomial.
+    let primitive_root = F::primitive_root_of_unity(F::Storage::from(N as u32));
+
+    // Evaluate the polynomial at the roots of unity to get the coefficients of the Lagrange basis
+    let mut nodes = [F::one(); N];
     let mut coeffs = [F::one(); N];
     for j in 0..N {
-      coeffs[j] = self.evaluate(nodes.0[j]);
+      nodes[j] = F::from(j as u32);
+      coeffs[j] = self.evaluate(primitive_root.pow(F::Storage::from(j as u32)));
     }
-    Polynomial::<N, Lagrange<N, F>, F>::new(coeffs, nodes.0)
+    Polynomial::<N, Lagrange<N, F>, F>::new(coeffs)
   }
 
   /// Evaluate the polynomial at field element x
@@ -68,8 +70,15 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Monomial, F> {
 
 /// A polynomial in Lagrange basis
 impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
-  // TODO check that the polynomial degree divides the field order
-  pub fn new(coefficients: [F; N], nodes: [F; N]) -> Self {
+  pub fn new(coefficients: [F; N]) -> Self {
+    // Check that the polynomial degree divides the field order so that there are roots of unity.
+    assert_eq!(
+      (F::ORDER - F::Storage::from(1_u32)) % F::Storage::from(N as u32),
+      F::Storage::from(0)
+    );
+    let primitive_root = F::primitive_root_of_unity(F::Storage::from(N as u32));
+    let nodes: [F; N] = core::array::from_fn(|i| primitive_root.pow(F::Storage::from(i as u32)));
+    println!("Created nodes {:?}", nodes);
     let mut weights = [F::one(); N];
     for j in 0..N {
       for m in 0..N {
@@ -78,6 +87,7 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
         }
       }
     }
+    println!("Created weights {:?}", weights);
     // l(x) = \Sigmm_{m}(x-x_m)
     let l = move |x: F| {
       let mut val = F::one();
@@ -86,6 +96,7 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
       }
       val
     };
+    println!("Created basis functions");
 
     // L(x) = l(x) * \Sigma_{j=0}^{k}  (w_j / (x - x_j)) y_j
     let L = move |x: F| {
@@ -147,16 +158,21 @@ mod test {
   use super::*;
   use crate::field::gf_101::GF101;
 
-  #[test]
-  fn evaluation() {
-    // Coefficients of the polynomial 1 + 2x + 3x^2
+  fn deg_three_poly() -> Polynomial<4, Monomial, GF101> {
+    // Coefficients of the polynomial 1 + 2x + 3x^2 + 4x^3
     let a = GF101::new(1);
     let b = GF101::new(2);
     let c = GF101::new(3);
-    let polynomial = Polynomial::<3, Monomial, GF101>::new([a, b, c]);
-    let y = polynomial.evaluate(GF101::new(2));
-    let r = GF101::new(17);
-    assert_eq!(y, r); // 1 + 2*(2) + 3(2)^2 = 17
+    let d = GF101::new(4);
+    Polynomial::<4, Monomial, GF101>::new([a, b, c, d])
+  }
+
+  #[test]
+  fn evaluation() {
+    // Should get: 1 + 2*(2) + 3*(2)^2 + 4*(2)^3 = 49
+    let y = deg_three_poly().evaluate(GF101::new(2));
+    let r = GF101::new(49);
+    assert_eq!(y, r);
   }
 
   #[test]
@@ -164,54 +180,48 @@ mod test {
     // Coefficients of the polynomial 1 + 3x^2
     let a = GF101::new(1);
     let b = GF101::new(0);
-    let c = GF101::new(3);
-    let polynomial = Polynomial::<3, Monomial, GF101>::new([a, b, c]);
+    let polynomial = Polynomial::<2, Monomial, GF101>::new([a, b]);
     let y = polynomial.evaluate(GF101::new(0));
+
+    // Should get: 1 + 3(0)^2 = 1
     let r = GF101::new(1);
-    assert_eq!(y, r); // 1 + 3(0)^2 = 1
+    assert_eq!(y, r);
   }
 
   #[test]
   fn lagrange_evaluation() {
-    // Coefficients of the polynomial 1 + 2x + 3x^2
-    let a = GF101::new(1);
-    let b = GF101::new(2);
-    let c = GF101::new(3);
-    let polynomial = Polynomial::<3, Monomial, GF101>::new([a, b, c]);
+    // Convert to Lagrange basis using roots of unity
+    let lagrange = deg_three_poly().to_lagrange();
 
-    // Nodes for the Lagrange basis
-    let nodes = Nodes::<3, GF101>([GF101::new(1), GF101::new(2), GF101::new(3)]);
-    let lagrange = polynomial.to_lagrange(nodes);
+    // Should get: 1 + 2*(2) + 3*(2)^2 + 4*(2)^2= 49
     let r = lagrange.evaluate(GF101::new(2));
-    assert_eq!(r, GF101::new(17));
+    assert_eq!(r, GF101::new(49));
   }
 
   #[test]
   #[should_panic]
-  fn non_unique_nodes() {
+  fn no_roots_of_unity() {
     // Coefficients of the polynomial 1 + 2x
     let a = GF101::new(1);
     let b = GF101::new(2);
-
-    let polynomial = Polynomial::<2, Monomial, GF101>::new([a, b]);
-    // This should panic because the nodes are not distinct
-    let nodes = Nodes::<2, GF101>([GF101::new(1), GF101::new(1)]);
-    let lagrange = polynomial.to_lagrange(nodes);
+    let c = GF101::new(3);
+    let _polynomial = Polynomial::<3, Monomial, GF101>::new([a, b, c]);
   }
 
   #[test]
-  fn test_by_hand() {
-    // Coefficients of the polynomial 1 + x + 2x^2
-    let a = GF101::new(1);
-    let b = GF101::new(1);
-    let c = GF101::new(2);
-    let polynomial = Polynomial::<3, Monomial, GF101>::new([a, b, c]);
-    println!("monomial coefficients {:?}", polynomial.coefficients);
+  fn check_coefficients() {
+    assert_eq!(deg_three_poly().coefficients, [
+      GF101::new(1),
+      GF101::new(2),
+      GF101::new(3),
+      GF101::new(4)
+    ]);
 
-    // Nodes for the Lagrange basis
-    let nodes = Nodes::<3, GF101>([GF101::new(1), GF101::new(3), GF101::new(2)]);
-
-    let lagrange = polynomial.to_lagrange(nodes);
-    println!("lagrange coefficients {:?}", lagrange.coefficients);
+    assert_eq!(deg_three_poly().to_lagrange().coefficients, [
+      GF101::new(10),
+      GF101::new(79),
+      GF101::new(99),
+      GF101::new(18)
+    ]);
   }
 }

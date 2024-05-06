@@ -31,8 +31,13 @@ impl fmt::Display for GF101 {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.value) }
 }
 
+impl From<u32> for GF101 {
+  fn from(val: u32) -> Self { Self::new(val) }
+}
+
 impl GF101 {
-  pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
+  // pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
+  pub const fn new(value: u32) -> Self { Self { value: value % Self::ORDER } }
 }
 
 impl FiniteField for GF101 {
@@ -119,7 +124,8 @@ impl SubAssign for GF101 {
 impl Mul for GF101 {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self { Self { value: from_monty(self.value * rhs.value) } }
+  // fn mul(self, rhs: Self) -> Self { Self { value: from_monty(self.value * rhs.value) } }
+  fn mul(self, rhs: Self) -> Self::Output { Self::new(self.value * rhs.value) }
 }
 
 impl MulAssign for GF101 {
@@ -427,6 +433,18 @@ mod tests {
 
   #[test]
   fn primitive_root_of_unity() {
+    let n = 2;
+    let omega = GF101::primitive_root_of_unity(n);
+    println!("omega: {:?}", omega);
+    assert_eq!(omega, F::new(95));
+    let omega_n = omega.pow(n);
+    for i in 1..n {
+      let omega_i = omega.pow(i);
+      println!("omega^{}: {:?}", i, omega_i);
+      assert_ne!(omega_i, F::new(1));
+    }
+    assert_eq!(omega_n, F::new(1));
+
     let n = 5;
     let omega = GF101::primitive_root_of_unity(n);
     println!("omega: {:?}", omega);
