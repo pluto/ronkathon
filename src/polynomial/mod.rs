@@ -34,6 +34,10 @@ impl<F: FiniteField> Basis for Lagrange<F> {
   type Data = Self;
 }
 
+impl<B: Basis, F: FiniteField> Polynomial<B, F> {
+  pub fn degree(&self) -> usize { self.coefficients.len() - 1 }
+}
+
 /// A polynomial in monomial basis
 impl<F: FiniteField> Polynomial<Monomial, F> {
   pub fn new(coefficients: Vec<F>) -> Self {
@@ -44,7 +48,9 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     //   (F::ORDER - F::Storage::from(1_u32)) % F::Storage::from(N as u32),
     //   F::Storage::from(0)
     // );
-    assert_ne!(*coefficients.last().unwrap(), F::zero(), "Leading coefficient must be non-zero");
+    if coefficients.len() > 1 {
+      assert_ne!(*coefficients.last().unwrap(), F::zero(), "Leading coefficient must be non-zero");
+    }
     Self { coefficients, basis: Monomial }
   }
 
@@ -70,8 +76,6 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     }
     result
   }
-
-  pub fn degree(&self) -> usize { self.coefficients.len() - 1 }
 
   pub fn leading_coefficient(&self) -> F { *self.coefficients.last().unwrap() }
 
