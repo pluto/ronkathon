@@ -1,6 +1,9 @@
-use std::{collections::HashSet, ops::Div};
+use std::collections::HashSet;
 
+use super::*;
 use crate::field::FiniteField;
+
+pub mod arithmetic;
 
 // https://people.inf.ethz.ch/gander/papers/changing.pdf
 
