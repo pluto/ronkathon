@@ -9,8 +9,8 @@ pub mod arithmetic;
 
 /// A polynomial of degree N-1 which is generic over the basis and the field.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Polynomial<const N: usize, B: Basis, F: FiniteField> {
-  pub coefficients: [F; N],
+pub struct Polynomial<B: Basis, F: FiniteField> {
+  pub coefficients: Vec<F>,
   pub basis:        B,
 }
 
@@ -19,103 +19,87 @@ pub trait Basis {
   type Data;
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Monomial;
 impl Basis for Monomial {
   type Data = ();
 }
 
 // https://en.wikipedia.org/wiki/Lagrange_polynomial
-pub struct Lagrange<const N: usize, F: FiniteField> {
-  pub nodes:   [F; N],
-  pub weights: [F; N],
-  pub L:       Box<dyn Fn(F) -> F>,
+pub struct Lagrange<F: FiniteField> {
+  pub nodes: Vec<F>,
 }
 
-impl<const N: usize, F: FiniteField> Basis for Lagrange<N, F> {
+impl<F: FiniteField> Basis for Lagrange<F> {
   type Data = Self;
 }
 
 /// A polynomial in monomial basis
-impl<const N: usize, F: FiniteField> Polynomial<N, Monomial, F> {
-  pub fn new(coefficients: [F; N]) -> Self {
-    // Check that the polynomial degree divides the field order so that there are roots of unity.
-    assert_eq!(
-      (F::ORDER - F::Storage::from(1_u32)) % F::Storage::from(N as u32),
-      F::Storage::from(0)
-    );
+impl<F: FiniteField> Polynomial<Monomial, F> {
+  pub fn new(coefficients: Vec<F>) -> Self {
+    // TODO: This check here may be unecessary as we just need this if we do the conversion to
+    // Lagrange basis.
+    // // Check that the polynomial degree divides the field order so that there are roots of unity.
+    // assert_eq!(
+    //   (F::ORDER - F::Storage::from(1_u32)) % F::Storage::from(N as u32),
+    //   F::Storage::from(0)
+    // );
+    assert_ne!(*coefficients.last().unwrap(), F::zero(), "Leading coefficient must be non-zero");
     Self { coefficients, basis: Monomial }
   }
 
   /// Convert a polynomial from monomial to Lagrange basis using the Barycentric form
-  pub fn to_lagrange(&self) -> Polynomial<N, Lagrange<N, F>, F> {
+  pub fn to_lagrange(&self) -> Polynomial<Lagrange<F>, F> {
     // Get the `N-1`th roots of unity for the field and this degree of polynomial.
-    let primitive_root = F::primitive_root_of_unity(F::Storage::from(N as u32));
+    let n = self.coefficients.len();
+    let primitive_root = F::primitive_root_of_unity(F::Storage::from(n as u32));
 
     // Evaluate the polynomial at the roots of unity to get the coefficients of the Lagrange basis
-    let mut nodes = [F::one(); N];
-    let mut coeffs = [F::one(); N];
-    for j in 0..N {
-      nodes[j] = F::from(j as u32);
+    let mut coeffs = vec![F::zero(); n];
+    for j in 0..self.coefficients.len() {
       coeffs[j] = self.evaluate(primitive_root.pow(F::Storage::from(j as u32)));
     }
-    Polynomial::<N, Lagrange<N, F>, F>::new(coeffs)
+    Polynomial::<Lagrange<F>, F>::new(coeffs)
   }
 
   /// Evaluate the polynomial at field element x
   pub fn evaluate(&self, x: F) -> F {
     let mut result = F::zero();
-    for (i, c) in self.coefficients.into_iter().enumerate() {
-      result += c * x.pow(F::Storage::from(i as u32));
+    for (i, c) in self.coefficients.iter().enumerate() {
+      result += *c * x.pow(F::Storage::from(i as u32));
     }
     result
+  }
+
+  pub fn degree(&self) -> usize { self.coefficients.len() - 1 }
+
+  pub fn leading_coefficient(&self) -> F { *self.coefficients.last().unwrap() }
+
+  pub fn pow_mult(&self, coeff: F, pow: usize) -> Polynomial<Monomial, F> {
+    let mut coefficients = vec![F::zero(); self.coefficients.len() + pow];
+    self.coefficients.iter().enumerate().for_each(|(i, c)| {
+      coefficients[i + pow] = *c * coeff;
+    });
+    Polynomial::<Monomial, F>::new(coefficients)
   }
 }
 
 /// A polynomial in Lagrange basis
-impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
-  pub fn new(coefficients: [F; N]) -> Self {
+impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
+  pub fn new(coefficients: Vec<F>) -> Self {
     // Check that the polynomial degree divides the field order so that there are roots of unity.
+    let n = coefficients.len();
     assert_eq!(
-      (F::ORDER - F::Storage::from(1_u32)) % F::Storage::from(N as u32),
+      (F::ORDER - F::Storage::from(1_u32)) % F::Storage::from(n as u32),
       F::Storage::from(0)
     );
-    let primitive_root = F::primitive_root_of_unity(F::Storage::from(N as u32));
-    let nodes: [F; N] = core::array::from_fn(|i| primitive_root.pow(F::Storage::from(i as u32)));
-    let mut weights = [F::one(); N];
-    for j in 0..N {
-      for m in 0..N {
-        if j != m {
-          weights[j] *= F::one().div(nodes[j] - nodes[m]);
-        }
-      }
-    }
-    // l(x) = \Sigmm_{m}(x-x_m)
-    let l = move |x: F| {
-      let mut val = F::one();
-      for i in 0..N {
-        val *= x - nodes[i];
-      }
-      val
-    };
+    let primitive_root = F::primitive_root_of_unity(F::Storage::from(n as u32));
+    let nodes: Vec<F> = (0..n).map(|i| primitive_root.pow(F::Storage::from(i as u32))).collect();
 
-    // L(x) = l(x) * \Sigma_{j=0}^{k}  (w_j / (x - x_j)) y_j
-    let L = move |x: F| {
-      let mut val = F::zero();
-      for j in 0..N {
-        // check if we are dividing by zero
-        if nodes[j] == x {
-          return coefficients[j];
-        }
-        val += coefficients[j] * weights[j] / (x - nodes[j]);
-      }
-      l(x) * val
-    };
-
-    let basis = Lagrange { nodes, weights, L: Box::new(L) };
-    Self { coefficients, basis }
+    Self { coefficients, basis: Lagrange { nodes } }
   }
 
-  pub fn to_monomial(&self) -> Polynomial<N, Monomial, F> {
+  pub fn to_monomial(&self) -> Polynomial<Monomial, F> {
     // This is the inverse of the conversion from monomial to Lagrange basis
     // This uses something called the Vandermonde matrix which is defined as:
     //
@@ -150,21 +134,47 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
 
   /// Evaluate the polynomial at field element x
   pub fn evaluate(&self, x: F) -> F {
-    let L = &self.basis.L;
-    L(x)
+    let n = self.coefficients.len();
+    let mut weights = vec![F::one(); n];
+    for j in 0..n {
+      for m in 0..n {
+        if j != m {
+          weights[j] *= F::one().div(self.basis.nodes[j] - self.basis.nodes[m]);
+        }
+      }
+    }
+    // l(x) = \Sigmm_{m}(x-x_m)
+    let l = move |x: F| {
+      let mut val = F::one();
+      for i in 0..n {
+        val *= x - self.basis.nodes[i];
+      }
+      val
+    };
+
+    // L(x) = l(x) * \Sigma_{j=0}^{k}  (w_j / (x - x_j)) y_j
+    let mut val = F::zero();
+    for j in 0..n {
+      // check if we are dividing by zero
+      if self.basis.nodes[j] == x {
+        return self.coefficients[j];
+      }
+      val += self.coefficients[j] * weights[j] / (x - self.basis.nodes[j]);
+    }
+    l(x) * val
   }
 }
 mod test {
   use super::*;
   use crate::field::gf_101::GF101;
 
-  fn deg_three_poly() -> Polynomial<4, Monomial, GF101> {
+  fn deg_three_poly() -> Polynomial<Monomial, GF101> {
     // Coefficients of the polynomial 1 + 2x + 3x^2 + 4x^3
     let a = GF101::new(1);
     let b = GF101::new(2);
     let c = GF101::new(3);
     let d = GF101::new(4);
-    Polynomial::<4, Monomial, GF101>::new([a, b, c, d])
+    Polynomial::<Monomial, GF101>::new(vec![a, b, c, d])
   }
 
   #[test]
@@ -180,7 +190,8 @@ mod test {
     // Coefficients of the polynomial 1 + 3x^2
     let a = GF101::new(1);
     let b = GF101::new(0);
-    let polynomial = Polynomial::<2, Monomial, GF101>::new([a, b]);
+    let c = GF101::new(3);
+    let polynomial = Polynomial::<Monomial, GF101>::new(vec![a, b, c]);
     let y = polynomial.evaluate(GF101::new(0));
 
     // Should get: 1 + 3(0)^2 = 1
@@ -205,7 +216,8 @@ mod test {
     let a = GF101::new(1);
     let b = GF101::new(2);
     let c = GF101::new(3);
-    let _polynomial = Polynomial::<3, Monomial, GF101>::new([a, b, c]);
+    let polynomial = Polynomial::<Monomial, GF101>::new(vec![a, b, c]);
+    polynomial.to_lagrange();
   }
 
   #[test]
@@ -222,6 +234,30 @@ mod test {
       GF101::new(79),
       GF101::new(99),
       GF101::new(18)
+    ]);
+  }
+
+  #[test]
+  fn degree() {
+    assert_eq!(deg_three_poly().degree(), 3);
+  }
+
+  #[test]
+  fn leading_coefficient() {
+    assert_eq!(deg_three_poly().leading_coefficient(), GF101::new(4));
+  }
+
+  #[test]
+  fn pow_mult() {
+    let poly = deg_three_poly();
+    let pow_mult = poly.pow_mult(GF101::new(5), 2);
+    assert_eq!(pow_mult.coefficients, [
+      GF101::new(0),
+      GF101::new(0),
+      GF101::new(5),
+      GF101::new(10),
+      GF101::new(15),
+      GF101::new(20)
     ]);
   }
 }
