@@ -2,10 +2,8 @@ use std::array;
 
 use super::*;
 
-// TODO: Implement `Mul`, `MulAssign`, `Product`, `Div`, `DivAssign`, `Neg`, `Rem`.
+// TODO: Implement `Mul`, `MulAssign`, `Product`.
 // * `Mul` and other products will require FFT.
-// * `Div` and `Rem` will require Euclidean division.
-// * When we do these operations, we need to make sure that the leading coefficient is not zero!
 
 impl<F: FiniteField> Add for Polynomial<Monomial, F> {
   type Output = Self;
