@@ -1,4 +1,4 @@
-# Define a finite field, our `PlutoField` which is 
+# Define a finite field, our `GF101` which is 
 # a field of 101 elements (101 being prime).
 F = GF(101)
 print(F)

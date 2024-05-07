@@ -1,5 +1,9 @@
-use std::collections::HashSet;
+use std::{
+  collections::HashSet,
+  fmt::{Display, Formatter},
+};
 
+use self::field::gf_101::GF101;
 use super::*;
 use crate::field::FiniteField;
 
@@ -86,6 +90,53 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
       coefficients[i + pow] = *c * coeff;
     });
     Polynomial::<Monomial, F>::new(coefficients)
+  }
+
+  fn quotient_and_remainder(self, rhs: Self) -> (Self, Self) {
+    // Euclidean division
+    // Initial quotient value
+    let mut q = Self::new(vec![]);
+
+    // Initial remainder value is our numerator polynomial
+    let mut p = self.clone();
+
+    // Leading coefficient of the denominator
+    let c = rhs.leading_coefficient();
+
+    // Create quotient poly
+    let mut diff = p.degree() as isize - rhs.degree() as isize;
+    if diff < 0 {
+      return (Self::new(vec![F::zero()]), p);
+    }
+    let mut q_coeffs = vec![F::zero(); diff as usize + 1];
+
+    while diff >= 0 {
+      let s = p.leading_coefficient() * c.inverse().unwrap();
+      q_coeffs[diff as usize] = s;
+      p -= rhs.pow_mult(s, diff as usize);
+      p.trim_zeros();
+      diff = p.degree() as isize - rhs.degree() as isize;
+    }
+    q.coefficients = q_coeffs;
+    (q, p)
+  }
+}
+
+impl Display for Polynomial<Monomial, GF101> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    let mut first = true;
+    for (i, c) in self.coefficients.iter().enumerate() {
+      if !first {
+        write!(f, " + ")?;
+      }
+      first = false;
+      if i == 0 {
+        write!(f, "{}", c)?;
+      } else {
+        write!(f, "{}x^{}", c, i)?;
+      }
+    }
+    Ok(())
   }
 }
 
