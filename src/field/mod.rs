@@ -25,7 +25,6 @@ pub trait FiniteField:
   + DivAssign
   + Neg<Output = Self>
   + Rem<Output = Self>
-  + From<u32>
   + Hash
   + 'static {
   type Storage: From<u32>
