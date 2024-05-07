@@ -40,18 +40,19 @@ impl<B: Basis, F: FiniteField> Polynomial<B, F> {
 
 /// A polynomial in monomial basis
 impl<F: FiniteField> Polynomial<Monomial, F> {
-  pub fn new(coefficients: Vec<F>) -> Self {
-    // TODO: This check here may be unecessary as we just need this if we do the conversion to
-    // Lagrange basis.
-    // // Check that the polynomial degree divides the field order so that there are roots of unity.
-    // assert_eq!(
-    //   (F::ORDER - F::Storage::from(1_u32)) % F::Storage::from(N as u32),
-    //   F::Storage::from(0)
-    // );
-    if coefficients.len() > 1 {
-      assert_ne!(*coefficients.last().unwrap(), F::zero(), "Leading coefficient must be non-zero");
+  pub fn new(mut coefficients: Vec<F>) -> Self {
+    // Simplify the polynomial to have leading coefficient non-zero
+    let mut poly = Self { coefficients, basis: Monomial };
+    poly.trim_zeros();
+    poly
+  }
+
+  fn trim_zeros(&mut self) {
+    let last_nonzero_index = self.coefficients.iter().rposition(|&c| c != F::zero());
+    match last_nonzero_index {
+      Some(index) => self.coefficients.truncate(index + 1),
+      None => self.coefficients.truncate(1),
     }
-    Self { coefficients, basis: Monomial }
   }
 
   /// Convert a polynomial from monomial to Lagrange basis using the Barycentric form
@@ -263,5 +264,26 @@ mod test {
       GF101::new(15),
       GF101::new(20)
     ]);
+  }
+
+  #[test]
+  fn trim_zeros() {
+    let mut poly = deg_three_poly();
+    poly.coefficients.push(GF101::zero());
+    assert_eq!(poly.coefficients, [
+      GF101::new(1),
+      GF101::new(2),
+      GF101::new(3),
+      GF101::new(4),
+      GF101::zero()
+    ]);
+    poly.trim_zeros();
+    assert_eq!(poly.coefficients, [GF101::new(1), GF101::new(2), GF101::new(3), GF101::new(4)]);
+  }
+
+  #[test]
+  fn trim_to_zero() {
+    let mut poly = Polynomial::<Monomial, GF101>::new(vec![GF101::zero(), GF101::zero()]);
+    assert_eq!(poly.coefficients, [GF101::zero()]);
   }
 }
