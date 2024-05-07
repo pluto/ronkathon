@@ -85,22 +85,6 @@ impl<F: FiniteField> FiniteField for QuadraticPlutoField<F> {
     Some(res)
   }
 
-  #[inline]
-  fn pow(&self, power: Self::Storage) -> Self {
-    // TODO: not ideal to duplicate across traits impls
-    let mut current = *self;
-    let power = power as u64;
-    let mut product = Self::one();
-
-    for j in 0..(64 - power.leading_zeros()) as usize {
-      if (power >> j & 1) != 0 {
-        product *= current;
-      }
-      current = current * current;
-    }
-    product
-  }
-
   fn primitive_root_of_unity(n: Self::Storage) -> Self { todo!() }
 
   fn from_canonical_u32(n: u32) -> Self { Self { value: [F::from_canonical_u32(n), F::zero()] } }

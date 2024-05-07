@@ -34,6 +34,8 @@ pub trait FiniteField:
   + Hash
   + 'static {
   type Storage: From<u32>
+    + Into<u32>
+    + Into<u64>
     + Copy
     + std::fmt::Debug
     + Sub<Output = Self::Storage>
@@ -47,11 +49,24 @@ pub trait FiniteField:
   fn two() -> Self;
   fn neg_one() -> Self;
   fn inverse(&self) -> Option<Self>;
-  fn pow(&self, power: Self::Storage) -> Self;
   fn from_canonical_u32(n: u32) -> Self;
   fn generator() -> Self;
   fn double(&self) -> Self { self.clone() + self.clone() }
   fn square(&self) -> Self { self.clone() * self.clone() }
+
+  fn pow(&self, power: Self::Storage) -> Self {
+    let mut current = *self;
+    let power: u64 = power.into();
+    let mut product = Self::one();
+
+    for j in 0..(64 - power.leading_zeros()) as usize {
+      if (power >> j & 1) != 0 {
+        product *= current;
+      }
+      current = current * current;
+    }
+    product
+  }
 
   // In any field of prime order F_p:
   // - There exists an additive group.
