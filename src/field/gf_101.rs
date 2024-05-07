@@ -27,7 +27,8 @@ impl fmt::Display for GF101 {
 }
 
 impl GF101 {
-  pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
+  // pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
+  pub const fn new(value: u32) -> Self { Self { value } }
 }
 
 impl FiniteField for GF101 {
@@ -114,7 +115,7 @@ impl SubAssign for GF101 {
 impl Mul for GF101 {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self { Self { value: from_monty(self.value * rhs.value) } }
+  fn mul(self, rhs: Self) -> Self { Self { value: (self.value * rhs.value) % Self::ORDER } }
 }
 
 impl MulAssign for GF101 {
@@ -445,5 +446,19 @@ mod tests {
     }
     let omega_n = omega.pow(n);
     assert_eq!(omega_n, F::new(1));
+  }
+
+  #[test]
+  fn polynomial_sum() {
+    let a = F::new(1);
+    let b = F::new(2);
+    let c = F::new(3);
+    let d = F::new(4);
+
+    let n = 4;
+    let omega = F::primitive_root_of_unity(n);
+
+    let out = a + b * omega + c * omega.pow(2) + d * omega.pow(3);
+    assert_eq!(out, F::new(79));
   }
 }

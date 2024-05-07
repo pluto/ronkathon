@@ -120,6 +120,19 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     q.coefficients = q_coeffs;
     (q, p)
   }
+
+  pub fn dft(&self) -> Vec<F> {
+    let n = self.coefficients.len();
+    let primitive_root_of_unity = F::primitive_root_of_unity(F::Storage::from(n as u32));
+    let mut result = vec![F::zero(); n];
+    for i in 0..n {
+      for j in 0..n {
+        result[i] +=
+          self.coefficients[j] * primitive_root_of_unity.pow(F::Storage::from(i as u32 * j as u32));
+      }
+    }
+    result
+  }
 }
 
 impl Display for Polynomial<Monomial, GF101> {
@@ -336,5 +349,13 @@ mod test {
   fn trim_to_zero() {
     let mut poly = Polynomial::<Monomial, GF101>::new(vec![GF101::zero(), GF101::zero()]);
     assert_eq!(poly.coefficients, [GF101::zero()]);
+  }
+
+  #[test]
+  fn dft() {
+    let poly = deg_three_poly();
+    let dft = poly.dft();
+    println!("{:?}", dft);
+    assert_eq!(dft, [GF101::new(10), GF101::new(79), GF101::new(99), GF101::new(18)]);
   }
 }
