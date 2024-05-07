@@ -70,8 +70,15 @@ pub trait FiniteField:
   }
 }
 
-/// A Finite field extension trait
-pub trait ExtensionField<Base: FiniteField>: FiniteField + From<Base> {
+pub trait ExtensionField<Base: FiniteField>:
+  FiniteField
+  + From<Base>
+  + Add<Base, Output = Self>
+  + AddAssign<Base>
+  + Sub<Base, Output = Self>
+  + SubAssign<Base>
+  + Mul<Base, Output = Self>
+  + MulAssign<Base> {
   const D: usize;
   fn irreducible() -> Base;
   fn from_base(b: Base) -> Self;
