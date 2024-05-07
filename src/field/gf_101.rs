@@ -40,21 +40,6 @@ impl FiniteField for GF101 {
 
   const ORDER: Self::Storage = PLUTO_FIELD_PRIME;
 
-  #[inline]
-  fn pow(&self, power: Self::Storage) -> Self {
-    let mut current = *self;
-    let power = power as u64;
-    let mut product = Self::one();
-
-    for j in 0..(64 - power.leading_zeros()) as usize {
-      if (power >> j & 1) != 0 {
-        product *= current;
-      }
-      current = current * current;
-    }
-    product
-  }
-
   fn inverse(&self) -> Option<Self> {
     if self.value == 0 {
       return None;
@@ -83,6 +68,8 @@ impl FiniteField for GF101 {
   fn neg_one() -> Self { Self::new(Self::ORDER - 1) }
 
   fn generator() -> Self { Self::new(2) }
+
+  fn from_canonical_u32(n: u32) -> Self { Self::new(n) }
 }
 
 impl Add for GF101 {
