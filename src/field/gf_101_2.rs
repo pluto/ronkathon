@@ -316,4 +316,14 @@ mod tests {
     let res = x.square();
     assert_eq!(mul1 * inv_mul, res);
   }
+
+  #[test]
+  fn test_generator_order() {
+      let generator = F2::generator();
+      let mut x = generator;
+      for _ in 1..F2::ORDER {
+          x *= generator;
+      }
+      assert_eq!(x, F2::one());
+  }
 }
