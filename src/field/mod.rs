@@ -44,10 +44,11 @@ pub trait FiniteField:
     + Mul<Output = Self::Storage>
     + Eq;
   const ORDER: Self::Storage;
-  fn zero() -> Self;
-  fn one() -> Self;
-  fn two() -> Self;
-  fn neg_one() -> Self;
+  const ZERO: Self;
+  const ONE: Self;
+  const TWO: Self;
+  const NEG_ONE: Self;
+
   fn inverse(&self) -> Option<Self>;
   fn from_canonical_u32(n: u32) -> Self;
   fn generator() -> Self;
@@ -57,7 +58,7 @@ pub trait FiniteField:
   fn pow(&self, power: Self::Storage) -> Self {
     let mut current = *self;
     let power: u64 = power.into();
-    let mut product = Self::one();
+    let mut product = Self::ONE;
 
     for j in 0..(64 - power.leading_zeros()) as usize {
       if (power >> j & 1) != 0 {
@@ -85,6 +86,7 @@ pub trait FiniteField:
   }
 }
 
+#[const_trait]
 pub trait ExtensionField<Base: FiniteField>:
   FiniteField
   + From<Base>

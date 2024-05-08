@@ -36,7 +36,7 @@ K.<X> = GF(101**2, modulus = x^2 + 2)
 
 # Curve group over polynomial ring
 E2 = EllipticCurve(K, [0, 3])
-# print(E2.points())
+print(E2.points())
 
 # G1 is the generator for E1
 G1 = E(1,2)

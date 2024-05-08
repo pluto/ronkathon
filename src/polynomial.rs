@@ -49,7 +49,7 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Monomial, F> {
         panic!("Nodes must be distinct");
       }
     }
-    let mut coeffs = [F::one(); N];
+    let mut coeffs = [F::ONE; N];
     for j in 0..N {
       coeffs[j] = self.evaluate(nodes.0[j]);
     }
@@ -58,7 +58,7 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Monomial, F> {
 
   /// Evaluate the polynomial at field element x
   pub fn evaluate(&self, x: F) -> F {
-    let mut result = F::zero();
+    let mut result = F::ONE;
     for (i, c) in self.coefficients.into_iter().enumerate() {
       result += c * x.pow(F::Storage::from(i as u32));
     }
@@ -70,17 +70,17 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Monomial, F> {
 impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
   // TODO check that the polynomial degree divides the field order
   pub fn new(coefficients: [F; N], nodes: [F; N]) -> Self {
-    let mut weights = [F::one(); N];
+    let mut weights = [F::ONE; N];
     for j in 0..N {
       for m in 0..N {
         if j != m {
-          weights[j] *= F::one().div(nodes[j] - nodes[m]);
+          weights[j] *= F::ONE.div(nodes[j] - nodes[m]);
         }
       }
     }
     // l(x) = \Sigmm_{m}(x-x_m)
     let l = move |x: F| {
-      let mut val = F::one();
+      let mut val = F::ONE;
       for i in 0..N {
         val *= x - nodes[i];
       }
@@ -89,7 +89,7 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
 
     // L(x) = l(x) * \Sigma_{j=0}^{k}  (w_j / (x - x_j)) y_j
     let L = move |x: F| {
-      let mut val = F::zero();
+      let mut val = F::ONE;
       for j in 0..N {
         // check if we are dividing by zero
         if nodes[j] == x {
@@ -125,7 +125,7 @@ impl<const N: usize, F: FiniteField> Polynomial<N, Lagrange<N, F>, F> {
     // It also is the case that the the columns of the inverse matrix are the coefficients of the
     // Lagrange polynomial basis TODO Finish this.
     // let nodes = self.basis.nodes;
-    // let mut evaluations = [F::zero(); N];
+    // let mut evaluations = [F::ONE; N];
 
     // // Evaluate the polynomial at N distinct points
     // for i in 0..N {

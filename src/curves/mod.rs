@@ -1,6 +1,6 @@
 use std::{
   fmt,
-  ops::{Add, Neg},
+  ops::{Add, Mul, Neg},
 };
 
 use crate::field::{gf_101::GF101, FiniteField};
@@ -12,7 +12,10 @@ pub struct Curve<F: FiniteField> {
   three: F,
   two:   F,
 }
-
+/// 
+/// Example:
+/// say 2 is in GF101
+/// 
 pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord {
   /// Integer field element type
   type FieldElement: FiniteField + Neg;
@@ -44,6 +47,11 @@ pub enum AffinePoint<C: CurveParams> {
 
 impl<C: CurveParams> AffinePoint<C> {
   pub fn new(x: C::FieldElement, y: C::FieldElement) -> Self {
+    println!("X: {:?}, Y: {:?}", x, y);
+    // okay so this is breaking because the curve equation doesn't know how to plug in polynomials. 
+    // y = 31x -> y^2 = 52x^2
+    // x = 36 -> x^3 = 95 + 3 
+    // 52x^2 = 98 ???
     assert_eq!(y * y, x * x * x + C::EQUATION_A * x + C::EQUATION_B, "Point is not on curve");
     Self::XY(x, y)
   }
@@ -58,6 +66,9 @@ impl<C: CurveParams> AffinePoint<C> {
   }
 }
 
+// Example:
+// Base
+
 impl<C: CurveParams> std::ops::Neg for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
@@ -66,7 +77,7 @@ impl<C: CurveParams> std::ops::Neg for AffinePoint<C> {
       AffinePoint::XY(x, y) => (x, y),
       AffinePoint::Infty => panic!("Cannot double point at infinity"),
     };
-    AffinePoint::new(x, C::FieldElement::zero() - y)
+    AffinePoint::new(x, C::FieldElement::ZERO - y)
   }
 }
 /// Scalar multiplication on the rhs: P*(u32)
@@ -161,6 +172,7 @@ impl<C: CurveParams> AffinePoint<C> {
 
   pub fn generator() -> Self {
     let (x, y) = C::GENERATOR;
+    println!("X: {:?}, Y: {:?}", x, y);
     AffinePoint::new(x, y)
   }
 }

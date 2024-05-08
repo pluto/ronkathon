@@ -9,13 +9,32 @@ pub struct G2Curve {}
 // - a = 0
 // - b = 3
 
-impl CurveParams for G2Curve {
-  type FieldElement = GF101;
+impl CurveParams for  G2Curve {
 
-  const EQUATION_A: Self::FieldElement = GF101::new(0);
-  const EQUATION_B: Self::FieldElement = GF101::new(3);
-  const GENERATOR: (Self::FieldElement, Self::FieldElement) = (GF101::new(36), GF101::new(31));
-  const ORDER: u32 = Self::FieldElement::ORDER;
-  const THREE: Self::FieldElement = GF101::new(3);
-  const TWO: Self::FieldElement = GF101::new(2);
+    type FieldElement = QuadraticPlutoField<GF101>;
+
+    const EQUATION_A: Self::FieldElement = QuadraticPlutoField::<GF101>::ZERO;
+    const EQUATION_B: Self::FieldElement = QuadraticPlutoField::<GF101>::new(GF101::new(3), GF101::ZERO);
+    const GENERATOR: (Self::FieldElement, Self::FieldElement) = (QuadraticPlutoField::<GF101>::new(GF101::new(36), GF101::ZERO), QuadraticPlutoField::<GF101>::new(GF101::ZERO, GF101::new(31)));
+    const ORDER: u32 = 289; // extension field subgroup should have order r^2 where r is order of first group
+    const THREE: QuadraticPlutoField<GF101> = QuadraticPlutoField::<GF101>::new(GF101::new(3), GF101::ZERO);
+    const TWO: QuadraticPlutoField<GF101> = QuadraticPlutoField::<GF101>::new(GF101::TWO, GF101::ZERO);
+
+}
+
+
+
+mod test {
+    use crate::curves::AffinePoint;
+
+    use super::*;
+
+    #[test]
+    fn doubling() {
+        let g = AffinePoint::<G2Curve>::generator();
+        println!("g: {:?}", g)
+
+        // want to asset that g  = (36, 31*X)
+        // want to asset that 2g = (90 , 82*X)
+    }
 }
