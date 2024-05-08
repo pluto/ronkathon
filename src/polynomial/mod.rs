@@ -73,6 +73,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     Polynomial::<Lagrange<F>, F>::new(coeffs)
   }
 
+  // TODO: Use Horner's rule for evaluation
   /// Evaluate the polynomial at field element x
   pub fn evaluate(&self, x: F) -> F {
     let mut result = F::zero();
