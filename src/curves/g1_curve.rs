@@ -1,9 +1,7 @@
 use std::ops::Add;
 
-use crate::field::{gf_101::GF101, FiniteField};
-
 use super::CurveParams;
-
+use crate::field::{gf_101::GF101, FiniteField};
 
 /// The Elliptic curve $y^2=x^3+3$, i.e.
 /// - a = 0
@@ -26,10 +24,9 @@ impl CurveParams for C101 {
 }
 
 mod test {
+  use super::*;
   use crate::curves::AffinePoint;
-
-use super::*;
-type F = GF101;
+  type F = GF101;
 
   #[test]
   fn point_doubling() {
@@ -67,8 +64,8 @@ type F = GF101;
     let mut g_double = g.point_doubling();
     let mut count = 2;
     while g_double != g && -g_double != g {
-        g_double = g_double.point_doubling();
-        count *= 2;
+      g_double = g_double.point_doubling();
+      count *= 2;
     }
     assert_eq!(count + 1, 17);
   }
@@ -118,4 +115,3 @@ type F = GF101;
     assert_eq!(-two_g, -expected_2g);
   }
 }
-

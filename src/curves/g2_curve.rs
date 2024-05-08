@@ -1,7 +1,7 @@
 use std::ops::Add;
-use crate::field::{gf_101::GF101, gf_101_2::QuadraticPlutoField, ExtensionField, FiniteField};
-use super::CurveParams;
 
+use super::CurveParams;
+use crate::field::{gf_101::GF101, gf_101_2::QuadraticPlutoField, ExtensionField, FiniteField};
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct G2Curve {}
@@ -19,4 +19,3 @@ impl CurveParams for G2Curve {
   const THREE: Self::FieldElement = GF101::new(3);
   const TWO: Self::FieldElement = GF101::new(2);
 }
-

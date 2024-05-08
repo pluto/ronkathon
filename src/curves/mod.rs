@@ -1,42 +1,41 @@
-
 use std::{
-    fmt,
-    ops::{Add, Neg},
-  };
-    
-  use crate::field::{FiniteField, gf_101::GF101};
-  
-  /// Elliptic curve in Weierstrass form: y^2 = x^3 + ax + b
-  pub struct Curve<F: FiniteField> {
-    pub a: F,
-    pub b: F,
-    three: F,
-    two:   F,
-  }
-  
-  pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord {
-    /// Integer field element type
-    type FieldElement: FiniteField + Neg;
-    /// Order of this elliptic curve, i.e. number of elements in the scalar field.
-    const ORDER: u32;
-    /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
-    const EQUATION_A: Self::FieldElement;
-    /// Coefficient `b` in the Weierstrass equation of this elliptic curve.
-    const EQUATION_B: Self::FieldElement;
-    /// Generator of this elliptic curve.
-    const GENERATOR: (Self::FieldElement, Self::FieldElement);
-    // hack: 3 and 2 to satisfy the Add<AffinePoint> trait implementation
-    const THREE: Self::FieldElement;
-    const TWO: Self::FieldElement;
-  
-    // maybe Curve::uint type is diff from PCP::fieldelement type
-    // maybe:
-    // type AffinePoint;
-    // type ProjectivePoint;
-    // type Scalar;
-  }
+  fmt,
+  ops::{Add, Neg},
+};
 
-  /// An Affine Coordinate Point on a Weierstrass elliptic curve
+use crate::field::{gf_101::GF101, FiniteField};
+
+/// Elliptic curve in Weierstrass form: y^2 = x^3 + ax + b
+pub struct Curve<F: FiniteField> {
+  pub a: F,
+  pub b: F,
+  three: F,
+  two:   F,
+}
+
+pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord {
+  /// Integer field element type
+  type FieldElement: FiniteField + Neg;
+  /// Order of this elliptic curve, i.e. number of elements in the scalar field.
+  const ORDER: u32;
+  /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
+  const EQUATION_A: Self::FieldElement;
+  /// Coefficient `b` in the Weierstrass equation of this elliptic curve.
+  const EQUATION_B: Self::FieldElement;
+  /// Generator of this elliptic curve.
+  const GENERATOR: (Self::FieldElement, Self::FieldElement);
+  // hack: 3 and 2 to satisfy the Add<AffinePoint> trait implementation
+  const THREE: Self::FieldElement;
+  const TWO: Self::FieldElement;
+
+  // maybe Curve::uint type is diff from PCP::fieldelement type
+  // maybe:
+  // type AffinePoint;
+  // type ProjectivePoint;
+  // type Scalar;
+}
+
+/// An Affine Coordinate Point on a Weierstrass elliptic curve
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub enum AffinePoint<C: CurveParams> {
   XY(C::FieldElement, C::FieldElement),
@@ -60,15 +59,15 @@ impl<C: CurveParams> AffinePoint<C> {
 }
 
 impl<C: CurveParams> std::ops::Neg for AffinePoint<C> {
-    type Output = AffinePoint<C>;
+  type Output = AffinePoint<C>;
 
-    fn neg(self) -> Self::Output {
-      let (x, y) = match self {
-        AffinePoint::XY(x, y) => (x, y),
-        AffinePoint::Infty => panic!("Cannot double point at infinity"),
-      };
-      AffinePoint::new(x, C::FieldElement::zero() - y)
-    }
+  fn neg(self) -> Self::Output {
+    let (x, y) = match self {
+      AffinePoint::XY(x, y) => (x, y),
+      AffinePoint::Infty => panic!("Cannot double point at infinity"),
+    };
+    AffinePoint::new(x, C::FieldElement::zero() - y)
+  }
 }
 /// Scalar multiplication on the rhs: P*(u32)
 impl<C: CurveParams> std::ops::Mul<u32> for AffinePoint<C> {
@@ -108,7 +107,6 @@ impl<C: CurveParams> std::ops::Mul<AffinePoint<C>> for u32 {
     }
     result
   }
-
 }
 
 impl<C: CurveParams> Add for AffinePoint<C> {
@@ -148,7 +146,6 @@ impl<C: CurveParams> Add for AffinePoint<C> {
 
 impl<C: CurveParams> AffinePoint<C> {
   pub fn point_doubling(mut self) -> AffinePoint<C> {
-
     let (x, y) = match self {
       AffinePoint::XY(x, y) => (x, y),
       AffinePoint::Infty => panic!("Cannot double point at infinity"),
@@ -160,14 +157,13 @@ impl<C: CurveParams> AffinePoint<C> {
     let x_new = m * m - C::TWO * x;
     let y_new = m * (C::THREE * x - m * m) - y;
     AffinePoint::new(x_new, y_new)
-    
   }
 
   pub fn generator() -> Self {
-    let (x,y) = C::GENERATOR;
+    let (x, y) = C::GENERATOR;
     AffinePoint::new(x, y)
   }
 }
 
-  pub mod g1_curve;
-  pub mod g2_curve;
+pub mod g1_curve;
+pub mod g2_curve;

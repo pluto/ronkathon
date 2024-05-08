@@ -319,11 +319,11 @@ mod tests {
 
   #[test]
   fn test_generator_order() {
-      let generator = F2::generator();
-      let mut x = generator;
-      for _ in 1..F2::ORDER {
-          x *= generator;
-      }
-      assert_eq!(x, F2::one());
+    let generator = F2::generator();
+    let mut x = generator;
+    for _ in 1..F2::ORDER {
+      x *= generator;
+    }
+    assert_eq!(x, F2::one());
   }
 }
