@@ -28,12 +28,13 @@ pub struct GF101 {
 }
 
 impl fmt::Display for GF101 {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.value) }
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", from_monty(self.value))
+  }
 }
 
 impl GF101 {
-  // pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
-  pub const fn new(value: u32) -> Self { Self { value: value % PLUTO_FIELD_PRIME } }
+  pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
 }
 
 impl FiniteField for GF101 {
@@ -103,7 +104,7 @@ impl SubAssign for GF101 {
 impl Mul for GF101 {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self { Self { value: (self.value * rhs.value) % Self::ORDER } }
+  fn mul(self, rhs: Self) -> Self { Self { value: from_monty(self.value * rhs.value) } }
 }
 
 impl MulAssign for GF101 {
@@ -144,7 +145,7 @@ impl Distribution<GF101> for Standard {
   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GF101 {
     loop {
       let next_u31 = rng.next_u32() >> 4;
-      let is_canonical = next_u31 < PLUTO_FIELD_PRIME;
+      let is_canonical = next_u31 < GF101::ORDER;
       if is_canonical {
         return GF101 { value: next_u31 };
       }
