@@ -117,10 +117,10 @@ impl<F: FiniteField> Rem for Polynomial<Monomial, F> {
 
 #[cfg(test)]
 mod tests {
-  use field::gf_101::GF101;
 
   use super::*;
 
+  #[fixture]
   fn poly_a() -> Polynomial<Monomial, GF101> {
     Polynomial::<Monomial, GF101>::new(vec![
       GF101::new(1),
@@ -130,6 +130,7 @@ mod tests {
     ])
   }
 
+  #[fixture]
   fn poly_b() -> Polynomial<Monomial, GF101> {
     Polynomial::<Monomial, GF101>::new(vec![
       GF101::new(5),
@@ -140,19 +141,19 @@ mod tests {
     ])
   }
 
+  #[fixture]
   fn poly_c() -> Polynomial<Monomial, GF101> {
     Polynomial::<Monomial, GF101>::new(vec![GF101::new(1), GF101::new(2)])
   }
 
+  #[fixture]
   fn poly_d() -> Polynomial<Monomial, GF101> {
     Polynomial::<Monomial, GF101>::new(vec![GF101::new(3), GF101::new(4)])
   }
 
-  #[test]
-  fn add() {
-    let c = poly_a() + poly_b();
-    println!("{:?}", c.coefficients);
-    assert_eq!(c.coefficients, [
+  #[rstest]
+  fn add(poly_a: Polynomial<Monomial, GF101>, poly_b: Polynomial<Monomial, GF101>) {
+    assert_eq!((poly_a + poly_b).coefficients, [
       GF101::new(6),
       GF101::new(8),
       GF101::new(10),
@@ -161,11 +162,10 @@ mod tests {
     ]);
   }
 
-  #[test]
-  fn add_assign() {
-    let mut a = poly_a();
-    a += poly_b();
-    assert_eq!(a.coefficients, [
+  #[rstest]
+  fn add_assign(mut poly_a: Polynomial<Monomial, GF101>, poly_b: Polynomial<Monomial, GF101>) {
+    poly_a += poly_b;
+    assert_eq!(poly_a.coefficients, [
       GF101::new(6),
       GF101::new(8),
       GF101::new(10),
@@ -174,10 +174,9 @@ mod tests {
     ]);
   }
 
-  #[test]
-  fn sum() {
-    let sum = [poly_a(), poly_b()].into_iter().sum::<Polynomial<Monomial, GF101>>();
-    assert_eq!(sum.coefficients, [
+  #[rstest]
+  fn sum(poly_a: Polynomial<Monomial, GF101>, poly_b: Polynomial<Monomial, GF101>) {
+    assert_eq!([poly_a, poly_b].into_iter().sum::<Polynomial<Monomial, GF101>>().coefficients, [
       GF101::new(6),
       GF101::new(8),
       GF101::new(10),
@@ -186,10 +185,9 @@ mod tests {
     ]);
   }
 
-  #[test]
-  fn sub() {
-    let c = poly_a() - poly_b();
-    assert_eq!(c.coefficients, [
+  #[rstest]
+  fn sub(poly_a: Polynomial<Monomial, GF101>, poly_b: Polynomial<Monomial, GF101>) {
+    assert_eq!((poly_a - poly_b).coefficients, [
       GF101::new(97),
       GF101::new(97),
       GF101::new(97),
@@ -198,11 +196,10 @@ mod tests {
     ]);
   }
 
-  #[test]
-  fn sub_assign() {
-    let mut a = poly_a();
-    a -= poly_b();
-    assert_eq!(a.coefficients, [
+  #[rstest]
+  fn sub_assign(mut poly_a: Polynomial<Monomial, GF101>, poly_b: Polynomial<Monomial, GF101>) {
+    poly_a -= poly_b;
+    assert_eq!(poly_a.coefficients, [
       GF101::new(97),
       GF101::new(97),
       GF101::new(97),
@@ -211,68 +208,54 @@ mod tests {
     ]);
   }
 
-  #[test]
-  fn neg() {
-    let a = -poly_a();
-    assert_eq!(a.coefficients, [GF101::new(100), GF101::new(99), GF101::new(98), GF101::new(97)]);
+  #[rstest]
+  fn neg(poly_a: Polynomial<Monomial, GF101>) {
+    assert_eq!((-poly_a).coefficients, [
+      GF101::new(100),
+      GF101::new(99),
+      GF101::new(98),
+      GF101::new(97)
+    ]);
   }
 
-  #[test]
-  fn div() {
-    println!("poly_a: {}", poly_a());
-    println!("poly_b: {}", poly_b());
-    let q_ab = poly_a() / poly_b();
-    assert_eq!(q_ab.coefficients, [GF101::new(0)]);
-
-    let q_ba = poly_b() / poly_a();
-    assert_eq!(q_ba.coefficients, [GF101::new(95), GF101::new(78)]);
-    println!("q_ba coefficients: {:?}", q_ba.coefficients);
+  #[rstest]
+  fn div(poly_a: Polynomial<Monomial, GF101>, poly_b: Polynomial<Monomial, GF101>) {
+    assert_eq!((poly_a.clone() / poly_b.clone()).coefficients, [GF101::new(0)]);
+    assert_eq!((poly_b / poly_a).coefficients, [GF101::new(95), GF101::new(78)]);
 
     let p = Polynomial::<Monomial, GF101>::new(vec![GF101::new(1), GF101::new(2), GF101::new(1)]);
-    println!("p: {}", p);
     let q = Polynomial::<Monomial, GF101>::new(vec![GF101::new(1), GF101::new(1)]);
-    println!("q: {}", q);
     let r = p / q;
-    println!("r: {}", r);
     assert_eq!(r.coefficients, [GF101::new(1), GF101::new(1)]);
   }
 
-  #[test]
-  fn rem() {
-    println!("poly_a: {}", poly_a());
-    println!("poly_b: {}", poly_b());
-    let q_ab = poly_a() % poly_b();
-    assert_eq!(q_ab.coefficients, poly_a().coefficients);
-
-    let q_ba = poly_b() % poly_a();
-    assert_eq!(q_ba.coefficients, [GF101::new(11), GF101::new(41), GF101::new(71)]);
-    println!("q_ba coefficients: {:?}", q_ba.coefficients);
+  #[rstest]
+  fn rem(poly_a: Polynomial<Monomial, GF101>, poly_b: Polynomial<Monomial, GF101>) {
+    assert_eq!((poly_a.clone() % poly_b.clone()).coefficients, poly_a.coefficients);
+    assert_eq!((poly_b % poly_a).coefficients, [GF101::new(11), GF101::new(41), GF101::new(71)]);
 
     let p = Polynomial::<Monomial, GF101>::new(vec![GF101::new(1), GF101::new(2), GF101::new(1)]);
-    println!("p: {}", p);
     let q = Polynomial::<Monomial, GF101>::new(vec![GF101::new(1), GF101::new(1)]);
-    println!("q: {}", q);
     let r = p % q;
-    println!("r: {}", r);
     assert_eq!(r.coefficients, [GF101::new(0)]);
   }
 
-  #[test]
-  fn mul() {
-    let c = poly_c() * poly_d();
-    assert_eq!(c.coefficients, [GF101::new(3), GF101::new(10), GF101::new(8)]);
+  #[rstest]
+  fn mul(poly_c: Polynomial<Monomial, GF101>, poly_d: Polynomial<Monomial, GF101>) {
+    assert_eq!((poly_c * poly_d).coefficients, [GF101::new(3), GF101::new(10), GF101::new(8)]);
   }
 
-  #[test]
-  fn mul_assign() {
-    let mut c = poly_c();
-    c *= poly_d();
-    assert_eq!(c.coefficients, [GF101::new(3), GF101::new(10), GF101::new(8)]);
+  #[rstest]
+  fn mul_assign(mut poly_c: Polynomial<Monomial, GF101>, poly_d: Polynomial<Monomial, GF101>) {
+    poly_c *= poly_d;
+    assert_eq!(poly_c.coefficients, [GF101::new(3), GF101::new(10), GF101::new(8)]);
   }
 
-  #[test]
-  fn product() {
-    let product = [poly_c(), poly_d()].into_iter().product::<Polynomial<Monomial, GF101>>();
-    assert_eq!(product.coefficients, [GF101::new(3), GF101::new(10), GF101::new(8)]);
+  #[rstest]
+  fn product(poly_c: Polynomial<Monomial, GF101>, poly_d: Polynomial<Monomial, GF101>) {
+    assert_eq!(
+      [poly_c, poly_d].into_iter().product::<Polynomial<Monomial, GF101>>().coefficients,
+      [GF101::new(3), GF101::new(10), GF101::new(8)]
+    );
   }
 }

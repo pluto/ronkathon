@@ -13,5 +13,6 @@ use core::{
 };
 
 use rand::Rng;
+#[cfg(test)] use rstest::{fixture, rstest};
 
-pub use self::field::{gf_101::GF101, FiniteField};
+use self::field::{gf_101::GF101, FiniteField};
