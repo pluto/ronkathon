@@ -2,9 +2,6 @@ use std::array;
 
 use super::*;
 
-// TODO: Implement `Mul`, `MulAssign`, `Product`.
-// * `Mul` and other products will require FFT.
-
 impl<F: FiniteField> Add for Polynomial<Monomial, F> {
   type Output = Self;
 
@@ -78,37 +75,36 @@ impl<F: FiniteField> Neg for Polynomial<Monomial, F> {
   }
 }
 
+impl<F: FiniteField> Mul for Polynomial<Monomial, F> {
+  type Output = Self;
+
+  fn mul(self, rhs: Self) -> Self {
+    let d = self.degree() + rhs.degree();
+    let mut coefficients = vec![F::ZERO; d + 1];
+    for i in 0..self.degree() + 1 {
+      for j in 0..rhs.degree() + 1 {
+        coefficients[i + j] += self.coefficients[i] * rhs.coefficients[j];
+      }
+    }
+    Self { coefficients, basis: self.basis }
+  }
+}
+
+impl<F: FiniteField> MulAssign for Polynomial<Monomial, F> {
+  fn mul_assign(&mut self, rhs: Self) {
+    let cloned = self.clone();
+    self.coefficients = (cloned * rhs).coefficients;
+  }
+}
+
+impl<F: FiniteField> Product for Polynomial<Monomial, F> {
+  fn product<I: Iterator<Item = Self>>(iter: I) -> Self { iter.reduce(|x, y| x * y).unwrap() }
+}
+
 impl<F: FiniteField> Div for Polynomial<Monomial, F> {
   type Output = Self;
 
-  fn div(self, rhs: Self) -> Self::Output {
-    // // Euclidean division
-    // // Initial quotient value
-    // let mut q = F::zero();
-
-    // // Initial remainder value is our numerator polynomial
-    // let mut p = self;
-
-    // // Leading coefficient of the denominator
-    // let c = rhs.leading_coefficient();
-
-    // // Create quotient poly
-    // let mut diff = p.degree() as isize - rhs.degree() as isize;
-    // if diff < 0 {
-    //   return Polynomial::<Monomial, F>::new(vec![F::zero(); 1]);
-    // }
-    // let mut q_coeffs = vec![F::zero(); diff as usize + 1];
-
-    // while diff >= 0 {
-    //   let s = p.leading_coefficient() * c.inverse().unwrap();
-    //   q_coeffs[diff as usize] = s;
-    //   p -= rhs.pow_mult(s, diff as usize);
-    //   p.trim_zeros();
-    //   diff -= 1;
-    // }
-    // Polynomial::<Monomial, F>::new(q_coeffs)
-    self.quotient_and_remainder(rhs).0
-  }
+  fn div(self, rhs: Self) -> Self::Output { self.quotient_and_remainder(rhs).0 }
 }
 
 impl<F: FiniteField> Rem for Polynomial<Monomial, F> {
@@ -140,6 +136,14 @@ mod tests {
       GF101::new(8),
       GF101::new(9),
     ])
+  }
+
+  fn poly_c() -> Polynomial<Monomial, GF101> {
+    Polynomial::<Monomial, GF101>::new(vec![GF101::new(1), GF101::new(2)])
+  }
+
+  fn poly_d() -> Polynomial<Monomial, GF101> {
+    Polynomial::<Monomial, GF101>::new(vec![GF101::new(3), GF101::new(4)])
   }
 
   #[test]
@@ -249,5 +253,24 @@ mod tests {
     let r = p % q;
     println!("r: {}", r);
     assert_eq!(r.coefficients, [GF101::new(0)]);
+  }
+
+  #[test]
+  fn mul() {
+    let c = poly_c() * poly_d();
+    assert_eq!(c.coefficients, [GF101::new(3), GF101::new(10), GF101::new(8)]);
+  }
+
+  #[test]
+  fn mul_assign() {
+    let mut c = poly_c();
+    c *= poly_d();
+    assert_eq!(c.coefficients, [GF101::new(3), GF101::new(10), GF101::new(8)]);
+  }
+
+  #[test]
+  fn product() {
+    let product = [poly_c(), poly_d()].into_iter().product::<Polynomial<Monomial, GF101>>();
+    assert_eq!(product.coefficients, [GF101::new(3), GF101::new(10), GF101::new(8)]);
   }
 }
