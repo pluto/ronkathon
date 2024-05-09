@@ -1,5 +1,21 @@
+//! Arithmetic operations for polynomials.
+//! The operations are implemented a [`Polynomial`] in the [`Monomial`] basis for now.
+//!
+//! ## Implementations
+//! - [`Add`] for adding two polynomials.
+//! - [`AddAssign`] for adding two polynomials in place.
+//! - [`Sum`] for summing a collection of polynomials.
+//! - [`Sub`] for subtracting two polynomials.
+//! - [`SubAssign`] for subtracting two polynomials in place.
+//! - [`Neg`] for negating a polynomial.
+//! - [`Mul`] for multiplying two polynomials.
+//! - [`MulAssign`] for multiplying two polynomials in place.
+//! - [`Product`] for multiplying a collection of polynomials.
+//! - [`Div`] for dividing two polynomials.
+//! - [`Rem`] for finding the remainder of dividing two polynomials.
 use super::*;
 
+/// Implements addition of two polynomials by adding their coefficients.
 impl<F: FiniteField> Add for Polynomial<Monomial, F> {
   type Output = Self;
 
@@ -17,6 +33,7 @@ impl<F: FiniteField> Add for Polynomial<Monomial, F> {
   }
 }
 
+/// Implements in-place addition of two polynomials by adding their coefficients.
 impl<F: FiniteField> AddAssign for Polynomial<Monomial, F> {
   fn add_assign(&mut self, mut rhs: Self) {
     let d = self.degree().max(rhs.degree());
@@ -31,10 +48,12 @@ impl<F: FiniteField> AddAssign for Polynomial<Monomial, F> {
   }
 }
 
+/// Implements summing a collection of polynomials.
 impl<F: FiniteField> Sum for Polynomial<Monomial, F> {
   fn sum<I: Iterator<Item = Self>>(iter: I) -> Self { iter.reduce(|x, y| x + y).unwrap() }
 }
 
+/// Implements subtraction of two polynomials by subtracting their coefficients.
 impl<F: FiniteField> Sub for Polynomial<Monomial, F> {
   type Output = Self;
 
@@ -52,6 +71,7 @@ impl<F: FiniteField> Sub for Polynomial<Monomial, F> {
   }
 }
 
+/// Implements in-place subtraction of two polynomials by subtracting their coefficients.
 impl<F: FiniteField> SubAssign for Polynomial<Monomial, F> {
   fn sub_assign(&mut self, mut rhs: Self) {
     let d = self.degree().max(rhs.degree());
@@ -66,6 +86,7 @@ impl<F: FiniteField> SubAssign for Polynomial<Monomial, F> {
   }
 }
 
+/// Implements negation of a polynomial by negating its coefficients.
 impl<F: FiniteField> Neg for Polynomial<Monomial, F> {
   type Output = Self;
 
@@ -77,6 +98,10 @@ impl<F: FiniteField> Neg for Polynomial<Monomial, F> {
   }
 }
 
+/// Implements multiplication of two polynomials by computing:
+/// $$
+/// (a_0 + a_1 x + a_2 x^2 + \ldots) \times (b_0 + b_1 x + b_2 x^2 + \ldots) = c_0 + c_1 x + c_2 x^2
+/// + \ldots $$ where $c_i = \sum_{j=0}^{i} a_j b_{i-j}$.
 impl<F: FiniteField> Mul for Polynomial<Monomial, F> {
   type Output = Self;
 
@@ -92,6 +117,7 @@ impl<F: FiniteField> Mul for Polynomial<Monomial, F> {
   }
 }
 
+/// Implements in-place multiplication of two polynomials by using the [`Mul`] implementation.
 impl<F: FiniteField> MulAssign for Polynomial<Monomial, F> {
   fn mul_assign(&mut self, rhs: Self) {
     let cloned = self.clone();
@@ -99,16 +125,21 @@ impl<F: FiniteField> MulAssign for Polynomial<Monomial, F> {
   }
 }
 
+/// Implements product of a collection of polynomials by using the [`Mul`] implementation.
 impl<F: FiniteField> Product for Polynomial<Monomial, F> {
   fn product<I: Iterator<Item = Self>>(iter: I) -> Self { iter.reduce(|x, y| x * y).unwrap() }
 }
 
+/// Implements division of two polynomials by using the [`Polynomial::quotient_and_remainder`]
+/// method. Implicitly uses the Euclidean division algorithm.
 impl<F: FiniteField> Div for Polynomial<Monomial, F> {
   type Output = Self;
 
   fn div(self, rhs: Self) -> Self::Output { self.quotient_and_remainder(rhs).0 }
 }
 
+/// Implements remainder of dividing two polynomials by using the
+/// [`Polynomial::quotient_and_remainder`] method. Implicitly uses the Euclidean division algorithm.
 impl<F: FiniteField> Rem for Polynomial<Monomial, F> {
   type Output = Self;
 

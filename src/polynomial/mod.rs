@@ -113,7 +113,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   /// Accessory function that allows for the multiplication of a polynomial by a scalar `coeff`
   /// times a monomial `x^pow`.
   /// Used explicitly in the [`Polynomial::quotient_and_remainder`] function for implementing the
-  /// Euclidean division algorithm (to implement [`Div`] and [`Rem`] traits).
+  /// [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) algorithm (to implement [`Div`] and [`Rem`] traits).
   ///
   /// ## Arguments:
   /// - `coeff`: The scalar to multiply the polynomial by.
@@ -130,7 +130,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     Polynomial::<Monomial, F>::new(coefficients)
   }
 
-  /// Euclidean division of two polynomials in [`Monomial`] basis.
+  /// [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) of two polynomials in [`Monomial`] basis.
   /// Used explicitly in implementing the [`Div`] and [`Rem`] traits.
   ///
   /// ## Arguments:
