@@ -35,7 +35,7 @@ fn evaluation_with_zero() {
 #[rstest]
 fn lagrange_evaluation(poly: Polynomial<Monomial, GF101>) {
   // Convert to Lagrange basis using roots of unity
-  let lagrange = poly.to_lagrange();
+  let lagrange = poly.dft();
   println!("{}", lagrange);
 
   // Should get: 1 + 2*(2) + 3*(2)^2 + 4*(2)^3= 49
@@ -51,14 +51,14 @@ fn no_roots_of_unity() {
   let b = GF101::new(2);
   let c = GF101::new(3);
   let polynomial = Polynomial::<Monomial, GF101>::new(vec![a, b, c]);
-  polynomial.to_lagrange();
+  polynomial.dft();
 }
 
 #[rstest]
 fn check_coefficients(poly: Polynomial<Monomial, GF101>) {
   assert_eq!(poly.coefficients, [GF101::new(1), GF101::new(2), GF101::new(3), GF101::new(4)]);
 
-  assert_eq!(poly.to_lagrange().coefficients, [
+  assert_eq!(poly.dft().coefficients, [
     GF101::new(10),
     GF101::new(79),
     GF101::new(99),
@@ -110,7 +110,12 @@ fn trim_to_zero() {
 
 #[rstest]
 fn dft(poly: Polynomial<Monomial, GF101>) {
-  assert_eq!(poly.dft(), [GF101::new(10), GF101::new(79), GF101::new(99), GF101::new(18)]);
+  assert_eq!(poly.dft().coefficients, [
+    GF101::new(10),
+    GF101::new(79),
+    GF101::new(99),
+    GF101::new(18)
+  ]);
   let poly = Polynomial::<Monomial, GF101>::new(vec![GF101::ZERO, GF101::ZERO]);
   assert_eq!(poly.coefficients, [GF101::ZERO]);
 }
