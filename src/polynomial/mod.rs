@@ -1,10 +1,7 @@
-use std::collections::HashSet;
-
-use self::field::{gf_101::GF101, FiniteField};
 use super::*;
 
 pub mod arithmetic;
-mod tests;
+#[cfg(test)] mod tests;
 
 // https://people.inf.ethz.ch/gander/papers/changing.pdf
 
@@ -42,7 +39,7 @@ impl<B: Basis, F: FiniteField> Polynomial<B, F> {
 
 /// A polynomial in monomial basis
 impl<F: FiniteField> Polynomial<Monomial, F> {
-  pub fn new(mut coefficients: Vec<F>) -> Self {
+  pub fn new(coefficients: Vec<F>) -> Self {
     // Simplify the polynomial to have leading coefficient non-zero
     let mut poly = Self { coefficients, basis: Monomial };
     poly.trim_zeros();
@@ -64,10 +61,9 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     let primitive_root = F::primitive_root_of_unity(F::Storage::from(n as u32));
 
     // Evaluate the polynomial at the roots of unity to get the coefficients of the Lagrange basis
-    let mut coeffs = vec![F::ZERO; n];
-    for j in 0..self.coefficients.len() {
-      coeffs[j] = self.evaluate(primitive_root.pow(F::Storage::from(j as u32)));
-    }
+    let coeffs: Vec<F> = (0..self.coefficients.len())
+      .map(|j| self.evaluate(primitive_root.pow(F::Storage::from(j as u32))))
+      .collect();
     Polynomial::<Lagrange<F>, F>::new(coeffs)
   }
 
@@ -122,14 +118,14 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   pub fn dft(&self) -> Vec<F> {
     let n = self.coefficients.len();
     let primitive_root_of_unity = F::primitive_root_of_unity(F::Storage::from(n as u32));
-    let mut result = vec![F::ZERO; n];
-    for i in 0..n {
-      for j in 0..n {
-        result[i] +=
-          self.coefficients[j] * primitive_root_of_unity.pow(F::Storage::from(i as u32 * j as u32));
-      }
-    }
-    result
+
+    (0..n)
+      .map(|i| {
+        self.coefficients.iter().enumerate().fold(F::ZERO, |acc, (j, &coeff)| {
+          acc + coeff * primitive_root_of_unity.pow(F::Storage::from(i as u32 * j as u32))
+        })
+      })
+      .collect()
   }
 }
 
@@ -205,13 +201,13 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
 
     // w_j = \Pi_{m \neq j} (x_j - x_m)^{-1}
     let mut weights = vec![F::ZERO; n];
-    for j in 0..n {
+    weights.iter_mut().enumerate().for_each(|(idx, w)| {
       for m in 0..n {
-        if j != m {
-          weights[j] *= F::ONE.div(self.basis.nodes[j] - self.basis.nodes[m]);
+        if idx != m {
+          *w *= F::ONE.div(self.basis.nodes[idx] - self.basis.nodes[m]);
         }
       }
-    }
+    });
 
     // l(x) = \Pi_{i=0}^{n-1} (x - x_i)
     let l = move |x: F| {
@@ -223,15 +219,16 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
     };
 
     // L(x) = l(x) * \Sigma_{j=0}^{n-1}  (w_j / (x - x_j)) y_j
-    let mut val = F::ZERO;
-    for j in 0..n {
-      // If we plug in x_j we get the coefficient by definition
-      if self.basis.nodes[j] == x {
-        return self.coefficients[j];
-      }
-      val += self.coefficients[j] * weights[j] / (x - self.basis.nodes[j]);
-    }
-    l(x) * val
+    l(x)
+      * weights.iter().zip(self.coefficients.iter()).zip(self.basis.nodes.iter()).fold(
+        F::ZERO,
+        |acc, ((w, &c), &n)| {
+          if n == x {
+            return c;
+          }
+          acc + c * *w / (x - n)
+        },
+      )
   }
 }
 

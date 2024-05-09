@@ -11,12 +11,12 @@ const QUADRATIC_EXTENSION_FIELD_ORDER: u32 = 101 * 101;
 /// Quadratic Extension field element represented as polynomial of degree 1 in form:
 /// a_0 + a_1*t where {a_0, a_1} \in \mathhbb{F}. Uses irreducible poly of the form:
 /// (X^2-K).
-pub struct QuadraticPlutoField<F: FiniteField> {
+pub struct GF101Ext2<F: FiniteField> {
   pub(crate) value: [F; 2],
 }
 
-impl<F: FiniteField> QuadraticPlutoField<F> {
-  const D: usize = 2;
+impl<F: FiniteField> GF101Ext2<F> {
+  const _D: usize = 2;
 
   pub const fn new(a: F, b: F) -> Self { Self { value: [a, b] } }
 
@@ -25,7 +25,7 @@ impl<F: FiniteField> QuadraticPlutoField<F> {
   fn irreducible() -> F { F::from_canonical_u32(2) }
 }
 
-impl<F: FiniteField> ExtensionField<F> for QuadraticPlutoField<F> {
+impl<F: FiniteField> ExtensionField<F> for GF101Ext2<F> {
   const D: usize = EXT_DEGREE;
 
   fn irreducible() -> F { Self::irreducible() }
@@ -33,11 +33,11 @@ impl<F: FiniteField> ExtensionField<F> for QuadraticPlutoField<F> {
   fn from_base(b: F) -> Self { Self { value: [b, F::ZERO] } }
 }
 
-impl<F: FiniteField> From<F> for QuadraticPlutoField<F> {
+impl<F: FiniteField> From<F> for GF101Ext2<F> {
   fn from(value: F) -> Self { Self::from_base(value) }
 }
 
-impl<F: FiniteField> FiniteField for QuadraticPlutoField<F> {
+impl<F: FiniteField> FiniteField for GF101Ext2<F> {
   type Storage = u32;
 
   const NEG_ONE: Self = Self::new(F::NEG_ONE, F::ZERO);
@@ -73,12 +73,12 @@ impl<F: FiniteField> FiniteField for QuadraticPlutoField<F> {
     Some(res)
   }
 
-  fn primitive_root_of_unity(n: Self::Storage) -> Self { todo!() }
+  fn primitive_root_of_unity(_n: Self::Storage) -> Self { todo!() }
 
   fn from_canonical_u32(n: u32) -> Self { Self { value: [F::from_canonical_u32(n), F::ZERO] } }
 }
 
-impl<F: FiniteField> Add for QuadraticPlutoField<F> {
+impl<F: FiniteField> Add for GF101Ext2<F> {
   type Output = Self;
 
   fn add(self, rhs: Self) -> Self::Output {
@@ -91,11 +91,11 @@ impl<F: FiniteField> Add for QuadraticPlutoField<F> {
   }
 }
 
-impl<F: FiniteField> AddAssign for QuadraticPlutoField<F> {
-  fn add_assign(&mut self, rhs: Self) { *self = self.clone() + rhs; }
+impl<F: FiniteField> AddAssign for GF101Ext2<F> {
+  fn add_assign(&mut self, rhs: Self) { *self = *self + rhs; }
 }
 
-impl<F: FiniteField> Add<F> for QuadraticPlutoField<F> {
+impl<F: FiniteField> Add<F> for GF101Ext2<F> {
   type Output = Self;
 
   fn add(self, rhs: F) -> Self::Output {
@@ -105,11 +105,11 @@ impl<F: FiniteField> Add<F> for QuadraticPlutoField<F> {
   }
 }
 
-impl<F: FiniteField> AddAssign<F> for QuadraticPlutoField<F> {
+impl<F: FiniteField> AddAssign<F> for GF101Ext2<F> {
   fn add_assign(&mut self, rhs: F) { *self = *self + rhs; }
 }
 
-impl<F: FiniteField> Sub for QuadraticPlutoField<F> {
+impl<F: FiniteField> Sub for GF101Ext2<F> {
   type Output = Self;
 
   fn sub(self, rhs: Self) -> Self {
@@ -122,11 +122,11 @@ impl<F: FiniteField> Sub for QuadraticPlutoField<F> {
   }
 }
 
-impl<F: FiniteField> SubAssign for QuadraticPlutoField<F> {
-  fn sub_assign(&mut self, rhs: Self) { *self = self.clone() - rhs; }
+impl<F: FiniteField> SubAssign for GF101Ext2<F> {
+  fn sub_assign(&mut self, rhs: Self) { *self = *self - rhs; }
 }
 
-impl<F: FiniteField> Sub<F> for QuadraticPlutoField<F> {
+impl<F: FiniteField> Sub<F> for GF101Ext2<F> {
   type Output = Self;
 
   fn sub(self, rhs: F) -> Self::Output {
@@ -136,23 +136,23 @@ impl<F: FiniteField> Sub<F> for QuadraticPlutoField<F> {
   }
 }
 
-impl<F: FiniteField> SubAssign<F> for QuadraticPlutoField<F> {
+impl<F: FiniteField> SubAssign<F> for GF101Ext2<F> {
   fn sub_assign(&mut self, rhs: F) { *self = *self - rhs; }
 }
 
-impl<F: FiniteField> Sum for QuadraticPlutoField<F> {
+impl<F: FiniteField> Sum for GF101Ext2<F> {
   fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
     iter.reduce(|x, y| x + y).unwrap_or(Self::ZERO)
   }
 }
 
-impl<F: FiniteField> Product for QuadraticPlutoField<F> {
+impl<F: FiniteField> Product for GF101Ext2<F> {
   fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
     iter.reduce(|x, y| x * y).unwrap_or(Self::ONE)
   }
 }
 
-impl<F: FiniteField> Mul for QuadraticPlutoField<F> {
+impl<F: FiniteField> Mul for GF101Ext2<F> {
   type Output = Self;
 
   /// Returns the multiplication of `a` and `b` using the following equation:
@@ -161,17 +161,17 @@ impl<F: FiniteField> Mul for QuadraticPlutoField<F> {
     let a = self.value;
     let b = rhs.value;
     let mut res = Self::default();
-    res.value[0] = a[0].clone() * b[0].clone() + a[1].clone() * b[1].clone() * Self::irreducible();
-    res.value[1] = a[0].clone() * b[1].clone() + a[1].clone() * b[0].clone();
+    res.value[0] = a[0] * b[0] + a[1] * b[1] * Self::irreducible();
+    res.value[1] = a[0] * b[1] + a[1] * b[0];
     res
   }
 }
 
-impl<F: FiniteField> MulAssign for QuadraticPlutoField<F> {
+impl<F: FiniteField> MulAssign for GF101Ext2<F> {
   fn mul_assign(&mut self, rhs: Self) { *self = *self * rhs; }
 }
 
-impl<F: FiniteField> Mul<F> for QuadraticPlutoField<F> {
+impl<F: FiniteField> Mul<F> for GF101Ext2<F> {
   type Output = Self;
 
   fn mul(self, rhs: F) -> Self::Output {
@@ -182,28 +182,28 @@ impl<F: FiniteField> Mul<F> for QuadraticPlutoField<F> {
   }
 }
 
-impl<F: FiniteField> MulAssign<F> for QuadraticPlutoField<F> {
+impl<F: FiniteField> MulAssign<F> for GF101Ext2<F> {
   fn mul_assign(&mut self, rhs: F) { *self = *self * rhs; }
 }
 
-impl<F: FiniteField> Div for QuadraticPlutoField<F> {
+impl<F: FiniteField> Div for GF101Ext2<F> {
   type Output = Self;
 
   #[allow(clippy::suspicious_arithmetic_impl)]
   fn div(self, rhs: Self) -> Self::Output { self * rhs.inverse().expect("invalid inverse") }
 }
 
-impl<F: FiniteField> DivAssign for QuadraticPlutoField<F> {
+impl<F: FiniteField> DivAssign for GF101Ext2<F> {
   fn div_assign(&mut self, rhs: Self) { *self = *self / rhs }
 }
 
-impl<F: FiniteField> Neg for QuadraticPlutoField<F> {
+impl<F: FiniteField> Neg for GF101Ext2<F> {
   type Output = Self;
 
   fn neg(self) -> Self::Output { Self::ZERO - self }
 }
 
-impl<F: FiniteField> Rem for QuadraticPlutoField<F> {
+impl<F: FiniteField> Rem for GF101Ext2<F> {
   type Output = Self;
 
   fn rem(self, rhs: Self) -> Self::Output { self - (self / rhs) * rhs }
@@ -215,8 +215,7 @@ mod tests {
   use super::*;
   use crate::field::gf_101::GF101;
   type F = GF101;
-  type F2 = QuadraticPlutoField<GF101>;
-  use rand::{thread_rng, Rng};
+  type F2 = GF101Ext2<GF101>;
 
   #[test]
   fn test_field() {

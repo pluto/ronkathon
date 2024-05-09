@@ -1,8 +1,7 @@
-use ark_bn254::{Bn254, Fq, Fq12, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
-use ark_ec::{AffineRepr, CurveGroup, Group, VariableBaseMSM};
-use ark_ff::{fields::PrimeField, Field};
+use ark_bn254::{Bn254, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+use ark_ec::{AffineRepr, CurveGroup, VariableBaseMSM};
+use ark_ff::Field;
 use ark_poly::DenseUVPolynomial;
-use ark_std::UniformRand;
 use num_bigint::BigUint;
 use rand::thread_rng;
 
@@ -103,6 +102,7 @@ pub fn evaluate(coefs: Vec<Fr>, point: Fr) -> Fr {
     .unwrap()
 }
 
+#[cfg(test)]
 mod tests {
   use super::*;
 

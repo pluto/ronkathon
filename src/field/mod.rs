@@ -50,8 +50,8 @@ pub trait FiniteField:
   fn inverse(&self) -> Option<Self>;
   fn from_canonical_u32(n: u32) -> Self;
   fn generator() -> Self;
-  fn double(&self) -> Self { self.clone() + self.clone() }
-  fn square(&self) -> Self { self.clone() * self.clone() }
+  fn double(&self) -> Self { *self + *self }
+  fn square(&self) -> Self { *self * *self }
 
   fn pow(&self, power: Self::Storage) -> Self {
     let mut current = *self;

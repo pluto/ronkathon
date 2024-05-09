@@ -1,12 +1,4 @@
 #![feature(const_trait_impl)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
-#![allow(non_snake_case)]
-#![allow(clippy::clone_on_copy)]
-#![allow(unused_mut)]
-#![allow(clippy::needless_range_loop)]
 
 pub mod curves;
 pub mod field;
@@ -21,3 +13,5 @@ use core::{
 };
 
 use rand::Rng;
+
+pub use self::field::{gf_101::GF101, FiniteField};

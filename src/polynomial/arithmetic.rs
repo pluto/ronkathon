@@ -1,17 +1,18 @@
-use std::array;
-
 use super::*;
 
 impl<F: FiniteField> Add for Polynomial<Monomial, F> {
   type Output = Self;
 
   fn add(self, rhs: Self) -> Self {
-    let d = self.degree().max(rhs.degree());
-    let mut coefficients = vec![F::ZERO; d + 1];
-    for i in 0..d + 1 {
-      coefficients[i] = *self.coefficients.get(i).unwrap_or(&F::ZERO)
-        + *rhs.coefficients.get(i).unwrap_or(&F::ZERO);
-    }
+    let d = self.coefficients.len().max(rhs.coefficients.len());
+    let coefficients = self
+      .coefficients
+      .iter()
+      .chain(std::iter::repeat(&F::ZERO))
+      .zip(rhs.coefficients.iter().chain(std::iter::repeat(&F::ZERO)))
+      .map(|(&a, &b)| a + b)
+      .take(d)
+      .collect();
     Self { coefficients, basis: self.basis }
   }
 }
@@ -19,7 +20,6 @@ impl<F: FiniteField> Add for Polynomial<Monomial, F> {
 impl<F: FiniteField> AddAssign for Polynomial<Monomial, F> {
   fn add_assign(&mut self, mut rhs: Self) {
     let d = self.degree().max(rhs.degree());
-    let mut coefficients = vec![F::ZERO; d + 1];
     if self.degree() < d {
       self.coefficients.resize(d + 1, F::ZERO);
     } else {
@@ -39,12 +39,15 @@ impl<F: FiniteField> Sub for Polynomial<Monomial, F> {
   type Output = Self;
 
   fn sub(self, rhs: Self) -> Self {
-    let d = self.degree().max(rhs.degree());
-    let mut coefficients = vec![F::ZERO; d + 1];
-    for i in 0..d + 1 {
-      coefficients[i] = *self.coefficients.get(i).unwrap_or(&F::ZERO)
-        - *rhs.coefficients.get(i).unwrap_or(&F::ZERO);
-    }
+    let d = self.coefficients.len().max(rhs.coefficients.len());
+    let coefficients = self
+      .coefficients
+      .iter()
+      .chain(std::iter::repeat(&F::ZERO))
+      .zip(rhs.coefficients.iter().chain(std::iter::repeat(&F::ZERO)))
+      .map(|(&a, &b)| a - b)
+      .take(d)
+      .collect();
     Self { coefficients, basis: self.basis }
   }
 }
@@ -52,7 +55,6 @@ impl<F: FiniteField> Sub for Polynomial<Monomial, F> {
 impl<F: FiniteField> SubAssign for Polynomial<Monomial, F> {
   fn sub_assign(&mut self, mut rhs: Self) {
     let d = self.degree().max(rhs.degree());
-    let mut coefficients = vec![F::ZERO; d + 1];
     if self.degree() < d {
       self.coefficients.resize(d + 1, F::ZERO);
     } else {

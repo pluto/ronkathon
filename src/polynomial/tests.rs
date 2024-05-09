@@ -1,5 +1,4 @@
 use super::*;
-use crate::field::gf_101::GF101;
 
 fn deg_three_poly() -> Polynomial<Monomial, GF101> {
   // Coefficients of the polynomial 1 + 2x + 3x^2 + 4x^3
