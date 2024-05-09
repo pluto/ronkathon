@@ -26,29 +26,26 @@ impl CurveParams for  G2Curve {
 
 impl G2Curve {
 
-    fn to_point(x: QuadraticPlutoField<GF101>, y: QuadraticPlutoField<GF101>) -> (QuadraticPlutoField<GF101>, QuadraticPlutoField<GF101>) {
+    fn on_curve(x: QuadraticPlutoField<GF101>, y: QuadraticPlutoField<GF101>) -> (QuadraticPlutoField<GF101>, QuadraticPlutoField<GF101>) {
         println!("X: {:?}, Y: {:?}", x, y);
         // example: plug in (36 + 0x, 0 + 31x)
         // curve : y^2=x^3+3,
         // check if there are any x terms, if not, element is in base field
-        let mut LHS = x;
-        let mut RHS = y;
+        let mut LHS = x * x * x;
+        let mut RHS = y * y;
         if x.value[1] != GF101::ZERO {
-            LHS = x * x * x * (-GF101::new(2)) - Self::EQUATION_B;
+            LHS = LHS * (-GF101::new(2)) - Self::EQUATION_B;
         } else {
             LHS = x * x * x - Self::EQUATION_B;
         }
         if y.value[1] != GF101::ZERO {
             // y has degree two so if there is a x -> there will be an x^2 term which we substitude with -2 since... 
             // TODO explain this and relationship to embedding degree
-            RHS = y * y * (-GF101::new(2));
-        } else {
-            RHS = y * y;
-        }
+            RHS *= -GF101::new(2);
+        } 
+        LHS -= Self::EQUATION_B;
         assert_eq!(LHS, RHS, "Point is not on curve");
-
-        // (curve_x, curve_y)
-        todo!()
+        (x, y)
     }
 }
 
