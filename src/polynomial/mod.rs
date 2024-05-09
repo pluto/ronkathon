@@ -8,6 +8,7 @@ use super::*;
 use crate::field::FiniteField;
 
 pub mod arithmetic;
+mod tests;
 
 // https://people.inf.ethz.ch/gander/papers/changing.pdf
 
@@ -30,6 +31,7 @@ impl Basis for Monomial {
 }
 
 // https://en.wikipedia.org/wiki/Lagrange_polynomial
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Lagrange<F: FiniteField> {
   pub nodes: Vec<F>,
 }
@@ -204,6 +206,8 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
   /// Evaluate the polynomial at field element x
   pub fn evaluate(&self, x: F) -> F {
     let n = self.coefficients.len();
+
+    // w_j = \Pi_{m \neq j} (x_j - x_m)^{-1}
     let mut weights = vec![F::ZERO; n];
     for j in 0..n {
       for m in 0..n {
@@ -212,7 +216,8 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
         }
       }
     }
-    // l(x) = \Sigmm_{m}(x-x_m)
+
+    // l(x) = \Pi_{i=0}^{n-1} (x - x_i)
     let l = move |x: F| {
       let mut val = F::ONE;
       for i in 0..n {
@@ -221,10 +226,10 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
       val
     };
 
-    // L(x) = l(x) * \Sigma_{j=0}^{k}  (w_j / (x - x_j)) y_j
+    // L(x) = l(x) * \Sigma_{j=0}^{n-1}  (w_j / (x - x_j)) y_j
     let mut val = F::ZERO;
     for j in 0..n {
-      // check if we are dividing by zero
+      // If we plug in x_j we get the coefficient by definition
       if self.basis.nodes[j] == x {
         return self.coefficients[j];
       }
@@ -233,131 +238,17 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
     l(x) * val
   }
 }
-mod test {
-  use super::*;
-  use crate::field::gf_101::GF101;
 
-  fn deg_three_poly() -> Polynomial<Monomial, GF101> {
-    // Coefficients of the polynomial 1 + 2x + 3x^2 + 4x^3
-    let a = GF101::new(1);
-    let b = GF101::new(2);
-    let c = GF101::new(3);
-    let d = GF101::new(4);
-    Polynomial::<Monomial, GF101>::new(vec![a, b, c, d])
-  }
-
-  #[test]
-  fn evaluation() {
-    // Should get: 1 + 2*(2) + 3*(2)^2 + 4*(2)^3 = 49
-    let y = deg_three_poly().evaluate(GF101::new(2));
-    let r = GF101::new(49);
-    assert_eq!(y, r);
-  }
-
-  #[test]
-  fn evaluation_with_zero() {
-    // Coefficients of the polynomial 1 + 3x^2
-    let a = GF101::new(1);
-    let b = GF101::new(0);
-    let c = GF101::new(3);
-    let polynomial = Polynomial::<Monomial, GF101>::new(vec![a, b, c]);
-    let y = polynomial.evaluate(GF101::new(0));
-
-    // Should get: 1 + 3(0)^2 = 1
-    let r = GF101::new(1);
-    assert_eq!(y, r);
-  }
-
-  #[test]
-  fn lagrange_evaluation() {
-    // Convert to Lagrange basis using roots of unity
-    let lagrange = deg_three_poly().to_lagrange();
-
-    // Should get: 1 + 2*(2) + 3*(2)^2 + 4*(2)^2= 49
-    let r = lagrange.evaluate(GF101::new(2));
-    assert_eq!(r, GF101::new(49));
-  }
-
-  #[test]
-  #[should_panic]
-  fn no_roots_of_unity() {
-    // Coefficients of the polynomial 1 + 2x
-    let a = GF101::new(1);
-    let b = GF101::new(2);
-    let c = GF101::new(3);
-    let polynomial = Polynomial::<Monomial, GF101>::new(vec![a, b, c]);
-    polynomial.to_lagrange();
-  }
-
-  #[test]
-  fn check_coefficients() {
-    assert_eq!(deg_three_poly().coefficients, [
-      GF101::new(1),
-      GF101::new(2),
-      GF101::new(3),
-      GF101::new(4)
-    ]);
-
-    assert_eq!(deg_three_poly().to_lagrange().coefficients, [
-      GF101::new(10),
-      GF101::new(79),
-      GF101::new(99),
-      GF101::new(18)
-    ]);
-  }
-
-  #[test]
-  fn degree() {
-    assert_eq!(deg_three_poly().degree(), 3);
-  }
-
-  #[test]
-  fn leading_coefficient() {
-    assert_eq!(deg_three_poly().leading_coefficient(), GF101::new(4));
-  }
-
-  #[test]
-  fn pow_mult() {
-    let poly = deg_three_poly();
-    let pow_mult = poly.pow_mult(GF101::new(5), 2);
-    assert_eq!(pow_mult.coefficients, [
-      GF101::new(0),
-      GF101::new(0),
-      GF101::new(5),
-      GF101::new(10),
-      GF101::new(15),
-      GF101::new(20)
-    ]);
-  }
-
-  #[test]
-  fn trim_zeros() {
-    let mut poly = deg_three_poly();
-    poly.coefficients.push(GF101::ZERO);
-    assert_eq!(poly.coefficients, [
-      GF101::new(1),
-      GF101::new(2),
-      GF101::new(3),
-      GF101::new(4),
-      GF101::ZERO
-    ]);
-    poly.trim_zeros();
-    assert_eq!(poly.coefficients, [GF101::new(1), GF101::new(2), GF101::new(3), GF101::new(4)]);
-  }
-
-  #[test]
-  fn trim_to_zero() {
-    let mut poly = Polynomial::<Monomial, GF101>::new(vec![GF101::ZERO, GF101::ZERO]);
-    assert_eq!(poly.coefficients, [GF101::ZERO]);
-  }
-
-  #[test]
-  fn dft() {
-    let poly = deg_three_poly();
-    let dft = poly.dft();
-    println!("{:?}", dft);
-    assert_eq!(dft, [GF101::new(10), GF101::new(79), GF101::new(99), GF101::new(18)]);
-    let mut poly = Polynomial::<Monomial, GF101>::new(vec![GF101::ZERO, GF101::ZERO]);
-    assert_eq!(poly.coefficients, [GF101::ZERO]);
+impl Display for Polynomial<Lagrange<GF101>, GF101> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    let d = self.degree();
+    for (idx, (coeff, node)) in self.coefficients.iter().zip(self.basis.nodes.iter()).enumerate() {
+      if idx == d {
+        write!(f, "{}*l_{}(x)", coeff, node)?;
+        break;
+      }
+      write!(f, "{}*l_{}(x) + ", coeff, node)?;
+    }
+    Ok(())
   }
 }
