@@ -29,6 +29,10 @@ impl<F: FiniteField> QuadraticPlutoField<F> {
   /// irreducible polynomial used to reduce field polynomials to second degree:
   /// F[X]/(X^2-2)
   fn irreducible() -> F { F::from_canonical_u32(2) }
+
+  // const fn from_base(b: F) -> Self { Self { value: [b, F::zero()] } }
+
+  pub const fn new(a: F, b: F) -> Self { Self { value: [a, b] } }
 }
 
 impl<F: FiniteField> ExtensionField<F> for QuadraticPlutoField<F> {
@@ -36,7 +40,7 @@ impl<F: FiniteField> ExtensionField<F> for QuadraticPlutoField<F> {
 
   fn irreducible() -> F { Self::irreducible() }
 
-  fn from_base(b: F) -> Self { Self { value: [b, F::zero()] } }
+  fn from_base(b: F) -> Self { Self { value: [b, F::ZERO] } }
 }
 
 impl<F: FiniteField> From<F> for QuadraticPlutoField<F> {
@@ -46,15 +50,13 @@ impl<F: FiniteField> From<F> for QuadraticPlutoField<F> {
 impl<F: FiniteField> FiniteField for QuadraticPlutoField<F> {
   type Storage = u32;
 
+  const NEG_ONE: Self = Self::new(F::NEG_ONE, F::ZERO);
+  // TODO: This is wrong
+  const ONE: Self = Self::new(F::ONE, F::ZERO);
   const ORDER: Self::Storage = QUADRATIC_EXTENSION_FIELD_ORDER;
-
-  fn zero() -> Self { Self { value: [F::zero(); EXT_DEGREE] } }
-
-  fn one() -> Self { Self { value: [F::one(), F::zero()] } }
-
-  fn two() -> Self { Self { value: [F::two(), F::zero()] } }
-
-  fn neg_one() -> Self { Self { value: [F::neg_one(), F::zero()] } }
+  const TWO: Self = Self::new(F::TWO, F::ZERO);
+  // fn zero() -> Self { Self { value: [F::zero(); EXT_DEGREE] } }
+  const ZERO: Self = Self::new(F::ZERO, F::ZERO);
 
   // field generator: can be verified using sage script
   // ```sage
@@ -62,18 +64,16 @@ impl<F: FiniteField> FiniteField for QuadraticPlutoField<F> {
   // Ft.<t> = F[]
   // P = Ft(t ^ 2 - 2)
   // F_2 = GF(101 ^ 2, name="t", modulus=P)
-  // f_2_primitive_element = F_2.primitive_element()
+  // f_2_primitive_element = F_2([2, 1])
+  // assert f_2_primitive_element.multiplicative_order() == 101^2-1
   // ```
-  fn generator() -> Self {
-    // TODO: unsure if this is correct or not, research more
-    Self { value: [F::from_canonical_u32(15), F::from_canonical_u32(20)] }
-  }
+  fn generator() -> Self { Self { value: [F::from_canonical_u32(2), F::from_canonical_u32(1)] } }
 
   /// Computes the multiplicative inverse of `a`, i.e. 1 / (a0 + a1 * t).
   /// Multiply by `a0 - a1 * t` in numerator and denominator.
   /// Denominator equals `(a0 + a1 * t) * (a0 - a1 * t) = a0.pow(2) - a1.pow(2) * Q::residue()`
   fn inverse(&self) -> Option<Self> {
-    if *self == Self::zero() {
+    if *self == Self::ZERO {
       return None;
     }
 
@@ -87,7 +87,7 @@ impl<F: FiniteField> FiniteField for QuadraticPlutoField<F> {
 
   fn primitive_root_of_unity(n: Self::Storage) -> Self { todo!() }
 
-  fn from_canonical_u32(n: u32) -> Self { Self { value: [F::from_canonical_u32(n), F::zero()] } }
+  fn from_canonical_u32(n: u32) -> Self { Self { value: [F::from_canonical_u32(n), F::ZERO] } }
 }
 
 impl<F: FiniteField> Add for QuadraticPlutoField<F> {
@@ -154,13 +154,13 @@ impl<F: FiniteField> SubAssign<F> for QuadraticPlutoField<F> {
 
 impl<F: FiniteField> Sum for QuadraticPlutoField<F> {
   fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-    iter.reduce(|x, y| x + y).unwrap_or(Self::zero())
+    iter.reduce(|x, y| x + y).unwrap_or(Self::ZERO)
   }
 }
 
 impl<F: FiniteField> Product for QuadraticPlutoField<F> {
   fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-    iter.reduce(|x, y| x * y).unwrap_or(Self::one())
+    iter.reduce(|x, y| x * y).unwrap_or(Self::ONE)
   }
 }
 
@@ -173,7 +173,7 @@ impl<F: FiniteField> Mul for QuadraticPlutoField<F> {
     let a = self.value;
     let b = rhs.value;
     let mut res = Self::default();
-    res.value[0] = a[0].clone() * b[0].clone() + a[1].clone() * a[1].clone() * Self::irreducible();
+    res.value[0] = a[0].clone() * b[0].clone() + a[1].clone() * b[1].clone() * Self::irreducible();
     res.value[1] = a[0].clone() * b[1].clone() + a[1].clone() * b[0].clone();
     res
   }
@@ -212,7 +212,7 @@ impl<F: FiniteField> DivAssign for QuadraticPlutoField<F> {
 impl<F: FiniteField> Neg for QuadraticPlutoField<F> {
   type Output = Self;
 
-  fn neg(self) -> Self::Output { Self::zero() - self }
+  fn neg(self) -> Self::Output { Self::ZERO - self }
 }
 
 impl<F: FiniteField> Rem for QuadraticPlutoField<F> {
@@ -249,14 +249,35 @@ mod tests {
   }
 
   #[test]
+  fn test_add() {
+    let a = F2::new(F::new(10), F::new(20));
+    let b = F2::new(F::new(20), F::new(10));
+    assert_eq!(a + b, F2::new(F::new(30), F::new(30)));
+  }
+
+  #[test]
+  fn test_sub() {
+    let a = F2::new(F::new(10), F::new(20));
+    let b = F2::new(F::new(20), F::new(10));
+    assert_eq!(a - b, F2::new(F::new(91), F::new(10)));
+  }
+
+  #[test]
+  fn test_mul() {
+    let a = F2::new(F::new(10), F::new(20));
+    let b = F2::new(F::new(20), F::new(10));
+    assert_eq!(a * b, F2::new(F::new(95), F::new(96)));
+  }
+
+  #[test]
   fn test_add_sub_neg_mul() {
     let mut rng = rand::thread_rng();
     let x = F2::from_base(rng.gen::<F>());
     let y = F2::from_base(rng.gen::<F>());
     let z = F2::from_base(rng.gen::<F>());
-    assert_eq!(x + (-x), F2::zero());
-    assert_eq!(-x, F2::zero() - x);
-    assert_eq!(x + x, x * F2::two());
+    assert_eq!(x + (-x), F2::ZERO);
+    assert_eq!(-x, F2::ZERO - x);
+    assert_eq!(x + x, x * F2::TWO);
     assert_eq!(x * (-x), -(x * x));
     assert_eq!(x + y, y + x);
     assert_eq!(x * y, y * x);
@@ -281,15 +302,28 @@ mod tests {
   #[test]
   fn test_inv_div() {
     let mut rng = rand::thread_rng();
-    let x = F2::from_base(rng.gen::<F>());
-    let y = F2::from_base(rng.gen::<F>());
-    let z = F2::from_base(rng.gen::<F>());
-    assert_eq!(x * x.inverse().unwrap(), F2::one());
-    assert_eq!(x.inverse().unwrap_or(F2::one()) * x, F2::one());
-    assert_eq!(
-      x.square().inverse().unwrap_or(F2::one()),
-      x.inverse().unwrap_or(F2::one()).square()
-    );
+    // Loop rng's until we get something with inverse.
+    let mut x = F2::ZERO;
+    let mut x_inv = None;
+    while x_inv.is_none() {
+      x = F2::from_base(rng.gen::<F>()); 
+      x_inv = x.inverse();
+    }
+    let mut y = F2::ZERO;
+    let mut y_inv = None;
+    while y_inv.is_none() {
+      y = F2::from_base(rng.gen::<F>()); 
+      y_inv = y.inverse();
+    }
+    let mut z = F2::ZERO;
+    let mut z_inv = None;
+    while z_inv.is_none() {
+      z = F2::from_base(rng.gen::<F>()); 
+      z_inv = z.inverse();
+    }
+    assert_eq!(x * x.inverse().unwrap(), F2::ONE);
+    assert_eq!(x.inverse().unwrap_or(F2::ONE) * x, F2::ONE);
+    assert_eq!(x.square().inverse().unwrap_or(F2::ONE), x.inverse().unwrap_or(F2::ONE).square());
     assert_eq!((x / y) * y, x);
     assert_eq!(x / (y * z), (x / y) / z);
     assert_eq!((x * y) / z, x * (y / z));
@@ -297,7 +331,7 @@ mod tests {
 
   #[test]
   fn test_generator() {
-    assert_eq!(F2::generator() * F::from_canonical_u32(F::ORDER), F2::zero());
+    assert_eq!(F2::generator() * F::from_canonical_u32(F::ORDER), F2::ZERO);
   }
 
   #[test]
@@ -308,12 +342,23 @@ mod tests {
 
     let add1 = x + y;
     let sub1 = x - y;
-    let res = x * F::two();
+    let res = x * F::TWO;
     assert_eq!(add1 + sub1, res);
 
     let mul1 = x * y;
     let inv_mul = x * y.inverse().unwrap();
     let res = x.square();
     assert_eq!(mul1 * inv_mul, res);
+  }
+
+  // TODO: THIS TEST IS WRONG AND SHOULD BE REWRITTEN
+  #[test]
+  fn test_generator_order() {
+    let generator = F2::generator();
+    let mut x = F2::ONE;
+    for _ in 1..F2::ORDER {
+      x *= generator;
+    }
+    assert_eq!(x, F2::ONE);
   }
 }

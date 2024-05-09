@@ -1,3 +1,4 @@
+#![feature(const_trait_impl)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
@@ -7,7 +8,7 @@
 #![allow(unused_mut)]
 #![allow(clippy::needless_range_loop)]
 
-pub mod curve;
+pub mod curves;
 pub mod field;
 pub mod kzg;
 pub mod polynomial;
