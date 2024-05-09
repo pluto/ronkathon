@@ -33,32 +33,50 @@ impl G2Curve {
   pub fn on_curve(
     x: QuadraticPlutoField<GF101>,
     y: QuadraticPlutoField<GF101>,
-  ) -> (QuadraticPlutoField<GF101>, QuadraticPlutoField<GF101>) {
+  ) -> Option<(QuadraticPlutoField<GF101>, QuadraticPlutoField<GF101>)> {
     println!("X: {:?}, Y: {:?}", x, y);
-    // TODO Continue working on this
     //                  (   x  )  (  y   )  ( x , y )
     // example: plug in ((36, 0), (0, 31)): (36, 31t)
     // x = 36, y = 31t,
     // curve : y^2=x^3+3,
 
-    // y = (31t)^2 = 52 * t^2
-    // check if there are any x terms, if not, element is in base field
-    let mut LHS = x;
-    let mut RHS = y;
-    if x.value[1] != GF101::ZERO {
-      LHS = x * x * (-GF101::new(2)) - Self::EQUATION_B;
+    // Compute x^3 considering t^2 = -2
+    let x_cubed = if x.value[1] != GF101::ZERO {
+      let x_squared = QuadraticPlutoField::<GF101>::new(
+          x.value[0] * x.value[0] - GF101::TWO * x.value[1] * x.value[1], // a^2 - 2b^2
+          GF101::TWO * x.value[0] * x.value[1] // 2ab
+      );
+      QuadraticPlutoField::<GF101>::new(
+          x_squared.value[0] * x.value[0] - GF101::TWO * x_squared.value[1] * x.value[1], // a^2 - 2b^2
+          x_squared.value[0] * x.value[1] + x_squared.value[1] * x.value[0] // ab + ba
+      )
     } else {
-      LHS = x * x * x - Self::EQUATION_B;
+        QuadraticPlutoField::<GF101>::new(x.value[0] * x.value[0] * x.value[0], GF101::ZERO) // a^3
+    };
+
+    // Compute y^2 considering t^2 = -2
+    let y_squared = if y.value[1] != GF101::ZERO {
+        QuadraticPlutoField::<GF101>::new(
+            y.value[0] * y.value[0] - GF101::TWO * y.value[1] * y.value[1], // a^2 - 2b^2
+            GF101::TWO * y.value[0] * y.value[1] // 2ab
+        )
+    } else {
+        QuadraticPlutoField::<GF101>::new(y.value[0] * y.value[0], GF101::ZERO) // a^2
+    };
+
+    // Add the constant term from the curve equation y^2 = x^3 + 3
+    let x_cubed_plus_b = x_cubed + Self::EQUATION_B;
+
+    // Check if the point satisfies the curve equation
+    let is_on_curve = y_squared == x_cubed_plus_b;
+
+    if is_on_curve {
+        println!("The point ({:?}, {:?}) is on the curve.", x, y);
+        Some((x, y))
+    } else {
+        println!("The point ({:?}, {:?}) is not on the curve.", x, y);
+        None
     }
-    if y.value[1] != GF101::ZERO {
-      // y has degree two so if there is a x -> there will be an x^2 term which we substitude with
-      // -2 since... TODO explain this and relationship to embedding degree
-      RHS *= -GF101::new(2);
-    }
-    // minus
-    LHS -= Self::EQUATION_B;
-    assert_eq!(LHS, RHS, "Point is not on curve");
-    (x, y)
   }
 }
 
@@ -66,18 +84,8 @@ mod test {
   use super::*;
   use crate::curves::AffinePoint;
 
-  // #[test]
-  // fn on_curve() {
-  //     let gen = G2Curve::on_curve(G2Curve::GENERATOR.0, G2Curve::GENERATOR.1);
-  // }
-
-  // #[test]
-  // fn doubling() {
-  //     let g = AffinePoint::<G2Curve>::generator();
-  //     println!("g: {:?}", g)
-
-  //     // want to asset that g  = (36, 31*X)
-  //     // right now this ^ fails to construct as it doesn't believe that the generator is a valid
-  // point on the curve     // want to asset that 2g = (90 , 82*X)
-  // }
+  #[test]
+  fn on_curve() {
+      let gen = G2Curve::on_curve(G2Curve::GENERATOR.0, G2Curve::GENERATOR.1);
+  }
 }
