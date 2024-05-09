@@ -1,4 +1,4 @@
-# Define a finite field, our `PlutoField` which is
+# Define a finite field, our `GF101` which is 
 # a field of 101 elements (101 being prime).
 F = GF(101)
 print(F)
@@ -39,6 +39,26 @@ omega_n = primitive_element ^ quotient
 print("The", n, "th root of unity is: ", omega_n)
 
 # Check that this is actually a root of unity:
+assert omega_n^n == 1
+print(omega_n, "^", n, " = ", omega_n^n)
+######################################################################
+
+######################################################################
+# Let's find a mth root of unity (for l = 2)
+# First, check that m divides 101 - 1 = 100
+l = 2
+assert (101 - 1) % l == 0
+quotient = (101 - 1) // l
+print("The quotient is: ", quotient)
+
+# Find a primitive root of unity using the formula:
+# omega = primitive_element^quotient
+omega_l = primitive_element^quotient
+print("The ", l, "th root of unity is: ", omega_l)
+
+# Check that this is actually a root of unity:
+assert omega_l^l == 1
+print(omega_l, "^", l, " = ", omega_l^l)
 assert omega_n ^ n == 1
 print(omega_n, "^", n, " = ", omega_n ^ n)
 ######################################################################
