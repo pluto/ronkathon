@@ -200,7 +200,7 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
     let n = self.coefficients.len();
 
     // w_j = \Pi_{m \neq j} (x_j - x_m)^{-1}
-    let mut weights = vec![F::ZERO; n];
+    let mut weights = vec![F::ONE; n];
     weights.iter_mut().enumerate().for_each(|(idx, w)| {
       for m in 0..n {
         if idx != m {
