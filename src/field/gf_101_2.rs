@@ -67,10 +67,7 @@ impl<F: FiniteField> FiniteField for QuadraticPlutoField<F> {
   // f_2_primitive_element = F_2([2, 1])
   // assert f_2_primitive_element.multiplicative_order() == 101^2-1
   // ```
-  fn generator() -> Self {
-    // TODO: unsure if this is correct or not, research more
-    Self { value: [F::from_canonical_u32(2), F::from_canonical_u32(1)] }
-  }
+  fn generator() -> Self { Self { value: [F::from_canonical_u32(2), F::from_canonical_u32(1)] } }
 
   /// Computes the multiplicative inverse of `a`, i.e. 1 / (a0 + a1 * t).
   /// Multiply by `a0 - a1 * t` in numerator and denominator.
@@ -340,8 +337,8 @@ mod tests {
 
   #[test]
   fn test_generator_order() {
-    let generator = F2::ONE;
-    let mut x = generator;
+    let generator = F2::generator();
+    let mut x = F2::ONE;
     for _ in 1..F2::ORDER {
       x *= generator;
     }
