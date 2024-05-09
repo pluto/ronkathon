@@ -10,10 +10,10 @@ impl<F: FiniteField> Add for Polynomial<Monomial, F> {
 
   fn add(self, rhs: Self) -> Self {
     let d = self.degree().max(rhs.degree());
-    let mut coefficients = vec![F::zero(); d + 1];
+    let mut coefficients = vec![F::ZERO; d + 1];
     for i in 0..d + 1 {
-      coefficients[i] = *self.coefficients.get(i).unwrap_or(&F::zero())
-        + *rhs.coefficients.get(i).unwrap_or(&F::zero());
+      coefficients[i] = *self.coefficients.get(i).unwrap_or(&F::ZERO)
+        + *rhs.coefficients.get(i).unwrap_or(&F::ZERO);
     }
     Self { coefficients, basis: self.basis }
   }
@@ -22,11 +22,11 @@ impl<F: FiniteField> Add for Polynomial<Monomial, F> {
 impl<F: FiniteField> AddAssign for Polynomial<Monomial, F> {
   fn add_assign(&mut self, mut rhs: Self) {
     let d = self.degree().max(rhs.degree());
-    let mut coefficients = vec![F::zero(); d + 1];
+    let mut coefficients = vec![F::ZERO; d + 1];
     if self.degree() < d {
-      self.coefficients.resize(d + 1, F::zero());
+      self.coefficients.resize(d + 1, F::ZERO);
     } else {
-      rhs.coefficients.resize(d + 1, F::zero());
+      rhs.coefficients.resize(d + 1, F::ZERO);
     }
     for i in 0..d + 1 {
       self.coefficients[i] += rhs.coefficients[i];
@@ -43,10 +43,10 @@ impl<F: FiniteField> Sub for Polynomial<Monomial, F> {
 
   fn sub(self, rhs: Self) -> Self {
     let d = self.degree().max(rhs.degree());
-    let mut coefficients = vec![F::zero(); d + 1];
+    let mut coefficients = vec![F::ZERO; d + 1];
     for i in 0..d + 1 {
-      coefficients[i] = *self.coefficients.get(i).unwrap_or(&F::zero())
-        - *rhs.coefficients.get(i).unwrap_or(&F::zero());
+      coefficients[i] = *self.coefficients.get(i).unwrap_or(&F::ZERO)
+        - *rhs.coefficients.get(i).unwrap_or(&F::ZERO);
     }
     Self { coefficients, basis: self.basis }
   }
@@ -55,11 +55,11 @@ impl<F: FiniteField> Sub for Polynomial<Monomial, F> {
 impl<F: FiniteField> SubAssign for Polynomial<Monomial, F> {
   fn sub_assign(&mut self, mut rhs: Self) {
     let d = self.degree().max(rhs.degree());
-    let mut coefficients = vec![F::zero(); d + 1];
+    let mut coefficients = vec![F::ZERO; d + 1];
     if self.degree() < d {
-      self.coefficients.resize(d + 1, F::zero());
+      self.coefficients.resize(d + 1, F::ZERO);
     } else {
-      rhs.coefficients.resize(d + 1, F::zero());
+      rhs.coefficients.resize(d + 1, F::ZERO);
     }
     for i in 0..d + 1 {
       self.coefficients[i] -= rhs.coefficients[i];

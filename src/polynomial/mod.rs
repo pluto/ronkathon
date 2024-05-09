@@ -52,7 +52,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   }
 
   fn trim_zeros(&mut self) {
-    let last_nonzero_index = self.coefficients.iter().rposition(|&c| c != F::zero());
+    let last_nonzero_index = self.coefficients.iter().rposition(|&c| c != F::ZERO);
     match last_nonzero_index {
       Some(index) => self.coefficients.truncate(index + 1),
       None => self.coefficients.truncate(1),
@@ -66,7 +66,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     let primitive_root = F::primitive_root_of_unity(F::Storage::from(n as u32));
 
     // Evaluate the polynomial at the roots of unity to get the coefficients of the Lagrange basis
-    let mut coeffs = vec![F::zero(); n];
+    let mut coeffs = vec![F::ZERO; n];
     for j in 0..self.coefficients.len() {
       coeffs[j] = self.evaluate(primitive_root.pow(F::Storage::from(j as u32)));
     }
@@ -75,7 +75,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
 
   /// Evaluate the polynomial at field element x
   pub fn evaluate(&self, x: F) -> F {
-    let mut result = F::zero();
+    let mut result = F::ZERO;
     for (i, c) in self.coefficients.iter().enumerate() {
       result += *c * x.pow(F::Storage::from(i as u32));
     }
@@ -85,7 +85,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   pub fn leading_coefficient(&self) -> F { *self.coefficients.last().unwrap() }
 
   pub fn pow_mult(&self, coeff: F, pow: usize) -> Polynomial<Monomial, F> {
-    let mut coefficients = vec![F::zero(); self.coefficients.len() + pow];
+    let mut coefficients = vec![F::ZERO; self.coefficients.len() + pow];
     self.coefficients.iter().enumerate().for_each(|(i, c)| {
       coefficients[i + pow] = *c * coeff;
     });
@@ -106,9 +106,9 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     // Create quotient poly
     let mut diff = p.degree() as isize - rhs.degree() as isize;
     if diff < 0 {
-      return (Self::new(vec![F::zero()]), p);
+      return (Self::new(vec![F::ZERO]), p);
     }
-    let mut q_coeffs = vec![F::zero(); diff as usize + 1];
+    let mut q_coeffs = vec![F::ZERO; diff as usize + 1];
 
     while diff >= 0 {
       let s = p.leading_coefficient() * c.inverse().unwrap();
@@ -176,7 +176,7 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
     // It also is the case that the the columns of the inverse matrix are the coefficients of the
     // Lagrange polynomial basis TODO Finish this.
     // let nodes = self.basis.nodes;
-    // let mut evaluations = [F::zero(); N];
+    // let mut evaluations = [F::ZERO; N];
 
     // // Evaluate the polynomial at N distinct points
     // for i in 0..N {
@@ -191,17 +191,17 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
   /// Evaluate the polynomial at field element x
   pub fn evaluate(&self, x: F) -> F {
     let n = self.coefficients.len();
-    let mut weights = vec![F::one(); n];
+    let mut weights = vec![F::ZERO; n];
     for j in 0..n {
       for m in 0..n {
         if j != m {
-          weights[j] *= F::one().div(self.basis.nodes[j] - self.basis.nodes[m]);
+          weights[j] *= F::ONE.div(self.basis.nodes[j] - self.basis.nodes[m]);
         }
       }
     }
     // l(x) = \Sigmm_{m}(x-x_m)
     let l = move |x: F| {
-      let mut val = F::one();
+      let mut val = F::ONE;
       for i in 0..n {
         val *= x - self.basis.nodes[i];
       }
@@ -209,7 +209,7 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
     };
 
     // L(x) = l(x) * \Sigma_{j=0}^{k}  (w_j / (x - x_j)) y_j
-    let mut val = F::zero();
+    let mut val = F::ZERO;
     for j in 0..n {
       // check if we are dividing by zero
       if self.basis.nodes[j] == x {
@@ -320,13 +320,13 @@ mod test {
   #[test]
   fn trim_zeros() {
     let mut poly = deg_three_poly();
-    poly.coefficients.push(GF101::zero());
+    poly.coefficients.push(GF101::ZERO);
     assert_eq!(poly.coefficients, [
       GF101::new(1),
       GF101::new(2),
       GF101::new(3),
       GF101::new(4),
-      GF101::zero()
+      GF101::ZERO
     ]);
     poly.trim_zeros();
     assert_eq!(poly.coefficients, [GF101::new(1), GF101::new(2), GF101::new(3), GF101::new(4)]);
@@ -334,7 +334,7 @@ mod test {
 
   #[test]
   fn trim_to_zero() {
-    let mut poly = Polynomial::<Monomial, GF101>::new(vec![GF101::zero(), GF101::zero()]);
-    assert_eq!(poly.coefficients, [GF101::zero()]);
+    let mut poly = Polynomial::<Monomial, GF101>::new(vec![GF101::ZERO, GF101::ZERO]);
+    assert_eq!(poly.coefficients, [GF101::ZERO]);
   }
 }
