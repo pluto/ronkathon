@@ -34,17 +34,16 @@ impl fmt::Display for GF101 {
 impl GF101 {
   // pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
   pub const fn new(value: u32) -> Self { Self { value: value % PLUTO_FIELD_PRIME } }
-
 }
 
 impl FiniteField for GF101 {
   type Storage = u32;
 
-  const ORDER: Self::Storage = PLUTO_FIELD_PRIME;
-  const ZERO: Self = Self::new(0);
+  const NEG_ONE: Self = Self::new(Self::ORDER - 1);
   const ONE: Self = Self::new(1);
+  const ORDER: Self::Storage = PLUTO_FIELD_PRIME;
   const TWO: Self = Self::new(2);
-  const NEG_ONE: Self = Self::new(Self::ORDER -1);
+  const ZERO: Self = Self::new(0);
 
   fn inverse(&self) -> Option<Self> {
     if self.value == 0 {

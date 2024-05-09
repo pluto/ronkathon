@@ -8,7 +8,6 @@
 #![allow(unused_mut)]
 #![allow(clippy::needless_range_loop)]
 
-
 pub mod curves;
 pub mod field;
 pub mod kzg;

@@ -302,9 +302,25 @@ mod tests {
   #[test]
   fn test_inv_div() {
     let mut rng = rand::thread_rng();
-    let x = F2::from_base(rng.gen::<F>());
-    let y = F2::from_base(rng.gen::<F>());
-    let z = F2::from_base(rng.gen::<F>());
+    // Loop rng's until we get something with inverse.
+    let mut x = F2::ZERO;
+    let mut x_inv = None;
+    while x_inv.is_none() {
+      x = F2::from_base(rng.gen::<F>()); 
+      x_inv = x.inverse();
+    }
+    let mut y = F2::ZERO;
+    let mut y_inv = None;
+    while y_inv.is_none() {
+      y = F2::from_base(rng.gen::<F>()); 
+      y_inv = y.inverse();
+    }
+    let mut z = F2::ZERO;
+    let mut z_inv = None;
+    while z_inv.is_none() {
+      z = F2::from_base(rng.gen::<F>()); 
+      z_inv = z.inverse();
+    }
     assert_eq!(x * x.inverse().unwrap(), F2::ONE);
     assert_eq!(x.inverse().unwrap_or(F2::ONE) * x, F2::ONE);
     assert_eq!(x.square().inverse().unwrap_or(F2::ONE), x.inverse().unwrap_or(F2::ONE).square());
@@ -335,6 +351,7 @@ mod tests {
     assert_eq!(mul1 * inv_mul, res);
   }
 
+  // TODO: THIS TEST IS WRONG AND SHOULD BE REWRITTEN
   #[test]
   fn test_generator_order() {
     let generator = F2::generator();
