@@ -1,4 +1,9 @@
-use core::hash::Hasher;
+use core::{
+  hash::{Hash, Hasher},
+  iter::{Product, Sum},
+  ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign},
+};
+use std::{env::consts, fmt};
 
 use num_bigint::BigUint;
 use rand::{
@@ -27,35 +32,25 @@ impl fmt::Display for GF101 {
 }
 
 impl GF101 {
-  pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
+  // pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
+  pub const fn new(value: u32) -> Self { Self { value: value % PLUTO_FIELD_PRIME } }
 }
 
 impl FiniteField for GF101 {
   type Storage = u32;
 
+  const NEG_ONE: Self = Self::new(Self::ORDER - 1);
+  const ONE: Self = Self::new(1);
   const ORDER: Self::Storage = PLUTO_FIELD_PRIME;
-
-  #[inline]
-  fn pow(&self, power: Self::Storage) -> Self {
-    let mut current = *self;
-    let power = power as u64;
-    let mut product = Self::one();
-
-    for j in 0..(64 - power.leading_zeros()) as usize {
-      if (power >> j & 1) != 0 {
-        product *= current;
-      }
-      current = current * current;
-    }
-    product
-  }
+  const TWO: Self = Self::new(2);
+  const ZERO: Self = Self::new(0);
 
   fn inverse(&self) -> Option<Self> {
     if self.value == 0 {
       return None;
     }
     let exponent = Self::ORDER - 2;
-    let mut result = Self::one();
+    let mut result = Self::ONE;
     let mut base = *self;
     let mut power = exponent;
 
@@ -69,15 +64,9 @@ impl FiniteField for GF101 {
     Some(result)
   }
 
-  fn zero() -> Self { Self::new(0) }
-
-  fn one() -> Self { Self::new(1) }
-
-  fn two() -> Self { Self::new(2) }
-
-  fn neg_one() -> Self { Self::new(Self::ORDER - 1) }
-
   fn generator() -> Self { Self::new(2) }
+
+  fn from_canonical_u32(n: u32) -> Self { Self::new(n) }
 }
 
 impl Add for GF101 {
@@ -92,7 +81,7 @@ impl AddAssign for GF101 {
 
 impl Sum for GF101 {
   fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-    iter.reduce(|x, y| x + y).unwrap_or(Self::zero())
+    iter.reduce(|x, y| x + y).unwrap_or(Self::ZERO)
   }
 }
 
@@ -114,7 +103,7 @@ impl SubAssign for GF101 {
 impl Mul for GF101 {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self { Self { value: from_monty(self.value * rhs.value) } }
+  fn mul(self, rhs: Self) -> Self { Self { value: (self.value * rhs.value) % Self::ORDER } }
 }
 
 impl MulAssign for GF101 {
@@ -123,7 +112,7 @@ impl MulAssign for GF101 {
 
 impl Product for GF101 {
   fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-    iter.reduce(|x, y| x * y).unwrap_or(Self::one())
+    iter.reduce(|x, y| x * y).unwrap_or(Self::ONE)
   }
 }
 
@@ -141,7 +130,7 @@ impl DivAssign for GF101 {
 impl Neg for GF101 {
   type Output = Self;
 
-  fn neg(self) -> Self::Output { Self::zero() - self }
+  fn neg(self) -> Self::Output { Self::ZERO - self }
 }
 
 impl Rem for GF101 {
@@ -271,7 +260,7 @@ mod tests {
   #[test]
   fn halve() {
     let a = F::new(10);
-    assert_eq!(a, (a / F::two()) * F::two());
+    assert_eq!(a, (a / F::TWO) * F::TWO);
   }
 
   #[test]
@@ -323,10 +312,10 @@ mod tests {
     let x = rng.gen::<F>();
     let y = rng.gen::<F>();
     let z = rng.gen::<F>();
-    assert_eq!(x + (-x), F::zero());
-    assert_eq!(-x, F::zero() - x);
-    assert_eq!(x + x, x * F::two());
-    assert_eq!(x, x.div(F::new(2)) * F::two());
+    assert_eq!(x + (-x), F::ZERO);
+    assert_eq!(-x, F::ZERO - x);
+    assert_eq!(x + x, x * F::TWO);
+    assert_eq!(x, x.div(F::new(2)) * F::TWO);
     assert_eq!(x * (-x), -(x * x));
     assert_eq!(x + y, y + x);
     assert_eq!(x * y, y * x);
@@ -403,7 +392,7 @@ mod tests {
   #[test]
   fn non_zero_element() {
     let a = GF101::new(10);
-    assert!(!(a == F::zero()));
+    assert!(!(a == F::ZERO));
   }
 
   #[test]
