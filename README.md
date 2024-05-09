@@ -33,7 +33,7 @@ We have found the following resources helpful in understanding the foundational 
 Lets start simple with a finite field and work up to creating two elliptic curve *groups* that have a pairing or bilinear map (more on that later). 
 First lets pick a finite field of prime order $p$, we pick $p=101$ since it is small and we are able to follow along plonk-by-hand.
 In general large primes are good but we will use a small one just for the sake of example.
-Next lets pick an elliptic curve $y^2=x^3+3$, there are some hueristics to curves that i encurage you to learn more about if you like but you can also black box and know that this is gud curve.
+Next lets pick an elliptic curve $y^2=x^3+3$, there are some heuristics to curves that i encourage you to learn more about if you like but you can also black box and know that this is a good curve.
 So now we have two algebraic structures:
 - finite field $F_{101}$
 - curve $y^2=x^3+3$
