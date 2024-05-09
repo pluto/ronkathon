@@ -54,8 +54,8 @@ F_2 = GF(101 ^ 2, name="t", modulus=P)
 print("extension field:", F_2, "of order:", F_2.order())
 
 # Primitive element
-f_2_primitive_element = F_2.primitive_element()
-print("Primitive element of F_2:", f_2_primitive_element, f_2_primitive_element.order())
+f_2_primitive_element = F_2([2, 1])
+print("Primitive element of F_2:", f_2_primitive_element, f_2_primitive_element.multiplicative_order())
 
 # 100th root of unity
 F_2_order = F_2.order()
@@ -66,4 +66,3 @@ f_2_omega_n = f_2_primitive_element ^ quotient
 print("The", root_of_unity_order, "th root of unity of extension field is: ", f_2_omega_n)
 
 ######################################################################
-
