@@ -1,5 +1,3 @@
-use std::ops::Add;
-
 use super::CurveParams;
 use crate::field::{gf_101::GF101, FiniteField};
 
@@ -23,7 +21,7 @@ impl CurveParams for C101 {
   const TWO: Self::FieldElement = GF101::new(2);
 }
 
-mod test {
+mod tests {
   use super::*;
   use crate::curves::AffinePoint;
   type F = GF101;

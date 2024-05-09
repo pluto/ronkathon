@@ -1,11 +1,7 @@
-use std::{
-  collections::HashSet,
-  fmt::{Display, Formatter},
-};
+use std::collections::HashSet;
 
-use self::field::gf_101::GF101;
+use self::field::{gf_101::GF101, FiniteField};
 use super::*;
-use crate::field::FiniteField;
 
 pub mod arithmetic;
 mod tests;

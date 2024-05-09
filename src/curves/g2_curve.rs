@@ -1,5 +1,3 @@
-use std::ops::Add;
-
 use super::CurveParams;
 use crate::field::{gf_101::GF101, gf_101_2::QuadraticPlutoField, ExtensionField, FiniteField};
 
@@ -45,7 +43,7 @@ impl G2Curve {
     // check if there are any x terms, if not, element is in base field
     let mut LHS = x;
     let mut RHS = y;
-    if x.value[1] != GF101::ZERO {
+    if LHS.value[1] != GF101::ZERO {
       LHS = x * x * (-GF101::new(2)) - Self::EQUATION_B;
     } else {
       LHS = x * x * x - Self::EQUATION_B;
@@ -62,7 +60,7 @@ impl G2Curve {
   }
 }
 
-mod test {
+mod tests {
   use super::*;
   use crate::curves::AffinePoint;
 

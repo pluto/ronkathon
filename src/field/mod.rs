@@ -1,8 +1,4 @@
-use std::{
-  hash::Hash,
-  iter::{Product, Sum},
-  ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
-};
+use serde::{Deserialize, Serialize};
 
 use super::*;
 
@@ -89,16 +85,16 @@ pub trait FiniteField:
 }
 
 #[const_trait]
-pub trait ExtensionField<Base: FiniteField>:
+pub trait ExtensionField<B: FiniteField>:
   FiniteField
-  + From<Base>
-  + Add<Base, Output = Self>
-  + AddAssign<Base>
-  + Sub<Base, Output = Self>
-  + SubAssign<Base>
-  + Mul<Base, Output = Self>
-  + MulAssign<Base> {
+  + From<B>
+  + Add<B, Output = Self>
+  + AddAssign<B>
+  + Sub<B, Output = Self>
+  + SubAssign<B>
+  + Mul<B, Output = Self>
+  + MulAssign<B> {
   const D: usize;
-  fn irreducible() -> Base;
-  fn from_base(b: Base) -> Self;
+  fn irreducible() -> B;
+  fn from_base(base: B) -> Self;
 }

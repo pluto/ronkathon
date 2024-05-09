@@ -1,9 +1,5 @@
-use std::{
-  fmt,
-  ops::{Add, Mul, Neg},
-};
-
-use crate::field::{gf_101::GF101, FiniteField};
+use self::field::{gf_101::GF101, FiniteField};
+use super::*;
 
 /// Elliptic curve in Weierstrass form: y^2 = x^3 + ax + b
 pub struct Curve<F: FiniteField> {

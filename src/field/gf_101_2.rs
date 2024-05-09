@@ -1,12 +1,4 @@
-use core::{
-  iter::{Product, Sum},
-  ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
-};
-use std::ops::{Div, DivAssign, MulAssign, Rem};
-
-use serde::{Deserialize, Serialize};
-
-use super::ExtensionField;
+use super::*;
 use crate::field::FiniteField;
 
 /// Pluto curve with modulus 101 supports two degree extension field. This can be verified
@@ -26,13 +18,11 @@ pub struct QuadraticPlutoField<F: FiniteField> {
 impl<F: FiniteField> QuadraticPlutoField<F> {
   const D: usize = 2;
 
+  pub const fn new(a: F, b: F) -> Self { Self { value: [a, b] } }
+
   /// irreducible polynomial used to reduce field polynomials to second degree:
   /// F[X]/(X^2-2)
   fn irreducible() -> F { F::from_canonical_u32(2) }
-
-  // const fn from_base(b: F) -> Self { Self { value: [b, F::zero()] } }
-
-  pub const fn new(a: F, b: F) -> Self { Self { value: [a, b] } }
 }
 
 impl<F: FiniteField> ExtensionField<F> for QuadraticPlutoField<F> {
@@ -51,11 +41,9 @@ impl<F: FiniteField> FiniteField for QuadraticPlutoField<F> {
   type Storage = u32;
 
   const NEG_ONE: Self = Self::new(F::NEG_ONE, F::ZERO);
-  // TODO: This is wrong
   const ONE: Self = Self::new(F::ONE, F::ZERO);
   const ORDER: Self::Storage = QUADRATIC_EXTENSION_FIELD_ORDER;
   const TWO: Self = Self::new(F::TWO, F::ZERO);
-  // fn zero() -> Self { Self { value: [F::zero(); EXT_DEGREE] } }
   const ZERO: Self = Self::new(F::ZERO, F::ZERO);
 
   // field generator: can be verified using sage script
