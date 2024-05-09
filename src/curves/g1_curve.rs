@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use super::CurveParams;
+use super::{CurveParams};
 use crate::field::{gf_101::GF101, FiniteField};
 
 /// The Elliptic curve $y^2=x^3+3$, i.e.

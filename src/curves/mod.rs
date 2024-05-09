@@ -5,6 +5,7 @@ use std::{
 
 use crate::field::{gf_101::GF101, FiniteField};
 
+
 /// Elliptic curve in Weierstrass form: y^2 = x^3 + ax + b
 pub struct Curve<F: FiniteField> {
   pub a: F,
