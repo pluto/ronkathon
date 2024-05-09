@@ -40,7 +40,7 @@ So now we have two algebraic structures:
 Initially this elliptic curve is just a continuous squiggle, which isn't the most useful. But we can make it discrete by constraining it's points to reside in the field. 
 Now it doesn't look like the squiggle we know and love but instead a lattice (you can see [here](https://andrea.corbellini.name/ecc/interactive/modk-add.html) by switching from real numbers to finite fields ).
 
-Now we have a set of discrete points on the curve over the finite field that form a *[group](https://en.wikipedia.org/wiki/Group_(mathematics)*, a group has a single operation called the group operation, it is perhaps more abstract than a field. 
+Now we have a set of discrete points on the curve over the finite field that form a *[group](https://en.wikipedia.org/wiki/Group_(mathematics))*, a group has a single operation called the group operation, it is perhaps more abstract than a field. 
 The group operation on this set of curve points is point addition which we all know and love with the squiggly lines, intersections and reflections. From this group operation we can create point doubling, and as a result, scalar multiplication (how many times do we double a point) as handy abstractions over the single group operation. 
 
 To review we have a curve group call it $E1$ and the base field $F_{101}$
