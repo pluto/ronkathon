@@ -1,4 +1,4 @@
-use self::field::gf_101_2::GF101Ext2;
+use self::field::gf_101_2::Ext2;
 use super::*;
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
@@ -8,27 +8,24 @@ pub struct G2Curve {}
 // - b = 3
 
 impl CurveParams for G2Curve {
-  type FieldElement = GF101Ext2<GF101>;
+  type FieldElement = Ext2<GF101>;
 
-  const EQUATION_A: Self::FieldElement = GF101Ext2::<GF101>::ZERO;
-  const EQUATION_B: Self::FieldElement = GF101Ext2::<GF101>::new(GF101::new(3), GF101::ZERO);
+  const EQUATION_A: Self::FieldElement = Ext2::<GF101>::ZERO;
+  const EQUATION_B: Self::FieldElement = Ext2::<GF101>::new(GF101::new(3), GF101::ZERO);
   const GENERATOR: (Self::FieldElement, Self::FieldElement) = (
-    GF101Ext2::<GF101>::new(GF101::new(36), GF101::ZERO),
-    GF101Ext2::<GF101>::new(GF101::ZERO, GF101::new(31)),
+    Ext2::<GF101>::new(GF101::new(36), GF101::ZERO),
+    Ext2::<GF101>::new(GF101::ZERO, GF101::new(31)),
   );
   const ORDER: u32 = 289;
   // extension field subgroup should have order r^2 where r is order of first group
-  const THREE: GF101Ext2<GF101> = GF101Ext2::<GF101>::new(GF101::new(3), GF101::ZERO);
-  const TWO: GF101Ext2<GF101> = GF101Ext2::<GF101>::new(GF101::TWO, GF101::ZERO);
+  const THREE: Ext2<GF101> = Ext2::<GF101>::new(GF101::new(3), GF101::ZERO);
+  const TWO: Ext2<GF101> = Ext2::<GF101>::new(GF101::TWO, GF101::ZERO);
 }
 
 // a naive impl with affine point
 
 impl G2Curve {
-  pub fn on_curve(
-    x: GF101Ext2<GF101>,
-    y: GF101Ext2<GF101>,
-  ) -> (GF101Ext2<GF101>, GF101Ext2<GF101>) {
+  pub fn on_curve(x: Ext2<GF101>, y: Ext2<GF101>) -> (Ext2<GF101>, Ext2<GF101>) {
     println!("X: {:?}, Y: {:?}", x, y);
     // TODO Continue working on this
     //                  (   x  )  (  y   )  ( x , y )

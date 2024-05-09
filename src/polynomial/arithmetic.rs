@@ -117,7 +117,6 @@ impl<F: FiniteField> Rem for Polynomial<Monomial, F> {
 
 #[cfg(test)]
 mod tests {
-
   use super::*;
 
   #[fixture]
