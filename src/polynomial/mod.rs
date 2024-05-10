@@ -1,52 +1,74 @@
-use std::{
-  collections::HashSet,
-  fmt::{Display, Formatter},
-};
-
-use self::field::gf_101::GF101;
 use super::*;
-use crate::field::FiniteField;
 
 pub mod arithmetic;
+#[cfg(test)] mod tests;
 
 // https://people.inf.ethz.ch/gander/papers/changing.pdf
 
-/// A polynomial of degree N-1 which is generic over the basis and the field.
+/// A polynomial of arbitrary degree.
+/// Allows for a choice of basis between [`Monomial`] and [`Lagrange`].
+/// The coefficients are stored in a vector with the zeroth degree term first.
+/// Highest degree term should be non-zero.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Polynomial<B: Basis, F: FiniteField> {
   pub coefficients: Vec<F>,
   pub basis:        B,
 }
 
-// Type state patern for polynomial bases:
+/// [`Basis`] trait is used to specify the basis of the polynomial.
+/// The basis can be [`Monomial`] or [`Lagrange`]. This is a type-state pattern for [`Polynomial`].
 pub trait Basis {
   type Data;
 }
 
+/// [`Monomial`] is a struct that implements the [`Basis`] trait.
+/// It is used to specify the [monomial basis](https://en.wikipedia.org/wiki/Monomial_basis) for a polynomial.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Monomial;
 impl Basis for Monomial {
   type Data = ();
 }
 
-// https://en.wikipedia.org/wiki/Lagrange_polynomial
+/// [`Lagrange`] is a struct that implements the [`Basis`] trait.
+/// It is used to specify the [lagrange basis](https://en.wikipedia.org/wiki/Lagrange_polynomial) for a polynomial.
+/// It requires a vector of field elements that are the nodes (evaluation points) used to create the
+/// Lagrange basis.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Lagrange<F: FiniteField> {
   pub nodes: Vec<F>,
 }
-
 impl<F: FiniteField> Basis for Lagrange<F> {
   type Data = Self;
 }
 
 impl<B: Basis, F: FiniteField> Polynomial<B, F> {
-  pub fn degree(&self) -> usize { self.coefficients.len() - 1 }
+  /// A polynomial in any basis has a fixed number of independent terms.
+  /// For example, in [`Monomial`] basis, the number of terms is one more than the degree of the
+  /// polynomial.
+  ///
+  /// ## Arguments:
+  /// - `self`: The polynomial in any basis.
+  ///
+  /// ## Returns:
+  /// - The number of terms in the polynomial as `usize`.
+  pub fn num_terms(&self) -> usize { self.coefficients.len() }
 }
 
-/// A polynomial in monomial basis
 impl<F: FiniteField> Polynomial<Monomial, F> {
-  pub fn new(mut coefficients: Vec<F>) -> Self {
-    // Simplify the polynomial to have leading coefficient non-zero
+  /// Create a new polynomial in [`Monomial`] basis.
+  ///
+  /// ## Arguments:
+  /// - `coefficients`: A vector of field elements representing the coefficients of the polynomial
+  ///   on each monomial term, e.g., x^0, x^1, ....
+  ///
+  /// ## Returns:
+  /// - A new polynomial in [`Monomial`] basis with the given coefficients.
+  /// - The polynomial is automatically simplified to have a non-zero leading coefficient, that is
+  ///   coefficient on the highest power term x^d.
+  pub fn new(coefficients: Vec<F>) -> Self {
     let mut poly = Self { coefficients, basis: Monomial };
+    // Remove trailing zeros in the `coefficients` vector so that the highest degree term is
+    // non-zero.
     poly.trim_zeros();
     poly
   }
@@ -59,21 +81,27 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     }
   }
 
-  /// Convert a polynomial from monomial to Lagrange basis using the Barycentric form
-  pub fn to_lagrange(&self) -> Polynomial<Lagrange<F>, F> {
-    // Get the `N-1`th roots of unity for the field and this degree of polynomial.
-    let n = self.coefficients.len();
-    let primitive_root = F::primitive_root_of_unity(F::Storage::from(n as u32));
+  /// Gets the degree of the polynomial in the [`Monomial`] [`Basis`].
+  /// ## Arguments:
+  /// - `self`: The polynomial in the [`Monomial`] [`Basis`].
+  ///
+  /// ## Returns:
+  /// - The degree of the polynomial as a `usize`.
+  pub fn degree(&self) -> usize { self.coefficients.len() - 1 }
 
-    // Evaluate the polynomial at the roots of unity to get the coefficients of the Lagrange basis
-    let mut coeffs = vec![F::ZERO; n];
-    for j in 0..self.coefficients.len() {
-      coeffs[j] = self.evaluate(primitive_root.pow(F::Storage::from(j as u32)));
-    }
-    Polynomial::<Lagrange<F>, F>::new(coeffs)
-  }
+  /// Retrieves the coefficient on the highest degree monomial term of a polynomial in the
+  /// [`Monomial`] [`Basis`].
+  pub fn leading_coefficient(&self) -> F { *self.coefficients.last().unwrap() }
 
-  /// Evaluate the polynomial at field element x
+  /// Evaluates the polynomial at a given [`FiniteField`] element `x` using the [`Monomial`] basis.
+  /// This is not using Horner's method or any other optimization.
+  ///
+  /// ## Arguments:
+  /// - `x`: The field element at which to evaluate the polynomial.
+  ///
+  /// ## Returns:
+  /// - The result of evaluating the polynomial at `x` which is an element of the associated
+  ///   [`FiniteField`].
   pub fn evaluate(&self, x: F) -> F {
     let mut result = F::ZERO;
     for (i, c) in self.coefficients.iter().enumerate() {
@@ -82,8 +110,18 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     result
   }
 
-  pub fn leading_coefficient(&self) -> F { *self.coefficients.last().unwrap() }
-
+  /// Accessory function that allows for the multiplication of a polynomial by a scalar `coeff`
+  /// times a monomial `x^pow`.
+  /// Used explicitly in the [`Polynomial::quotient_and_remainder`] function for implementing the
+  /// [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) algorithm (to implement [`Div`] and [`Rem`] traits).
+  ///
+  /// ## Arguments:
+  /// - `coeff`: The scalar to multiply the polynomial by.
+  /// - `pow`: The power of the monomial to multiply the polynomial by.
+  ///
+  /// ## Returns:
+  /// - A new polynomial in the [`Monomial`] [`Basis`] that is the result of multiplying the
+  ///   polynomial by `coeff` times `x^pow`.
   pub fn pow_mult(&self, coeff: F, pow: usize) -> Polynomial<Monomial, F> {
     let mut coefficients = vec![F::ZERO; self.coefficients.len() + pow];
     self.coefficients.iter().enumerate().for_each(|(i, c)| {
@@ -92,8 +130,18 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     Polynomial::<Monomial, F>::new(coefficients)
   }
 
+  /// [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) of two polynomials in [`Monomial`] basis.
+  /// Used explicitly in implementing the [`Div`] and [`Rem`] traits.
+  ///
+  /// ## Arguments:
+  /// - `self`: The dividend polynomial in [`Monomial`] basis.
+  /// - `rhs`: The divisor polynomial in [`Monomial`] basis.
+  ///
+  /// ## Returns:
+  /// - A tuple of two polynomials in [`Monomial`] basis:
+  ///   - The first element is the quotient polynomial.
+  ///   - The second element is the remainder polynomial.
   fn quotient_and_remainder(self, rhs: Self) -> (Self, Self) {
-    // Euclidean division
     // Initial quotient value
     let mut q = Self::new(vec![]);
 
@@ -103,13 +151,14 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     // Leading coefficient of the denominator
     let c = rhs.leading_coefficient();
 
-    // Create quotient poly
+    // Create quotient polynomial
     let mut diff = p.degree() as isize - rhs.degree() as isize;
     if diff < 0 {
       return (Self::new(vec![F::ZERO]), p);
     }
     let mut q_coeffs = vec![F::ZERO; diff as usize + 1];
 
+    // Perform the repeated long division algorithm
     while diff >= 0 {
       let s = p.leading_coefficient() * c.inverse().unwrap();
       q_coeffs[diff as usize] = s;
@@ -121,17 +170,32 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     (q, p)
   }
 
-  pub fn dft(&self) -> Vec<F> {
-    let n = self.coefficients.len();
+  /// Computes the [Discrete Fourier Transform](https://en.wikipedia.org/wiki/Discrete_Fourier_transform)
+  /// of the polynomial in the [`Monomial`] basis by evaluating the polynomial at the roots of
+  /// unity.
+  /// This also converts a polynomial from [`Monomial`] to [`Lagrange`] [`Basis`] with node points
+  /// given by the roots of unity.
+  ///
+  /// ## Returns:
+  /// - A new polynomial in the [`Lagrange`] [`Basis`] that is the result of converting the
+  ///  evaluation of the polynomial at the roots of unity.
+  ///
+  /// ## Panics
+  /// - This function will panic in calling [`FiniteField::primitive_root_of_unity`] if the field
+  /// does not have roots of unity for the degree of the polynomial.
+  pub fn dft(&self) -> Polynomial<Lagrange<F>, F> {
+    let n = self.num_terms();
     let primitive_root_of_unity = F::primitive_root_of_unity(F::Storage::from(n as u32));
-    let mut result = vec![F::ZERO; n];
-    for i in 0..n {
-      for j in 0..n {
-        result[i] +=
-          self.coefficients[j] * primitive_root_of_unity.pow(F::Storage::from(i as u32 * j as u32));
-      }
-    }
-    result
+
+    Polynomial::<Lagrange<F>, F>::new(
+      (0..n)
+        .map(|i| {
+          self.coefficients.iter().enumerate().fold(F::ZERO, |acc, (j, &coeff)| {
+            acc + coeff * primitive_root_of_unity.pow(F::Storage::from(i as u32 * j as u32))
+          })
+        })
+        .collect(),
+    )
   }
 }
 
@@ -153,8 +217,20 @@ impl Display for Polynomial<Monomial, GF101> {
   }
 }
 
-/// A polynomial in Lagrange basis
 impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
+  /// Create a new polynomial in [`Lagrange`] basis by supplying a number of coefficients.
+  /// Assumes that a field has a root of unity for the amount of terms given in the coefficients.
+  ///
+  /// ## Arguments:
+  /// - `coefficients`: A vector of field elements representing the coefficients of the polynomial
+  ///  in the [`Lagrange`] basis.
+  ///
+  /// ## Returns:
+  /// - A new polynomial in the [`Lagrange`] basis with the given coefficients.
+  ///
+  /// ## Panics
+  /// - This function will panic if the field does not have roots of unity for the length of the
+  ///   polynomial.
   pub fn new(coefficients: Vec<F>) -> Self {
     // Check that the polynomial degree divides the field order so that there are roots of unity.
     let n = coefficients.len();
@@ -168,6 +244,57 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
     Self { coefficients, basis: Lagrange { nodes } }
   }
 
+  /// Evaluate the polynomial in the [`Lagrange`] basis at a given field element `x`.
+  /// This is done by evaluating the Lagrange polynomial at `x` using the nodes of the Lagrange
+  /// basis. The Lagrange polynomial is given by:
+  /// $$
+  /// L(x) = \sum_{j=0}^{n-1} \left( \frac{w_j}{x - x_j} \right) y_j
+  /// $$
+  /// where $w_j = \prod_{m \neq j} (x_j - x_m)^{-1}$ and $y_j$ are the coefficients of the
+  /// polynomial. The evaluation of the polynomial at `x` is then given by $L(x)$.
+  ///
+  /// ## Arguments:
+  /// - `x`: The field element as [`FiniteField`] at which to evaluate the polynomial.
+  ///
+  /// ## Returns:
+  /// - The result of evaluating the polynomial at `x` which is an element of the associated
+  ///  [`FiniteField`].
+  pub fn evaluate(&self, x: F) -> F {
+    let n = self.coefficients.len();
+
+    // w_j = \Pi_{m \neq j} (x_j - x_m)^{-1}
+    let mut weights = vec![F::ONE; n];
+    weights.iter_mut().enumerate().for_each(|(idx, w)| {
+      for m in 0..n {
+        if idx != m {
+          *w *= F::ONE.div(self.basis.nodes[idx] - self.basis.nodes[m]);
+        }
+      }
+    });
+
+    // l(x) = \Pi_{i=0}^{n-1} (x - x_i)
+    let l = move |x: F| {
+      let mut val = F::ONE;
+      for i in 0..n {
+        val *= x - self.basis.nodes[i];
+      }
+      val
+    };
+
+    // L(x) = l(x) * \Sigma_{j=0}^{n-1}  (w_j / (x - x_j)) y_j
+    l(x)
+      * weights.iter().zip(self.coefficients.iter()).zip(self.basis.nodes.iter()).fold(
+        F::ZERO,
+        |acc, ((w, &c), &n)| {
+          if n == x {
+            return c;
+          }
+          acc + c * *w / (x - n)
+        },
+      )
+  }
+
+  /// TODO: Implement this function if need be.
   pub fn to_monomial(&self) -> Polynomial<Monomial, F> {
     // This is the inverse of the conversion from monomial to Lagrange basis
     // This uses something called the Vandermonde matrix which is defined as:
@@ -200,164 +327,18 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
     // Polynomial::<N, Monomial, F>::new(evaluations)
     todo!("Finish this after we get the roots of unity from other PRs")
   }
-
-  /// Evaluate the polynomial at field element x
-  pub fn evaluate(&self, x: F) -> F {
-    let n = self.coefficients.len();
-    let mut weights = vec![F::ZERO; n];
-    for j in 0..n {
-      for m in 0..n {
-        if j != m {
-          weights[j] *= F::ONE.div(self.basis.nodes[j] - self.basis.nodes[m]);
-        }
-      }
-    }
-    // l(x) = \Sigmm_{m}(x-x_m)
-    let l = move |x: F| {
-      let mut val = F::ONE;
-      for i in 0..n {
-        val *= x - self.basis.nodes[i];
-      }
-      val
-    };
-
-    // L(x) = l(x) * \Sigma_{j=0}^{k}  (w_j / (x - x_j)) y_j
-    let mut val = F::ZERO;
-    for j in 0..n {
-      // check if we are dividing by zero
-      if self.basis.nodes[j] == x {
-        return self.coefficients[j];
-      }
-      val += self.coefficients[j] * weights[j] / (x - self.basis.nodes[j]);
-    }
-    l(x) * val
-  }
 }
-mod test {
-  use super::*;
-  use crate::field::gf_101::GF101;
 
-  fn deg_three_poly() -> Polynomial<Monomial, GF101> {
-    // Coefficients of the polynomial 1 + 2x + 3x^2 + 4x^3
-    let a = GF101::new(1);
-    let b = GF101::new(2);
-    let c = GF101::new(3);
-    let d = GF101::new(4);
-    Polynomial::<Monomial, GF101>::new(vec![a, b, c, d])
-  }
-
-  #[test]
-  fn evaluation() {
-    // Should get: 1 + 2*(2) + 3*(2)^2 + 4*(2)^3 = 49
-    let y = deg_three_poly().evaluate(GF101::new(2));
-    let r = GF101::new(49);
-    assert_eq!(y, r);
-  }
-
-  #[test]
-  fn evaluation_with_zero() {
-    // Coefficients of the polynomial 1 + 3x^2
-    let a = GF101::new(1);
-    let b = GF101::new(0);
-    let c = GF101::new(3);
-    let polynomial = Polynomial::<Monomial, GF101>::new(vec![a, b, c]);
-    let y = polynomial.evaluate(GF101::new(0));
-
-    // Should get: 1 + 3(0)^2 = 1
-    let r = GF101::new(1);
-    assert_eq!(y, r);
-  }
-
-  #[test]
-  fn lagrange_evaluation() {
-    // Convert to Lagrange basis using roots of unity
-    let lagrange = deg_three_poly().to_lagrange();
-
-    // Should get: 1 + 2*(2) + 3*(2)^2 + 4*(2)^2= 49
-    let r = lagrange.evaluate(GF101::new(2));
-    assert_eq!(r, GF101::new(49));
-  }
-
-  #[test]
-  #[should_panic]
-  fn no_roots_of_unity() {
-    // Coefficients of the polynomial 1 + 2x
-    let a = GF101::new(1);
-    let b = GF101::new(2);
-    let c = GF101::new(3);
-    let polynomial = Polynomial::<Monomial, GF101>::new(vec![a, b, c]);
-    polynomial.to_lagrange();
-  }
-
-  #[test]
-  fn check_coefficients() {
-    assert_eq!(deg_three_poly().coefficients, [
-      GF101::new(1),
-      GF101::new(2),
-      GF101::new(3),
-      GF101::new(4)
-    ]);
-
-    assert_eq!(deg_three_poly().to_lagrange().coefficients, [
-      GF101::new(10),
-      GF101::new(79),
-      GF101::new(99),
-      GF101::new(18)
-    ]);
-  }
-
-  #[test]
-  fn degree() {
-    assert_eq!(deg_three_poly().degree(), 3);
-  }
-
-  #[test]
-  fn leading_coefficient() {
-    assert_eq!(deg_three_poly().leading_coefficient(), GF101::new(4));
-  }
-
-  #[test]
-  fn pow_mult() {
-    let poly = deg_three_poly();
-    let pow_mult = poly.pow_mult(GF101::new(5), 2);
-    assert_eq!(pow_mult.coefficients, [
-      GF101::new(0),
-      GF101::new(0),
-      GF101::new(5),
-      GF101::new(10),
-      GF101::new(15),
-      GF101::new(20)
-    ]);
-  }
-
-  #[test]
-  fn trim_zeros() {
-    let mut poly = deg_three_poly();
-    poly.coefficients.push(GF101::ZERO);
-    assert_eq!(poly.coefficients, [
-      GF101::new(1),
-      GF101::new(2),
-      GF101::new(3),
-      GF101::new(4),
-      GF101::ZERO
-    ]);
-    poly.trim_zeros();
-    assert_eq!(poly.coefficients, [GF101::new(1), GF101::new(2), GF101::new(3), GF101::new(4)]);
-  }
-
-  #[test]
-  fn trim_to_zero() {
-    let mut poly = Polynomial::<Monomial, GF101>::new(vec![GF101::ZERO, GF101::ZERO]);
-    assert_eq!(poly.coefficients, [GF101::ZERO]);
-  }
-
-  #[test]
-  fn dft() {
-    let poly = deg_three_poly();
-    let dft = poly.dft();
-    println!("{:?}", dft);
-    assert_eq!(dft, [GF101::new(10), GF101::new(79), GF101::new(99), GF101::new(18)]);
-    let mut poly = Polynomial::<Monomial, GF101>::new(vec![GF101::ZERO, GF101::ZERO]);
-    assert_eq!(poly.coefficients, [GF101::ZERO]);
+impl Display for Polynomial<Lagrange<GF101>, GF101> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    let d = self.num_terms() - 1;
+    for (idx, (coeff, node)) in self.coefficients.iter().zip(self.basis.nodes.iter()).enumerate() {
+      if idx == d {
+        write!(f, "{}*l_{}(x)", coeff, node)?;
+        break;
+      }
+      write!(f, "{}*l_{}(x) + ", coeff, node)?;
+    }
+    Ok(())
   }
 }

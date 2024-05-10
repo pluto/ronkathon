@@ -1,16 +1,11 @@
-use std::{
-  fmt,
-  ops::{Add, Mul, Neg},
-};
-
-use crate::field::{gf_101::GF101, FiniteField};
+use super::*;
 
 /// Elliptic curve in Weierstrass form: y^2 = x^3 + ax + b
 pub struct Curve<F: FiniteField> {
-  pub a: F,
-  pub b: F,
-  three: F,
-  two:   F,
+  pub a:  F,
+  pub b:  F,
+  _three: F,
+  _two:   F,
 }
 /// Example:
 /// say 2 is in GF101
@@ -102,7 +97,7 @@ impl<C: CurveParams> std::ops::Mul<u32> for AffinePoint<C> {
 impl<C: CurveParams> std::ops::Mul<AffinePoint<C>> for u32 {
   type Output = AffinePoint<C>;
 
-  fn mul(self, rhs: AffinePoint<C>) -> Self::Output {
+  fn mul(self, _rhs: AffinePoint<C>) -> Self::Output {
     let mut result = AffinePoint::new_infty();
     let mut base = AffinePoint::generator();
     let mut exp = self;
@@ -154,7 +149,7 @@ impl<C: CurveParams> Add for AffinePoint<C> {
 }
 
 impl<C: CurveParams> AffinePoint<C> {
-  pub fn point_doubling(mut self) -> AffinePoint<C> {
+  pub fn point_doubling(self) -> AffinePoint<C> {
     let (x, y) = match self {
       AffinePoint::XY(x, y) => (x, y),
       AffinePoint::Infty => panic!("Cannot double point at infinity"),

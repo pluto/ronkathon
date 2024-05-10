@@ -1,8 +1,4 @@
-use std::{
-  hash::Hash,
-  iter::{Product, Sum},
-  ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
-};
+use serde::{Deserialize, Serialize};
 
 use super::*;
 
@@ -54,8 +50,8 @@ pub trait FiniteField:
   fn inverse(&self) -> Option<Self>;
   fn from_canonical_u32(n: u32) -> Self;
   fn generator() -> Self;
-  fn double(&self) -> Self { self.clone() + self.clone() }
-  fn square(&self) -> Self { self.clone() * self.clone() }
+  fn double(&self) -> Self { *self + *self }
+  fn square(&self) -> Self { *self * *self }
 
   fn pow(&self, power: Self::Storage) -> Self {
     let mut current = *self;
@@ -89,16 +85,66 @@ pub trait FiniteField:
 }
 
 #[const_trait]
-pub trait ExtensionField<Base: FiniteField>:
+pub trait ExtensionField<B: FiniteField>:
   FiniteField
-  + From<Base>
-  + Add<Base, Output = Self>
-  + AddAssign<Base>
-  + Sub<Base, Output = Self>
-  + SubAssign<Base>
-  + Mul<Base, Output = Self>
-  + MulAssign<Base> {
+  + From<B>
+  + Add<B, Output = Self>
+  + AddAssign<B>
+  + Sub<B, Output = Self>
+  + SubAssign<B>
+  + Mul<B, Output = Self>
+  + MulAssign<B> {
   const D: usize;
-  fn irreducible() -> Base;
-  fn from_base(b: Base) -> Self;
+  fn irreducible() -> B;
+  fn from_base(base: B) -> Self;
+}
+
+// algorithm to compute primitive element of field (multiplicative generator)
+pub fn get_generator(p: u32) -> i32 {
+  let mut fact = Vec::new();
+  let phi = p - 1;
+  let mut n = phi;
+  let mut i = 2;
+  while i * i <= n {
+    if n % i == 0 {
+      fact.push(i);
+      while n % i == 0 {
+        n /= i;
+      }
+    }
+    i += 1;
+  }
+  if n > 1 {
+    fact.push(n);
+  }
+
+  for res in 2..=p {
+    let mut ok = true;
+    for &f in &fact {
+      ok &= powmod(res, phi / f, p) != 1;
+      if !ok {
+        break;
+      }
+    }
+    if ok {
+      return res as i32;
+    }
+  }
+  -1
+}
+
+fn powmod(base: u32, exponent: u32, modulus: u32) -> u32 {
+  let mut base = base as u64;
+  let mut exponent = exponent;
+  let modulus = modulus as u64;
+  let mut result = 1;
+  base %= modulus;
+  while exponent > 0 {
+    if exponent % 2 == 1 {
+      result = (result * base) % modulus;
+    }
+    base = (base * base) % modulus;
+    exponent >>= 1;
+  }
+  result as u32
 }

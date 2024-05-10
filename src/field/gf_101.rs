@@ -1,16 +1,4 @@
-use core::{
-  hash::{Hash, Hasher},
-  iter::{Product, Sum},
-  ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign},
-};
-use std::{env::consts, fmt};
-
-use num_bigint::BigUint;
-use rand::{
-  distributions::{Distribution, Standard},
-  Rng,
-};
-use serde::{Deserialize, Serialize};
+use rand::distributions::{Distribution, Standard};
 
 use super::*;
 
@@ -28,12 +16,13 @@ pub struct GF101 {
 }
 
 impl fmt::Display for GF101 {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.value) }
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", from_monty(self.value))
+  }
 }
 
 impl GF101 {
-  // pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
-  pub const fn new(value: u32) -> Self { Self { value: value % PLUTO_FIELD_PRIME } }
+  pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
 }
 
 impl FiniteField for GF101 {
@@ -103,7 +92,7 @@ impl SubAssign for GF101 {
 impl Mul for GF101 {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self { Self { value: (self.value * rhs.value) % Self::ORDER } }
+  fn mul(self, rhs: Self) -> Self { Self { value: from_monty(self.value * rhs.value) } }
 }
 
 impl MulAssign for GF101 {
@@ -144,7 +133,7 @@ impl Distribution<GF101> for Standard {
   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GF101 {
     loop {
       let next_u31 = rng.next_u32() >> 4;
-      let is_canonical = next_u31 < PLUTO_FIELD_PRIME;
+      let is_canonical = next_u31 < GF101::ORDER;
       if is_canonical {
         return GF101 { value: next_u31 };
       }
@@ -200,7 +189,7 @@ fn from_monty(x: u32) -> u32 {
 
 // β=2^7
 // I=β^2/N
-const INV_APPROX: u32 = (1 << (2 * MONTY_BITS)) / PLUTO_FIELD_PRIME;
+const _INV_APPROX: u32 = (1 << (2 * MONTY_BITS)) / PLUTO_FIELD_PRIME;
 
 #[must_use]
 #[inline]
@@ -226,72 +215,69 @@ const INV_APPROX: u32 = (1 << (2 * MONTY_BITS)) / PLUTO_FIELD_PRIME;
 /// let res = barret_reduction(x);
 /// assert_eq!(res, x % PLUTO_FIELD_PRIME);
 /// ```
-fn barret_reduction(x: u32) -> u32 {
+fn _barret_reduction(x: u32) -> u32 {
   assert!(x < (PLUTO_FIELD_PRIME.pow(2)));
-  let q = (x * INV_APPROX) >> (2 * MONTY_BITS); // q = ⌊x*I/β^2⌋
+  let q = (x * _INV_APPROX) >> (2 * MONTY_BITS); // q = ⌊x*I/β^2⌋
   let r = x - (q * PLUTO_FIELD_PRIME); // t = x - q*N
   let corr = if r >= PLUTO_FIELD_PRIME { PLUTO_FIELD_PRIME } else { 0 };
   r.wrapping_sub(corr)
 }
 
+#[cfg(test)]
 mod tests {
-  use rand::{thread_rng, Rng};
-
   use super::*;
-
-  type F = GF101;
 
   #[test]
   fn test_overflowing_add() {
-    let a = F::new(100);
-    let b = F::new(20);
+    let a = GF101::new(100);
+    let b = GF101::new(20);
     let c = a + b;
-    assert_eq!(c, F::new(19));
+    assert_eq!(c, GF101::new(19));
   }
 
   #[test]
   fn underflow_sub() {
-    let a = F::new(10);
-    let b = F::new(20);
+    let a = GF101::new(10);
+    let b = GF101::new(20);
     let c = a - b;
-    assert_eq!(c, F::new(91));
+    assert_eq!(c, GF101::new(91));
   }
 
   #[test]
   fn halve() {
-    let a = F::new(10);
-    assert_eq!(a, (a / F::TWO) * F::TWO);
+    let a = GF101::new(10);
+    assert_eq!(a, (a / GF101::TWO) * GF101::TWO);
   }
 
   #[test]
   fn overflowing_mul() {
-    let a = F::new(10);
-    let b = F::new(20);
+    let a = GF101::new(10);
+    let b = GF101::new(20);
     let c = a * b;
-    assert_eq!(c, F::new(99));
+    assert_eq!(c, GF101::new(99));
   }
 
   #[test]
   fn test_barret_reduction() {
     let x = 200 * 10;
-    let res = barret_reduction(x);
+    let res = _barret_reduction(x);
     assert_eq!(res, x % PLUTO_FIELD_PRIME);
   }
 
   #[test]
   fn zero() {
-    let f = F::new(0);
+    let f = GF101::new(0);
     assert_eq!(f.value, 0);
 
-    let f = F::new(F::ORDER);
+    let f = GF101::new(GF101::ORDER);
     assert_eq!(f.value, 0);
   }
 
   #[test]
   fn exp_generic() {
-    let f = F::new(2);
+    let f = GF101::new(2);
     let exp = f.pow(3);
-    assert_eq!(exp, F::new(8));
+    assert_eq!(exp, GF101::new(8));
   }
 
   #[test]
@@ -299,23 +285,23 @@ mod tests {
     let a = GF101::new(50);
     let b = GF101::new(60);
     let c = a + b;
-    assert_eq!(c, F::new(9)); // (50 + 60) % 101 = 9
+    assert_eq!(c, GF101::new(9)); // (50 + 60) % 101 = 9
 
     let d = c - a;
-    assert_eq!(d, F::new(60)); // (9 - 50) % 101 = 60
+    assert_eq!(d, GF101::new(60)); // (9 - 50) % 101 = 60
   }
 
   #[test]
   fn test_add_sub_neg_mul() {
     let mut rng = rand::thread_rng();
     // for i in 0..1000 {
-    let x = rng.gen::<F>();
-    let y = rng.gen::<F>();
-    let z = rng.gen::<F>();
-    assert_eq!(x + (-x), F::ZERO);
-    assert_eq!(-x, F::ZERO - x);
-    assert_eq!(x + x, x * F::TWO);
-    assert_eq!(x, x.div(F::new(2)) * F::TWO);
+    let x = rng.gen::<GF101>();
+    let y = rng.gen::<GF101>();
+    let z = rng.gen::<GF101>();
+    assert_eq!(x + (-x), GF101::ZERO);
+    assert_eq!(-x, GF101::ZERO - x);
+    assert_eq!(x + x, x * GF101::TWO);
+    assert_eq!(x, x.div(GF101::new(2)) * GF101::TWO);
     assert_eq!(x * (-x), -(x * x));
     assert_eq!(x + y, y + x);
     assert_eq!(x * y, y * x);
@@ -331,7 +317,7 @@ mod tests {
     let a = GF101::new(10);
     let a_inv = a.inverse().unwrap();
     let should_be_one = a * a_inv;
-    assert_eq!(should_be_one, F::new(1));
+    assert_eq!(should_be_one, GF101::new(1));
   }
 
   #[should_panic]
@@ -392,7 +378,7 @@ mod tests {
   #[test]
   fn non_zero_element() {
     let a = GF101::new(10);
-    assert!(!(a == F::ZERO));
+    assert!(!(a == GF101::ZERO));
   }
 
   #[test]
@@ -406,7 +392,7 @@ mod tests {
   #[test]
   fn not_primitive_root_of_unity() {
     let n = 3;
-    let omega = GF101::primitive_root_of_unity(n);
+    let _omega = GF101::primitive_root_of_unity(n);
   }
 
   #[test]
@@ -414,39 +400,39 @@ mod tests {
     let n = 5;
     let omega = GF101::primitive_root_of_unity(n);
     println!("omega: {:?}", omega);
-    assert_eq!(omega, F::new(95));
+    assert_eq!(omega, GF101::new(95));
     let omega_n = omega.pow(n);
     for i in 1..n {
       let omega_i = omega.pow(i);
       println!("omega^{}: {:?}", i, omega_i);
-      assert_ne!(omega_i, F::new(1));
+      assert_ne!(omega_i, GF101::new(1));
     }
-    assert_eq!(omega_n, F::new(1));
+    assert_eq!(omega_n, GF101::new(1));
 
     let n = 25;
     let omega = GF101::primitive_root_of_unity(n);
     println!("omega: {:?}", omega);
-    assert_eq!(omega, F::new(16));
+    assert_eq!(omega, GF101::new(16));
     for i in 1..n {
       let omega_i = omega.pow(i);
       println!("omega^{}: {:?}", i, omega_i);
-      assert_ne!(omega_i, F::new(1));
+      assert_ne!(omega_i, GF101::new(1));
     }
     let omega_n = omega.pow(n);
-    assert_eq!(omega_n, F::new(1));
+    assert_eq!(omega_n, GF101::new(1));
   }
 
   #[test]
   fn polynomial_sum() {
-    let a = F::new(1);
-    let b = F::new(2);
-    let c = F::new(3);
-    let d = F::new(4);
+    let a = GF101::new(1);
+    let b = GF101::new(2);
+    let c = GF101::new(3);
+    let d = GF101::new(4);
 
     let n = 4;
-    let omega = F::primitive_root_of_unity(n);
+    let omega = GF101::primitive_root_of_unity(n);
 
     let out = a + b * omega + c * omega.pow(2) + d * omega.pow(3);
-    assert_eq!(out, F::new(79));
+    assert_eq!(out, GF101::new(79));
   }
 }
