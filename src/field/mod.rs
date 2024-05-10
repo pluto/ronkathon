@@ -46,6 +46,7 @@ pub trait FiniteField:
   const ONE: Self;
   const TWO: Self;
   const NEG_ONE: Self;
+  const THREE: Self;
 
   fn inverse(&self) -> Option<Self>;
   fn from_canonical_u32(n: u32) -> Self;
@@ -53,17 +54,18 @@ pub trait FiniteField:
   fn double(&self) -> Self { *self + *self }
   fn square(&self) -> Self { *self * *self }
 
-  fn pow(&self, power: Self::Storage) -> Self {
+  fn pow(&self, mut power: u64) -> Self {
     let mut current = *self;
-    let power: u64 = power.into();
     let mut product = Self::ONE;
 
-    for j in 0..(64 - power.leading_zeros()) as usize {
-      if (power >> j & 1) != 0 {
+    while power > 0 {
+      if power % 2 == 1 {
         product *= current;
       }
       current = current * current;
+      power /= 2;
     }
+
     product
   }
 
@@ -80,7 +82,7 @@ pub trait FiniteField:
     let p_minus_one = Self::ORDER - Self::Storage::from(1);
     assert!(p_minus_one % n == 0.into(), "n must divide p - 1");
     let pow = p_minus_one / n;
-    Self::generator().pow(pow)
+    Self::generator().pow(pow.into())
   }
 }
 

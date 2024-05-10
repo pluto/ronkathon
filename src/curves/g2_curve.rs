@@ -4,8 +4,8 @@ use super::*;
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct G2Curve {}
 // The Elliptic curve $y^2=x^3+3$, i.e.
-// - a = 0
-// - b = 3
+// a = 0
+// b = 3
 
 impl CurveParams for G2Curve {
   type FieldElement = Ext2<GF101>;
@@ -54,22 +54,44 @@ impl G2Curve {
   }
 }
 
+#[cfg(test)]
 mod tests {
-  // use super::*;
-  // use crate::curves::AffinePoint;
+  use super::*;
+  use crate::curves::AffinePoint;
 
-  // #[test]
-  // fn on_curve() {
-  //     let gen = G2Curve::on_curve(G2Curve::GENERATOR.0, G2Curve::GENERATOR.1);
-  // }
+  #[test]
+  fn point_doubling() {
+    let g = AffinePoint::<G2Curve>::generator();
+    let two_g = g.point_doubling();
 
-  // #[test]
-  // fn doubling() {
-  //     let g = AffinePoint::<G2Curve>::generator();
-  //     println!("g: {:?}", g)
+    let expected_2g = AffinePoint::<G2Curve>::new(
+      Ext2::<GF101>::new(GF101::new(90), GF101::ZERO),
+      Ext2::<GF101>::new(GF101::ZERO, GF101::new(82)),
+    );
+    let expected_g = AffinePoint::<G2Curve>::new(
+      Ext2::<GF101>::new(GF101::new(36), GF101::ZERO),
+      Ext2::<GF101>::new(GF101::ZERO, GF101::new(31)),
+    );
 
-  //     // want to asset that g  = (36, 31*X)
-  //     // right now this ^ fails to construct as it doesn't believe that the generator is a valid
-  // point on the curve     // want to asset that 2g = (90 , 82*X)
-  // }
+    assert_eq!(two_g, expected_2g);
+    assert_eq!(g, expected_g);
+  }
+
+  #[test]
+  fn scalar_multiplication_rhs() {
+    let g = AffinePoint::<G2Curve>::generator();
+    let two_g = g * 2;
+    let expected_2g = g.point_doubling();
+    assert_eq!(two_g, expected_2g);
+    assert_eq!(-two_g, -expected_2g);
+  }
+
+  #[test]
+  fn scalar_multiplication_lhs() {
+    let g = AffinePoint::<G2Curve>::generator();
+    let two_g = 2 * g;
+    let expected_2g = g.point_doubling();
+    assert_eq!(two_g, expected_2g);
+    assert_eq!(-two_g, -expected_2g);
+  }
 }

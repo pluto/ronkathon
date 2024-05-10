@@ -66,15 +66,16 @@ print(omega_n, "^", n, " = ", omega_n ^ n)
 # extension field of degree 2
 Ft.<t> = F[]
 
-# irreducible  element: t^2-2
-P = Ft(t ^ 2 - 2)
+# irreducible  element: t^2 + 2
+P = Ft(t ^ 2 + 2)
 assert P.is_irreducible()
 
+F = GF(101)
+Ft.<t> = F[]
+P = Ft(t ^ 2 + 2)
 F_2 = GF(101 ^ 2, name="t", modulus=P)
-print("extension field:", F_2, "of order:", F_2.order())
-
-# Primitive element
-f_2_primitive_element = F_2([2, 1])
+f_2_primitive_element = F_2.primitive_element()
+assert f_2_primitive_element.multiplicative_order() == (101^2) -1
 print("Primitive element of F_2:", f_2_primitive_element, f_2_primitive_element.multiplicative_order())
 
 # 100th root of unity
@@ -86,3 +87,19 @@ f_2_omega_n = f_2_primitive_element ^ quotient
 print("The", root_of_unity_order, "th root of unity of extension field is: ", f_2_omega_n)
 
 ######################################################################
+
+# Define the field and elements for computation
+F = GF(101)
+Ft.<t> = F[]
+
+# Define the polynomial for the extension field
+P = Ft(t^2 + 2)
+F_2 = GF(101^2, name="t", modulus=P)
+
+# Define the elements 50 and 60t in the extension field
+numerator = F_2(50)
+denominator = F_2(62*t)
+
+# Compute the division of 50 by 60t in the extension field
+result = numerator / denominator
+print("The division of 50 by 60t in the extension field is:", result)

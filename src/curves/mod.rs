@@ -11,7 +11,7 @@ pub struct Curve<F: FiniteField> {
 /// say 2 is in GF101
 pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord {
   /// Integer field element type
-  type FieldElement: FiniteField + Neg;
+  type FieldElement: FiniteField + Neg + Mul;
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
   const ORDER: u32;
   /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
@@ -40,7 +40,6 @@ pub enum AffinePoint<C: CurveParams> {
 
 impl<C: CurveParams> AffinePoint<C> {
   pub fn new(x: C::FieldElement, y: C::FieldElement) -> Self {
-    println!("X: {:?}, Y: {:?}", x, y);
     // okay so this is breaking because the curve equation doesn't know how to plug in polynomials.
     // y = 31x -> y^2 = 52x^2
     // x = 36 -> x^3 = 95 + 3
@@ -148,13 +147,14 @@ impl<C: CurveParams> Add for AffinePoint<C> {
   }
 }
 
+// NOTE: Apparently there is a faster way to do this with twisted curve methods
 impl<C: CurveParams> AffinePoint<C> {
   pub fn point_doubling(self) -> AffinePoint<C> {
     let (x, y) = match self {
       AffinePoint::XY(x, y) => (x, y),
       AffinePoint::Infty => panic!("Cannot double point at infinity"),
     };
-    // m = 3x^2 / 26
+    // m = (3x^2) / (2y)
     let m = (C::THREE * x * x) / (C::TWO * y);
 
     // 2P = (m^2 - 2x, m(3x - m^2)- y)
@@ -165,7 +165,6 @@ impl<C: CurveParams> AffinePoint<C> {
 
   pub fn generator() -> Self {
     let (x, y) = C::GENERATOR;
-    println!("X: {:?}, Y: {:?}", x, y);
     AffinePoint::new(x, y)
   }
 }

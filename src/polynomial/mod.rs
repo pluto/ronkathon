@@ -105,7 +105,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   pub fn evaluate(&self, x: F) -> F {
     let mut result = F::ZERO;
     for (i, c) in self.coefficients.iter().enumerate() {
-      result += *c * x.pow(F::Storage::from(i as u32));
+      result += *c * x.pow(i as u64);
     }
     result
   }
@@ -191,7 +191,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
       (0..n)
         .map(|i| {
           self.coefficients.iter().enumerate().fold(F::ZERO, |acc, (j, &coeff)| {
-            acc + coeff * primitive_root_of_unity.pow(F::Storage::from(i as u32 * j as u32))
+            acc + coeff * primitive_root_of_unity.pow(i as u64 * j as u64)
           })
         })
         .collect(),
@@ -239,7 +239,7 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
       F::Storage::from(0)
     );
     let primitive_root = F::primitive_root_of_unity(F::Storage::from(n as u32));
-    let nodes: Vec<F> = (0..n).map(|i| primitive_root.pow(F::Storage::from(i as u32))).collect();
+    let nodes: Vec<F> = (0..n).map(|i| primitive_root.pow(i as u64)).collect();
 
     Self { coefficients, basis: Lagrange { nodes } }
   }
@@ -292,40 +292,6 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
           acc + c * *w / (x - n)
         },
       )
-  }
-
-  /// TODO: Implement this function if need be.
-  pub fn to_monomial(&self) -> Polynomial<Monomial, F> {
-    // This is the inverse of the conversion from monomial to Lagrange basis
-    // This uses something called the Vandermonde matrix which is defined as:
-    //
-    //     / 1 | x_0 | x_0^2 | x_0^3 | ... | x_0^(N-1) \
-    //     | 1 | x_1 | x_1^2 | x_1^3 | ... | x_1^(N-1) |
-    //     | 1 | x_2 | x_2^2 | x_2^3 | ... | x_2^(N-1) |
-    // v = | . |  .  |   .   |   .   | ... |    .      |
-    //     | . |  .  |   .   |   .   | ... |    .      |
-    //     | . |  .  |   .   |   .   | ... |    .      |
-    //     \ 1 | x_N | x_N^2 | x_N^3 | ... | x_N^(N-1) /
-    //
-    // where x_i are the nodes of the Lagrange basis
-    //
-    // Then the monomial basis m is given V^T * l = m, where l is the Lagrange basis
-    // because we know the monomial basis we need to compute to monomial coefficients a_m = V^{-1} *
-    // a_l where a_l are the coefficients of the Lagrange basis
-
-    // It also is the case that the the columns of the inverse matrix are the coefficients of the
-    // Lagrange polynomial basis TODO Finish this.
-    // let nodes = self.basis.nodes;
-    // let mut evaluations = [F::ZERO; N];
-
-    // // Evaluate the polynomial at N distinct points
-    // for i in 0..N {
-    //     let x = F::primitive_root().exp_u64(i as u64);
-    //     evaluations[i] = self.evaluate(x);
-    // }
-
-    // Polynomial::<N, Monomial, F>::new(evaluations)
-    todo!("Finish this after we get the roots of unity from other PRs")
   }
 }
 

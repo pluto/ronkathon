@@ -4,6 +4,7 @@ pub mod curves;
 pub mod field;
 pub mod kzg;
 pub mod polynomial;
+pub mod setup;
 
 use core::{
   fmt::{self, Display, Formatter},

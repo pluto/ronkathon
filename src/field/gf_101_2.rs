@@ -21,7 +21,7 @@ impl<F: FiniteField> Ext2<F> {
 
   /// irreducible polynomial used to reduce field polynomials to second degree:
   /// F[X]/(X^2-2)
-  fn irreducible() -> F { F::from_canonical_u32(2) }
+  fn irreducible() -> F { -F::from_canonical_u32(2) }
 }
 
 impl<F: FiniteField> ExtensionField<F> for Ext2<F> {
@@ -42,6 +42,7 @@ impl<F: FiniteField> FiniteField for Ext2<F> {
   const NEG_ONE: Self = Self::new(F::NEG_ONE, F::ZERO);
   const ONE: Self = Self::new(F::ONE, F::ZERO);
   const ORDER: Self::Storage = QUADRATIC_EXTENSION_FIELD_ORDER;
+  const THREE: Self = Self::new(F::THREE, F::ZERO);
   const TWO: Self = Self::new(F::TWO, F::ZERO);
   const ZERO: Self = Self::new(F::ZERO, F::ZERO);
 
@@ -54,7 +55,7 @@ impl<F: FiniteField> FiniteField for Ext2<F> {
   // f_2_primitive_element = F_2([2, 1])
   // assert f_2_primitive_element.multiplicative_order() == 101^2-1
   // ```
-  fn generator() -> Self { Self { value: [F::from_canonical_u32(2), F::from_canonical_u32(1)] } }
+  fn generator() -> Self { Self { value: [F::from_canonical_u32(14), F::from_canonical_u32(9)] } }
 
   /// Computes the multiplicative inverse of `a`, i.e. 1 / (a0 + a1 * t).
   /// Multiply by `a0 - a1 * t` in numerator and denominator.
@@ -208,9 +209,18 @@ impl<F: FiniteField> Rem for Ext2<F> {
   fn rem(self, rhs: Self) -> Self::Output { self - (self / rhs) * rhs }
 }
 
+impl From<u32> for Ext2<GF101> {
+  fn from(val: u32) -> Self { Self::new(GF101::from(val), GF101::ZERO) }
+}
+
+impl From<u64> for Ext2<GF101> {
+  fn from(val: u64) -> Self { Self::new(GF101::from(val), GF101::ZERO) }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::curves::{g2_curve::G2Curve, AffinePoint};
 
   #[test]
   fn test_field() {
@@ -235,6 +245,10 @@ mod tests {
     let a = <Ext2<GF101>>::new(GF101::new(10), GF101::new(20));
     let b = <Ext2<GF101>>::new(GF101::new(20), GF101::new(10));
     assert_eq!(a + b, <Ext2<GF101>>::new(GF101::new(30), GF101::new(30)));
+
+    let c = <Ext2<GF101>>::new(GF101::new(70), GF101::new(80));
+    let d = <Ext2<GF101>>::new(GF101::new(80), GF101::new(70));
+    assert_eq!(c + d, <Ext2<GF101>>::new(GF101::new(49), GF101::new(49)));
   }
 
   #[test]
@@ -248,7 +262,7 @@ mod tests {
   fn test_mul() {
     let a = <Ext2<GF101>>::new(GF101::new(10), GF101::new(20));
     let b = <Ext2<GF101>>::new(GF101::new(20), GF101::new(10));
-    assert_eq!(a * b, <Ext2<GF101>>::new(GF101::new(95), GF101::new(96)));
+    assert_eq!(a * b, <Ext2<GF101>>::new(GF101::new(2), GF101::new(96)));
   }
 
   #[test]
@@ -275,9 +289,9 @@ mod tests {
     let mut rng = rand::thread_rng();
     let x = <Ext2<GF101>>::from_base(rng.gen::<GF101>());
 
-    assert_eq!(x, x.pow(<Ext2<GF101> as FiniteField>::Storage::from(1_u32)));
+    assert_eq!(x, x.pow(1));
 
-    let res = x.pow(<Ext2<GF101> as FiniteField>::Storage::from(4_u32));
+    let res = x.pow(4);
     assert_eq!(res, x.square().square());
   }
 
@@ -339,14 +353,36 @@ mod tests {
     assert_eq!(mul1 * inv_mul, res);
   }
 
-  // TODO: THIS TEST IS WRONG AND SHOULD BE REWRITTEN
   #[test]
   fn test_generator_order() {
     let generator = <Ext2<GF101>>::generator();
-    let mut x = <Ext2<GF101>>::ONE;
-    for _ in 1..<Ext2<GF101>>::ORDER {
-      x *= generator;
+
+    let mut val = generator;
+    for _ in 0..<Ext2<GF101>>::ORDER - 1 {
+      val *= generator;
     }
-    assert_eq!(x, <Ext2<GF101>>::ONE);
+    assert_eq!(val, generator);
+  }
+
+  #[test]
+  fn test_point_doubling() {
+    let g = AffinePoint::<G2Curve>::generator();
+
+    let (x, y) = match g {
+      AffinePoint::XY(x, y) => (x, y),
+      AffinePoint::Infty => panic!("Cannot double point at infinity"),
+    };
+
+    // m = (3x^2) / (2y)
+    let m = (<Ext2<GF101>>::THREE * x.square()) / (<Ext2<GF101>>::TWO * y);
+
+    // 2P = (m^2 - 2x, m(3x - m^2) - y)
+    let x_new = m.square() - <Ext2<GF101>>::TWO * x;
+    let y_new = m * (<Ext2<GF101>>::THREE * x - m.square()) - y;
+
+    let point_double: AffinePoint<G2Curve> = AffinePoint::new(x_new, y_new);
+
+    // Check if the doubled point satisfies the curve equation
+    assert_eq!(point_double, g.point_doubling());
   }
 }
