@@ -2,12 +2,14 @@
 
 use super::*;
 
-pub mod g1_curve;
-pub mod g2_curve;
+pub mod pluto_curve;
 
 /// Elliptic curve parameters for a curve over a finite field in Weierstrass form
 /// `y^2 = x^3 + ax + b`
 pub trait EllipticCurve: Copy {
+  /// The field for the curve coefficients.
+  type Coefficient: FiniteField + Into<Self::BaseField>;
+
   /// Integer field element type
   type BaseField: FiniteField;
 
@@ -15,10 +17,10 @@ pub trait EllipticCurve: Copy {
   const ORDER: u32;
 
   /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
-  const EQUATION_A: Self::BaseField;
+  const EQUATION_A: Self::Coefficient;
 
   /// Coefficient `b` in the Weierstrass equation of this elliptic curve.
-  const EQUATION_B: Self::BaseField;
+  const EQUATION_B: Self::Coefficient;
 
   /// Generator of this elliptic curve.
   const GENERATOR: (Self::BaseField, Self::BaseField);
@@ -46,7 +48,11 @@ impl<C: EllipticCurve> AffinePoint<C> {
     // y = 31x -> y^2 = 52x^2
     // x = 36 -> x^3 = 95 + 3
     // 52x^2 = 98 ???
-    assert_eq!(y * y, x * x * x + C::EQUATION_A * x + C::EQUATION_B, "Point is not on curve");
+    assert_eq!(
+      y * y,
+      x * x * x + C::EQUATION_A.into() * x + C::EQUATION_B.into(),
+      "Point is not on curve"
+    );
     Self::PointOnCurve(x, y)
   }
 }
@@ -132,7 +138,8 @@ impl<C: EllipticCurve> Add for AffinePoint<C> {
     // compute new point using elliptic curve point group law
     // https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication
     let lambda = if x1 == x2 && y1 == y2 {
-      ((C::BaseField::TWO + C::BaseField::ONE) * x1 * x1 + C::EQUATION_A) / (C::BaseField::TWO * y1)
+      ((C::BaseField::TWO + C::BaseField::ONE) * x1 * x1 + C::EQUATION_A.into())
+        / (C::BaseField::TWO * y1)
     } else {
       (y2 - y1) / (x2 - x1)
     };
