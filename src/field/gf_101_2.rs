@@ -1,12 +1,14 @@
+//! This module contains an implementation of the quadratic extension field GF(101^2).
+//! Elements represented as coefficients of a [`Polynomial`] in the [`Monomial`] basis of degree 1
+//! in form: `a_0 + a_1*t`` where {a_0, a_1} \in \mathhbb{F}. Uses irreducible poly of the form:
+//! (X^2-K).
+//!
+//! The curve used in [`curves::g1_curve`] supports degree two extension field from GF(101) to have
+//! points in GF(101^2). This can be verified by finding out embedding degree of the curve, i.e.
+//! smallest k such that r|q^k-1.
+
 use super::*;
 
-/// Quadratic Extension field element represented as polynomial of degree 1 in form:
-/// a_0 + a_1*t where {a_0, a_1} \in \mathhbb{F}. Uses irreducible poly of the form:
-/// (X^2-K).
-
-/// Pluto curve with modulus 101 supports two degree extension field. This can be verified
-/// by finding out embedding degree of the curve, i.e. smallest k: r|q^k-1
-const EXT_DEGREE: usize = 2;
 const QUADRATIC_EXTENSION_FIELD_ORDER: u32 = 101 * 101;
 
 impl ExtensionField<2, GF101> for Ext<2, GF101> {
@@ -15,7 +17,7 @@ impl ExtensionField<2, GF101> for Ext<2, GF101> {
   const IRREDUCIBLE_POLYNOMIAL_COEFFS: [GF101; 3] = [GF101::TWO, GF101::ZERO, GF101::ONE];
 }
 
-impl FiniteField for Ext<EXT_DEGREE, GF101> {
+impl FiniteField for Ext<2, GF101> {
   type Storage = u32;
 
   const NEG_ONE: Self = Self::new([GF101::NEG_ONE, GF101::ZERO]);
@@ -25,18 +27,17 @@ impl FiniteField for Ext<EXT_DEGREE, GF101> {
   const TWO: Self = Self::new([GF101::TWO, GF101::ZERO]);
   const ZERO: Self = Self::new([GF101::ZERO, GF101::ZERO]);
 
-  // field generator: can be verified using sage script
-  // ```sage
-  // F = GF(101)
-  // Ft.<t> = F[]
-  // P = Ft(t ^ 2 - 2)
-  // F_2 = GF(101 ^ 2, name="t", modulus=P)
-  // f_2_primitive_element = F_2([2, 1])
-  // assert f_2_primitive_element.multiplicative_order() == 101^2-1
-  // ```
-  fn generator() -> Self {
-    Self { coeffs: [GF101::from_canonical_u32(14), GF101::from_canonical_u32(9)] }
-  }
+  /// Retrieves a multiplicative generator for GF(101) inside of [`Ext<2, GF101>`].
+  /// This can be verified using sage script
+  /// ```sage
+  /// F = GF(101)
+  /// Ft.<t> = F[]
+  /// P = Ft(t ^ 2 - 2)
+  /// F_2 = GF(101 ^ 2, name="t", modulus=P)
+  /// f_2_primitive_element = F_2([2, 1])
+  /// assert f_2_primitive_element.multiplicative_order() == 101^2-1
+  /// ```
+  fn generator() -> Self { Self { coeffs: [GF101::from(14u32), GF101::from(9u32)] } }
 
   /// Computes the multiplicative inverse of `a`, i.e. 1 / (a0 + a1 * t).
   /// Multiply by `a0 - a1 * t` in numerator and denominator.
@@ -48,20 +49,15 @@ impl FiniteField for Ext<EXT_DEGREE, GF101> {
 
     let mut res = Self::default();
     let scalar =
-      (self.coeffs[0].square() + GF101::from(2u32) * self.coeffs[1].square()).inverse().unwrap();
+      (self.coeffs[0].pow(2) + GF101::from(2u32) * self.coeffs[1].pow(2)).inverse().unwrap();
     res.coeffs[0] = self.coeffs[0] * scalar;
     res.coeffs[1] = -self.coeffs[1] * scalar;
     Some(res)
   }
-
-  fn from_canonical_u32(n: u32) -> Self {
-    Self { coeffs: [GF101::from_canonical_u32(n), GF101::ZERO] }
-  }
 }
 
-// TODO: adjust this def
-/// Returns the multiplication of `a` and `b` using the following equation:
-/// (a0 + a1 * t) * (b0 + b1 * t) = a0 * b0 + a1 * b1 * irreducible() + (a0 * b1 + a1 * b0) * t
+/// Returns the multiplication of two [`Ext<2, GF101>`] elements by reducing result modulo
+/// irreducible polynomial.
 impl Mul for Ext<2, GF101> {
   type Output = Self;
 
@@ -183,7 +179,7 @@ mod tests {
     assert_eq!(x, x.pow(1));
 
     let res = x.pow(4);
-    assert_eq!(res, x.square().square());
+    assert_eq!(res, x * x * x * x);
   }
 
   #[test]
@@ -211,8 +207,8 @@ mod tests {
     assert_eq!(x * x.inverse().unwrap(), <Ext<2, GF101>>::ONE);
     assert_eq!(x.inverse().unwrap_or(<Ext<2, GF101>>::ONE) * x, <Ext<2, GF101>>::ONE);
     assert_eq!(
-      x.square().inverse().unwrap_or(<Ext<2, GF101>>::ONE),
-      x.inverse().unwrap_or(<Ext<2, GF101>>::ONE).square()
+      (x * x).inverse().unwrap_or(<Ext<2, GF101>>::ONE),
+      x.inverse().unwrap_or(<Ext<2, GF101>>::ONE).pow(2)
     );
     assert_eq!((x / y) * y, x);
     assert_eq!(x / (y * z), (x / y) / z);
@@ -221,10 +217,7 @@ mod tests {
 
   #[test]
   fn generator() {
-    assert_eq!(
-      <Ext<2, GF101>>::generator() * GF101::from_canonical_u32(GF101::ORDER),
-      <Ext<2, GF101>>::ZERO
-    );
+    assert_eq!(<Ext<2, GF101>>::generator() * GF101::from(GF101::ORDER), <Ext<2, GF101>>::ZERO);
   }
 
   #[test]
@@ -240,7 +233,7 @@ mod tests {
 
     let mul1 = x * y;
     let inv_mul = x * y.inverse().unwrap();
-    let res = x.square();
+    let res = x * x;
     assert_eq!(mul1 * inv_mul, res);
   }
 
