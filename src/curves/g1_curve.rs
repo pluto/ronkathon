@@ -14,10 +14,8 @@ impl CurveParams for C101 {
 
   const EQUATION_A: Self::BaseField = GF101::new(0);
   const EQUATION_B: Self::BaseField = GF101::new(3);
-  const GENERATOR: (Self::BaseField, Self::BaseField) = (GF101::new(1), Self::TWO);
+  const GENERATOR: (Self::BaseField, Self::BaseField) = (GF101::ONE, GF101::TWO);
   const ORDER: u32 = GF101::ORDER;
-  const THREE: Self::BaseField = GF101::new(3);
-  const TWO: Self::BaseField = GF101::new(2);
 }
 
 #[cfg(test)]

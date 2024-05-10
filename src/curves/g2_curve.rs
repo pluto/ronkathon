@@ -16,9 +16,6 @@ impl CurveParams for G2Curve {
     Ext::<2, GF101>::new([GF101::ZERO, GF101::new(31)]),
   );
   const ORDER: u32 = 289;
-  // extension field subgroup should have order r^2 where r is order of first group
-  const THREE: Ext<2, GF101> = Ext::<2, GF101>::new([GF101::new(3), GF101::ZERO]);
-  const TWO: Ext<2, GF101> = Ext::<2, GF101>::new([GF101::TWO, GF101::ZERO]);
 }
 
 // a naive impl with affine point
