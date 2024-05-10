@@ -10,14 +10,14 @@ use super::*;
 pub struct C101;
 
 impl CurveParams for C101 {
-  type FieldElement = GF101;
+  type BaseField = GF101;
 
-  const EQUATION_A: Self::FieldElement = GF101::new(0);
-  const EQUATION_B: Self::FieldElement = GF101::new(3);
-  const GENERATOR: (Self::FieldElement, Self::FieldElement) = (GF101::new(1), Self::TWO);
+  const EQUATION_A: Self::BaseField = GF101::new(0);
+  const EQUATION_B: Self::BaseField = GF101::new(3);
+  const GENERATOR: (Self::BaseField, Self::BaseField) = (GF101::new(1), Self::TWO);
   const ORDER: u32 = GF101::ORDER;
-  const THREE: Self::FieldElement = GF101::new(3);
-  const TWO: Self::FieldElement = GF101::new(2);
+  const THREE: Self::BaseField = GF101::new(3);
+  const TWO: Self::BaseField = GF101::new(2);
 }
 
 #[cfg(test)]

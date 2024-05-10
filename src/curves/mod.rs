@@ -11,18 +11,18 @@ pub struct Curve<F: FiniteField> {
 /// say 2 is in GF101
 pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord {
   /// Integer field element type
-  type FieldElement: FiniteField + Neg + Mul;
+  type BaseField: FiniteField + Neg + Mul;
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
   const ORDER: u32;
   /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
-  const EQUATION_A: Self::FieldElement;
+  const EQUATION_A: Self::BaseField;
   /// Coefficient `b` in the Weierstrass equation of this elliptic curve.
-  const EQUATION_B: Self::FieldElement;
+  const EQUATION_B: Self::BaseField;
   /// Generator of this elliptic curve.
-  const GENERATOR: (Self::FieldElement, Self::FieldElement);
+  const GENERATOR: (Self::BaseField, Self::BaseField);
   // hack: 3 and 2 to satisfy the Add<AffinePoint> trait implementation
-  const THREE: Self::FieldElement;
-  const TWO: Self::FieldElement;
+  const THREE: Self::BaseField;
+  const TWO: Self::BaseField;
 
   // maybe Curve::uint type is diff from PCP::fieldelement type
   // maybe:
@@ -34,26 +34,26 @@ pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord 
 /// An Affine Coordinate Point on a Weierstrass elliptic curve
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub enum AffinePoint<C: CurveParams> {
-  XY(C::FieldElement, C::FieldElement),
-  Infty,
+  PointOnCurve(C::BaseField, C::BaseField),
+  Infinity,
 }
 
 impl<C: CurveParams> AffinePoint<C> {
-  pub fn new(x: C::FieldElement, y: C::FieldElement) -> Self {
+  pub fn new(x: C::BaseField, y: C::BaseField) -> Self {
     // okay so this is breaking because the curve equation doesn't know how to plug in polynomials.
     // y = 31x -> y^2 = 52x^2
     // x = 36 -> x^3 = 95 + 3
     // 52x^2 = 98 ???
     assert_eq!(y * y, x * x * x + C::EQUATION_A * x + C::EQUATION_B, "Point is not on curve");
-    Self::XY(x, y)
+    Self::PointOnCurve(x, y)
   }
 
-  pub fn new_infty() -> Self { Self::Infty }
+  pub fn new_infty() -> Self { Self::Infinity }
 
   pub fn negate(&mut self) {
     match self {
-      Self::XY(_x, ref mut y) => *y = -*y,
-      Self::Infty => (),
+      Self::PointOnCurve(_x, ref mut y) => *y = -*y,
+      Self::Infinity => (),
     }
   }
 }
@@ -66,10 +66,10 @@ impl<C: CurveParams> std::ops::Neg for AffinePoint<C> {
 
   fn neg(self) -> Self::Output {
     let (x, y) = match self {
-      AffinePoint::XY(x, y) => (x, y),
-      AffinePoint::Infty => panic!("Cannot double point at infinity"),
+      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Infinity => panic!("Cannot double point at infinity"),
     };
-    AffinePoint::new(x, C::FieldElement::ZERO - y)
+    AffinePoint::new(x, C::BaseField::ZERO - y)
   }
 }
 /// Scalar multiplication on the rhs: P*(u32)
@@ -118,18 +118,18 @@ impl<C: CurveParams> Add for AffinePoint<C> {
   fn add(self, rhs: Self) -> Self::Output {
     // infty checks
     match (self, rhs) {
-      (AffinePoint::Infty, _) => return rhs,
-      (_, AffinePoint::Infty) => return self,
+      (AffinePoint::Infinity, _) => return rhs,
+      (_, AffinePoint::Infinity) => return self,
 
       _ => (),
     }
     let (x1, y1) = match self {
-      AffinePoint::XY(x, y) => (x, y),
-      AffinePoint::Infty => unreachable!(),
+      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Infinity => unreachable!(),
     };
     let (x2, y2) = match rhs {
-      AffinePoint::XY(x, y) => (x, y),
-      AffinePoint::Infty => unreachable!(),
+      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Infinity => unreachable!(),
     };
     if x1 == x2 && y1 == -y2 {
       return AffinePoint::new_infty();
@@ -151,8 +151,8 @@ impl<C: CurveParams> Add for AffinePoint<C> {
 impl<C: CurveParams> AffinePoint<C> {
   pub fn point_doubling(self) -> AffinePoint<C> {
     let (x, y) = match self {
-      AffinePoint::XY(x, y) => (x, y),
-      AffinePoint::Infty => panic!("Cannot double point at infinity"),
+      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Infinity => panic!("Cannot double point at infinity"),
     };
     // m = (3x^2) / (2y)
     let m = (C::THREE * x * x) / (C::TWO * y);

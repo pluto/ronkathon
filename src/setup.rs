@@ -37,7 +37,6 @@ fn setup() -> (Vec<AffinePoint<C101>>, Vec<AffinePoint<G2Curve>>) {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::field::gf_101_2::Ext2;
 
   #[test]
   fn test_setup() {
@@ -57,8 +56,8 @@ mod tests {
 
     println!("g2srs {:?}", g2srs);
     let expected_2g = AffinePoint::<G2Curve>::new(
-      Ext2::<GF101>::new(GF101::new(90), GF101::ZERO),
-      Ext2::<GF101>::new(GF101::ZERO, GF101::new(82)),
+      Ext::<2, GF101>::new([GF101::new(90), GF101::ZERO]),
+      Ext::<2, GF101>::new([GF101::ZERO, GF101::new(82)]),
     );
 
     let g2_gen = AffinePoint::<G2Curve>::generator();

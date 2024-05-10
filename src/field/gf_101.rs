@@ -4,7 +4,7 @@ use super::*;
 
 const PLUTO_FIELD_PRIME: u32 = 101;
 
-#[derive(Copy, Clone, Default, Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq)]
 pub struct GF101 {
   value: u32,
 }

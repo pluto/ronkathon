@@ -308,3 +308,13 @@ impl Display for Polynomial<Lagrange<GF101>, GF101> {
     Ok(())
   }
 }
+
+/// Convert from an array of field elements into a polynomial in the [`Monomial`] basis.
+impl<const N: usize, F: FiniteField> From<[F; N]> for Polynomial<Monomial, F> {
+  fn from(coeffs: [F; N]) -> Self { Self::new(coeffs.to_vec()) }
+}
+
+/// Convert from an [`Ext`] field element into a polynomial in the [`Monomial`] basis.
+impl<const N: usize, F: FiniteField> From<Ext<N, F>> for Polynomial<Monomial, F> {
+  fn from(ext: Ext<N, F>) -> Self { Self::from(ext.coeffs) }
+}

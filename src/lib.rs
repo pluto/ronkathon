@@ -1,4 +1,7 @@
 #![feature(const_trait_impl)]
+#![allow(incomplete_features)]
+#![feature(generic_const_exprs)]
+#![warn(missing_docs)]
 
 pub mod curves;
 pub mod field;
@@ -16,4 +19,7 @@ use core::{
 use rand::Rng;
 #[cfg(test)] use rstest::{fixture, rstest};
 
-use self::field::{gf_101::GF101, FiniteField};
+use self::{
+  field::{gf_101::GF101, Ext, FiniteField},
+  polynomial::{Monomial, Polynomial},
+};

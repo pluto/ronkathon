@@ -1,4 +1,3 @@
-use self::field::gf_101_2::Ext2;
 use super::*;
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
@@ -8,24 +7,24 @@ pub struct G2Curve {}
 // b = 3
 
 impl CurveParams for G2Curve {
-  type FieldElement = Ext2<GF101>;
+  type BaseField = Ext<2, GF101>;
 
-  const EQUATION_A: Self::FieldElement = Ext2::<GF101>::ZERO;
-  const EQUATION_B: Self::FieldElement = Ext2::<GF101>::new(GF101::new(3), GF101::ZERO);
-  const GENERATOR: (Self::FieldElement, Self::FieldElement) = (
-    Ext2::<GF101>::new(GF101::new(36), GF101::ZERO),
-    Ext2::<GF101>::new(GF101::ZERO, GF101::new(31)),
+  const EQUATION_A: Self::BaseField = Ext::<2, GF101>::ZERO;
+  const EQUATION_B: Self::BaseField = Ext::<2, GF101>::new([GF101::new(3), GF101::ZERO]);
+  const GENERATOR: (Self::BaseField, Self::BaseField) = (
+    Ext::<2, GF101>::new([GF101::new(36), GF101::ZERO]),
+    Ext::<2, GF101>::new([GF101::ZERO, GF101::new(31)]),
   );
   const ORDER: u32 = 289;
   // extension field subgroup should have order r^2 where r is order of first group
-  const THREE: Ext2<GF101> = Ext2::<GF101>::new(GF101::new(3), GF101::ZERO);
-  const TWO: Ext2<GF101> = Ext2::<GF101>::new(GF101::TWO, GF101::ZERO);
+  const THREE: Ext<2, GF101> = Ext::<2, GF101>::new([GF101::new(3), GF101::ZERO]);
+  const TWO: Ext<2, GF101> = Ext::<2, GF101>::new([GF101::TWO, GF101::ZERO]);
 }
 
 // a naive impl with affine point
 
 impl G2Curve {
-  pub fn on_curve(x: Ext2<GF101>, y: Ext2<GF101>) -> (Ext2<GF101>, Ext2<GF101>) {
+  pub fn on_curve(x: Ext<2, GF101>, y: Ext<2, GF101>) -> (Ext<2, GF101>, Ext<2, GF101>) {
     println!("X: {:?}, Y: {:?}", x, y);
     // TODO Continue working on this
     //                  (   x  )  (  y   )  ( x , y )
@@ -37,12 +36,12 @@ impl G2Curve {
     // check if there are any x terms, if not, element is in base field
     let mut lhs = x;
     let mut rhs = y;
-    if lhs.value[1] != GF101::ZERO {
+    if lhs.coeffs[1] != GF101::ZERO {
       lhs = x * x * (-GF101::new(2)) - Self::EQUATION_B;
     } else {
       lhs = x * x * x - Self::EQUATION_B;
     }
-    if y.value[1] != GF101::ZERO {
+    if y.coeffs[1] != GF101::ZERO {
       // y has degree two so if there is a x -> there will be an x^2 term which we substitude with
       // -2 since... TODO explain this and relationship to embedding degree
       rhs *= -GF101::new(2);
@@ -57,7 +56,6 @@ impl G2Curve {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::curves::AffinePoint;
 
   #[test]
   fn point_doubling() {
@@ -65,12 +63,12 @@ mod tests {
     let two_g = g.point_doubling();
 
     let expected_2g = AffinePoint::<G2Curve>::new(
-      Ext2::<GF101>::new(GF101::new(90), GF101::ZERO),
-      Ext2::<GF101>::new(GF101::ZERO, GF101::new(82)),
+      Ext::<2, GF101>::new([GF101::new(90), GF101::ZERO]),
+      Ext::<2, GF101>::new([GF101::ZERO, GF101::new(82)]),
     );
     let expected_g = AffinePoint::<G2Curve>::new(
-      Ext2::<GF101>::new(GF101::new(36), GF101::ZERO),
-      Ext2::<GF101>::new(GF101::ZERO, GF101::new(31)),
+      Ext::<2, GF101>::new([GF101::new(36), GF101::ZERO]),
+      Ext::<2, GF101>::new([GF101::ZERO, GF101::new(31)]),
     );
 
     assert_eq!(two_g, expected_2g);
