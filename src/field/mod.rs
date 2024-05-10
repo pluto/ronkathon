@@ -50,6 +50,7 @@ pub trait FiniteField:
   const ONE: Self;
   const TWO: Self;
   const NEG_ONE: Self;
+  const THREE: Self;
 
   fn inverse(&self) -> Option<Self>;
   fn from_canonical_u32(n: u32) -> Self;

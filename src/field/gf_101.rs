@@ -34,6 +34,18 @@ impl fmt::Display for GF101 {
 impl GF101 {
   // pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
   pub const fn new(value: u32) -> Self { Self { value: value % PLUTO_FIELD_PRIME } }
+
+  // fn from_bigint(r: BigInt<N>) -> Option<Fp<MontBackend<Self, N>, N>> {
+  //   let mut r = Fp::new_unchecked(r);
+  //   if r.is_zero() {
+  //     Some(r)
+  //   } else if r.is_geq_modulus() {
+  //     None
+  //   } else {
+  //     r *= &Fp::new_unchecked(Self::R2);
+  //     Some(r)
+  //   }
+  // }
 }
 
 impl FiniteField for GF101 {
@@ -42,6 +54,7 @@ impl FiniteField for GF101 {
   const NEG_ONE: Self = Self::new(Self::ORDER - 1);
   const ONE: Self = Self::new(1);
   const ORDER: Self::Storage = PLUTO_FIELD_PRIME;
+  const THREE: Self = Self::new(3);
   const TWO: Self = Self::new(2);
   const ZERO: Self = Self::new(0);
 
@@ -151,6 +164,10 @@ impl Distribution<GF101> for Standard {
     }
   }
 }
+
+// impl From<BigUint> for GF101 {
+//   Self::from_bigint(BigInt::from_biguint(Sign::Plus, n))
+// }
 
 #[must_use]
 #[inline]

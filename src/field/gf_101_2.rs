@@ -28,7 +28,7 @@ impl<F: FiniteField> QuadraticPlutoField<F> {
 
   /// irreducible polynomial used to reduce field polynomials to second degree:
   /// F[X]/(X^2-2)
-  fn irreducible() -> F { F::from_canonical_u32(2) }
+  fn irreducible() -> F { -F::from_canonical_u32(2) }
 
   // const fn from_base(b: F) -> Self { Self { value: [b, F::zero()] } }
 
@@ -51,11 +51,10 @@ impl<F: FiniteField> FiniteField for QuadraticPlutoField<F> {
   type Storage = u32;
 
   const NEG_ONE: Self = Self::new(F::NEG_ONE, F::ZERO);
-  // TODO: This is wrong
   const ONE: Self = Self::new(F::ONE, F::ZERO);
   const ORDER: Self::Storage = QUADRATIC_EXTENSION_FIELD_ORDER;
+  const THREE: Self = Self::new(F::THREE, F::ZERO);
   const TWO: Self = Self::new(F::TWO, F::ZERO);
-  // fn zero() -> Self { Self { value: [F::zero(); EXT_DEGREE] } }
   const ZERO: Self = Self::new(F::ZERO, F::ZERO);
 
   // field generator: can be verified using sage script
@@ -67,7 +66,7 @@ impl<F: FiniteField> FiniteField for QuadraticPlutoField<F> {
   // f_2_primitive_element = F_2([2, 1])
   // assert f_2_primitive_element.multiplicative_order() == 101^2-1
   // ```
-  fn generator() -> Self { Self { value: [F::from_canonical_u32(2), F::from_canonical_u32(1)] } }
+  fn generator() -> Self { Self { value: [F::from_canonical_u32(14), F::from_canonical_u32(9)] } }
 
   /// Computes the multiplicative inverse of `a`, i.e. 1 / (a0 + a1 * t).
   /// Multiply by `a0 - a1 * t` in numerator and denominator.
@@ -225,7 +224,10 @@ impl<F: FiniteField> Rem for QuadraticPlutoField<F> {
 mod tests {
 
   use super::*;
-  use crate::field::gf_101::GF101;
+  use crate::{
+    curves::{g2_curve::G2Curve, AffinePoint},
+    field::gf_101::GF101,
+  };
   type F = GF101;
   type F2 = QuadraticPlutoField<GF101>;
   use rand::{thread_rng, Rng};
@@ -253,6 +255,10 @@ mod tests {
     let a = F2::new(F::new(10), F::new(20));
     let b = F2::new(F::new(20), F::new(10));
     assert_eq!(a + b, F2::new(F::new(30), F::new(30)));
+
+    let c = F2::new(F::new(70), F::new(80));
+    let d = F2::new(F::new(80), F::new(70));
+    assert_eq!(c + d, F2::new(F::new(49), F::new(49)));
   }
 
   #[test]
@@ -264,9 +270,10 @@ mod tests {
 
   #[test]
   fn test_mul() {
+    // (10 + 20t) * (20 + 10t) = 200 + 100t + 400t + 200t^2 = 2 + 96t
     let a = F2::new(F::new(10), F::new(20));
     let b = F2::new(F::new(20), F::new(10));
-    assert_eq!(a * b, F2::new(F::new(95), F::new(96)));
+    assert_eq!(a * b, F2::new(F::new(2), F::new(96)));
   }
 
   #[test]
@@ -306,19 +313,19 @@ mod tests {
     let mut x = F2::ZERO;
     let mut x_inv = None;
     while x_inv.is_none() {
-      x = F2::from_base(rng.gen::<F>()); 
+      x = F2::from_base(rng.gen::<F>());
       x_inv = x.inverse();
     }
     let mut y = F2::ZERO;
     let mut y_inv = None;
     while y_inv.is_none() {
-      y = F2::from_base(rng.gen::<F>()); 
+      y = F2::from_base(rng.gen::<F>());
       y_inv = y.inverse();
     }
     let mut z = F2::ZERO;
     let mut z_inv = None;
     while z_inv.is_none() {
-      z = F2::from_base(rng.gen::<F>()); 
+      z = F2::from_base(rng.gen::<F>());
       z_inv = z.inverse();
     }
     assert_eq!(x * x.inverse().unwrap(), F2::ONE);
@@ -351,14 +358,36 @@ mod tests {
     assert_eq!(mul1 * inv_mul, res);
   }
 
-  // TODO: THIS TEST IS WRONG AND SHOULD BE REWRITTEN
   #[test]
   fn test_generator_order() {
     let generator = F2::generator();
-    let mut x = F2::ONE;
-    for _ in 1..F2::ORDER {
-      x *= generator;
+
+    let mut val = generator;
+    for _ in 0..F2::ORDER - 1 {
+      val *= generator;
     }
-    assert_eq!(x, F2::ONE);
+    assert_eq!(val, generator);
+  }
+
+  #[test]
+  fn test_point_doubling() {
+    let g = AffinePoint::<G2Curve>::generator();
+
+    let (x, y) = match g {
+      AffinePoint::XY(x, y) => (x, y),
+      AffinePoint::Infty => panic!("Cannot double point at infinity"),
+    };
+
+    // m = (3x^2) / (2y)
+    let m = (F2::THREE * x.square()) / (F2::TWO * y);
+
+    // 2P = (m^2 - 2x, m(3x - m^2) - y)
+    let x_new = m.square() - F2::TWO * x;
+    let y_new = m * (F2::THREE * x - m.square()) - y;
+
+    let point_double: AffinePoint<G2Curve> = AffinePoint::new(x_new, y_new);
+
+    // Check if the doubled point satisfies the curve equation
+    assert_eq!(point_double, g.point_doubling());
   }
 }
