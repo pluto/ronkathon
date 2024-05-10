@@ -73,7 +73,7 @@ impl<C: CurveParams> Neg for AffinePoint<C> {
       AffinePoint::PointOnCurve(x, y) => (x, -y),
       AffinePoint::Infinity => panic!("Cannot double point at infinity"),
     };
-    AffinePoint::new(x, C::BaseField::ZERO - y)
+    AffinePoint::new(x, y)
   }
 }
 
