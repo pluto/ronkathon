@@ -151,7 +151,7 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_overflowing_add() {
+  fn overflowing_add() {
     let a = GF101::new(100);
     let b = GF101::new(20);
     let c = a + b;
@@ -208,7 +208,7 @@ mod tests {
   }
 
   #[test]
-  fn test_add_sub_neg_mul() {
+  fn add_sub_neg_mul() {
     let mut rng = rand::thread_rng();
     // for i in 0..1000 {
     let x = rng.gen::<GF101>();

@@ -1,5 +1,3 @@
-use std::array;
-
 use super::*;
 
 /// Quadratic Extension field element represented as polynomial of degree 1 in form:
@@ -90,6 +88,7 @@ impl Product for Ext<2, GF101> {
 impl Div for Ext<2, GF101> {
   type Output = Self;
 
+  #[allow(clippy::suspicious_arithmetic_impl)]
   fn div(self, rhs: Self) -> Self::Output { self * rhs.inverse().expect("invalid inverse") }
 }
 
@@ -108,7 +107,7 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_field() {
+  fn new() {
     let order = <Ext<2, GF101>>::ORDER;
     assert_eq!(order, 101 * 101);
 

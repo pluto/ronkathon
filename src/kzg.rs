@@ -107,7 +107,7 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_e2e() {
+  fn e2e() {
     // A univariate polynomial with roots 1,2,3 converted into coefficient form for simplicity.
     //
     // p(x) = (x-1)(x-2)(x-3)
