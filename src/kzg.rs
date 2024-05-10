@@ -1,12 +1,11 @@
-use std::ops::Mul;
-
-use ark_bn254::{Bn254, Fq, Fq12, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
-use ark_ec::{AffineRepr, CurveGroup, Group, VariableBaseMSM};
-use ark_ff::{fields::PrimeField, Field};
+use ark_bn254::{Bn254, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
+use ark_ec::{AffineRepr, CurveGroup, VariableBaseMSM};
+use ark_ff::Field;
 use ark_poly::DenseUVPolynomial;
-use ark_std::UniformRand;
 use num_bigint::BigUint;
-use rand::{thread_rng, Rng};
+use rand::thread_rng;
+
+use super::*;
 
 // simple setup to get params.
 pub fn setup(d: u64) -> (Vec<G1Affine>, Vec<G2Affine>) {
@@ -85,8 +84,8 @@ pub fn check(
   let g1 = *g1_srs.first().expect("has g1 srs");
   let g2 = *g2_srs.first().expect("has g2 srs");
 
-  let lhs = Bn254::pairing(q, g2.into_group() - G2Affine::generator().mul(point));
-  let rhs = Bn254::pairing(p.into_group() - g1.mul(value), G2Affine::generator());
+  let lhs = Bn254::pairing(q, g2.into_group() - G2Affine::generator() * point);
+  let rhs = Bn254::pairing(p.into_group() - g1 * value, G2Affine::generator());
 
   lhs == rhs
 }
@@ -103,6 +102,7 @@ pub fn evaluate(coefs: Vec<Fr>, point: Fr) -> Fr {
     .unwrap()
 }
 
+#[cfg(test)]
 mod tests {
   use super::*;
 

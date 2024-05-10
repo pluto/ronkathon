@@ -1,7 +1,5 @@
-use std::ops::Add;
-
-use super::CurveParams;
-use crate::field::{gf_101::GF101, gf_101_2::QuadraticPlutoField, ExtensionField, FiniteField};
+use self::field::gf_101_2::Ext2;
+use super::*;
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct G2Curve {}
@@ -10,26 +8,55 @@ pub struct G2Curve {}
 // b = 3
 
 impl CurveParams for G2Curve {
-  type FieldElement = QuadraticPlutoField<GF101>;
+  type FieldElement = Ext2<GF101>;
 
-  const EQUATION_A: Self::FieldElement = QuadraticPlutoField::<GF101>::ZERO;
-  const EQUATION_B: Self::FieldElement =
-    QuadraticPlutoField::<GF101>::new(GF101::new(3), GF101::ZERO);
+  const EQUATION_A: Self::FieldElement = Ext2::<GF101>::ZERO;
+  const EQUATION_B: Self::FieldElement = Ext2::<GF101>::new(GF101::new(3), GF101::ZERO);
   const GENERATOR: (Self::FieldElement, Self::FieldElement) = (
-    QuadraticPlutoField::<GF101>::new(GF101::new(36), GF101::ZERO),
-    QuadraticPlutoField::<GF101>::new(GF101::ZERO, GF101::new(31)),
+    Ext2::<GF101>::new(GF101::new(36), GF101::ZERO),
+    Ext2::<GF101>::new(GF101::ZERO, GF101::new(31)),
   );
   const ORDER: u32 = 289;
   // extension field subgroup should have order r^2 where r is order of first group
-  const THREE: QuadraticPlutoField<GF101> =
-    QuadraticPlutoField::<GF101>::new(GF101::new(3), GF101::ZERO);
-  const TWO: QuadraticPlutoField<GF101> = QuadraticPlutoField::<GF101>::TWO;
+  const THREE: Ext2<GF101> = Ext2::<GF101>::new(GF101::new(3), GF101::ZERO);
+  const TWO: Ext2<GF101> = Ext2::<GF101>::new(GF101::TWO, GF101::ZERO);
 }
 
-mod test {
-  use super::*;
-  use crate::curves::AffinePoint;
-  type F = QuadraticPlutoField<GF101>;
+// a naive impl with affine point
+
+impl G2Curve {
+  pub fn on_curve(x: Ext2<GF101>, y: Ext2<GF101>) -> (Ext2<GF101>, Ext2<GF101>) {
+    println!("X: {:?}, Y: {:?}", x, y);
+    // TODO Continue working on this
+    //                  (   x  )  (  y   )  ( x , y )
+    // example: plug in ((36, 0), (0, 31)): (36, 31t)
+    // x = 36, y = 31t,
+    // curve : y^2=x^3+3,
+
+    // y = (31t)^2 = 52 * t^2
+    // check if there are any x terms, if not, element is in base field
+    let mut lhs = x;
+    let mut rhs = y;
+    if lhs.value[1] != GF101::ZERO {
+      lhs = x * x * (-GF101::new(2)) - Self::EQUATION_B;
+    } else {
+      lhs = x * x * x - Self::EQUATION_B;
+    }
+    if y.value[1] != GF101::ZERO {
+      // y has degree two so if there is a x -> there will be an x^2 term which we substitude with
+      // -2 since... TODO explain this and relationship to embedding degree
+      rhs *= -GF101::new(2);
+    }
+    // minus
+    lhs -= Self::EQUATION_B;
+    assert_eq!(lhs, rhs, "Point is not on curve");
+    (x, y)
+  }
+}
+
+mod tests {
+  // use super::*;
+  // use crate::curves::AffinePoint;
 
   #[test]
   fn point_doubling() {

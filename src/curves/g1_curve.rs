@@ -1,7 +1,4 @@
-use std::ops::Add;
-
-use super::CurveParams;
-use crate::field::{gf_101::GF101, FiniteField};
+use super::*;
 
 /// The Elliptic curve $y^2=x^3+3$, i.e.
 /// - a = 0
@@ -23,36 +20,35 @@ impl CurveParams for C101 {
   const TWO: Self::FieldElement = GF101::new(2);
 }
 
-mod test {
+#[cfg(test)]
+mod tests {
   use super::*;
-  use crate::curves::AffinePoint;
-  type F = GF101;
 
   #[test]
   fn point_doubling() {
     let g = AffinePoint::<C101>::generator();
 
     let two_g = g.point_doubling();
-    let expected_2g = AffinePoint::<C101>::new(F::new(68), F::new(74));
-    let expected_negative_2g = AffinePoint::<C101>::new(F::new(68), F::new(27));
+    let expected_2g = AffinePoint::<C101>::new(GF101::new(68), GF101::new(74));
+    let expected_negative_2g = AffinePoint::<C101>::new(GF101::new(68), GF101::new(27));
     assert_eq!(two_g, expected_2g);
     assert_eq!(-two_g, expected_negative_2g);
 
     let four_g = two_g.point_doubling();
-    let expected_4g = AffinePoint::<C101>::new(F::new(65), F::new(98));
-    let expected_negative_4g = AffinePoint::<C101>::new(F::new(65), F::new(3));
+    let expected_4g = AffinePoint::<C101>::new(GF101::new(65), GF101::new(98));
+    let expected_negative_4g = AffinePoint::<C101>::new(GF101::new(65), GF101::new(3));
     assert_eq!(four_g, expected_4g);
     assert_eq!(-four_g, expected_negative_4g);
 
     let eight_g = four_g.point_doubling();
-    let expected_8g = AffinePoint::<C101>::new(F::new(18), F::new(49));
-    let expected_negative_8g = AffinePoint::<C101>::new(F::new(18), F::new(52));
+    let expected_8g = AffinePoint::<C101>::new(GF101::new(18), GF101::new(49));
+    let expected_negative_8g = AffinePoint::<C101>::new(GF101::new(18), GF101::new(52));
     assert_eq!(eight_g, expected_8g);
     assert_eq!(-eight_g, expected_negative_8g);
 
     let sixteen_g = eight_g.point_doubling();
-    let expected_16g = AffinePoint::<C101>::new(F::new(1), F::new(99));
-    let expected_negative_16g = AffinePoint::<C101>::new(F::new(1), F::new(2));
+    let expected_16g = AffinePoint::<C101>::new(GF101::new(1), GF101::new(99));
+    let expected_negative_16g = AffinePoint::<C101>::new(GF101::new(1), GF101::new(2));
     assert_eq!(sixteen_g, expected_16g);
     assert_eq!(-sixteen_g, expected_negative_16g);
     assert_eq!(g, -sixteen_g);
@@ -75,20 +71,20 @@ mod test {
     let g = AffinePoint::<C101>::generator();
     let two_g = g.point_doubling();
     let three_g = g + two_g;
-    let expected_3g = AffinePoint::<C101>::new(F::new(26), F::new(45));
-    let expected_negative_3g = AffinePoint::<C101>::new(F::new(26), F::new(56));
+    let expected_3g = AffinePoint::<C101>::new(GF101::new(26), GF101::new(45));
+    let expected_negative_3g = AffinePoint::<C101>::new(GF101::new(26), GF101::new(56));
     assert_eq!(three_g, expected_3g);
     assert_eq!(-three_g, expected_negative_3g);
 
     let four_g = g + three_g;
-    let expected_4g = AffinePoint::<C101>::new(F::new(65), F::new(98));
-    let expected_negative_4g = AffinePoint::<C101>::new(F::new(65), F::new(3));
+    let expected_4g = AffinePoint::<C101>::new(GF101::new(65), GF101::new(98));
+    let expected_negative_4g = AffinePoint::<C101>::new(GF101::new(65), GF101::new(3));
     assert_eq!(four_g, expected_4g);
     assert_eq!(-four_g, expected_negative_4g);
 
     let five_g = g + four_g;
-    let expected_5g = AffinePoint::<C101>::new(F::new(12), F::new(32));
-    let expected_negative_5g = AffinePoint::<C101>::new(F::new(12), F::new(69));
+    let expected_5g = AffinePoint::<C101>::new(GF101::new(12), GF101::new(32));
+    let expected_negative_5g = AffinePoint::<C101>::new(GF101::new(12), GF101::new(69));
     assert_eq!(five_g, expected_5g);
     assert_eq!(-five_g, expected_negative_5g);
 
