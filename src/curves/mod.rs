@@ -1,83 +1,89 @@
+//! Elliptic curve operations and types.
+
 use super::*;
 
-/// Elliptic curve in Weierstrass form: y^2 = x^3 + ax + b
+pub mod g1_curve;
+pub mod g2_curve;
+
+/// Elliptic curve in Weierstrass form: `y^2 = x^3 + ax + b`
 pub struct Curve<F: FiniteField> {
-  pub a:  F,
-  pub b:  F,
+  /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
+  pub a: F,
+
+  /// Coefficient `b` in the Weierstrass equation of this elliptic curve.
+  pub b: F,
+
   _three: F,
   _two:   F,
 }
-/// Example:
-/// say 2 is in GF101
+
+// TODO: This should probably have a `type ScalarField`.
+/// Elliptic curve parameters for a curve over a finite field in Weierstrass form
+/// `y^2 = x^3 + ax + b`
 pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord {
   /// Integer field element type
-  type FieldElement: FiniteField + Neg + Mul;
+  type BaseField: FiniteField + Neg + Mul;
+
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
   const ORDER: u32;
-  /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
-  const EQUATION_A: Self::FieldElement;
-  /// Coefficient `b` in the Weierstrass equation of this elliptic curve.
-  const EQUATION_B: Self::FieldElement;
-  /// Generator of this elliptic curve.
-  const GENERATOR: (Self::FieldElement, Self::FieldElement);
-  // hack: 3 and 2 to satisfy the Add<AffinePoint> trait implementation
-  const THREE: Self::FieldElement;
-  const TWO: Self::FieldElement;
 
-  // maybe Curve::uint type is diff from PCP::fieldelement type
-  // maybe:
-  // type AffinePoint;
-  // type ProjectivePoint;
-  // type Scalar;
+  /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
+  const EQUATION_A: Self::BaseField;
+
+  /// Coefficient `b` in the Weierstrass equation of this elliptic curve.
+  const EQUATION_B: Self::BaseField;
+
+  /// Generator of this elliptic curve.
+  const GENERATOR: (Self::BaseField, Self::BaseField);
 }
 
 /// An Affine Coordinate Point on a Weierstrass elliptic curve
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub enum AffinePoint<C: CurveParams> {
-  XY(C::FieldElement, C::FieldElement),
-  Infty,
+  /// A point on the curve.
+  PointOnCurve(C::BaseField, C::BaseField),
+
+  /// The point at infinity.
+  Infinity,
 }
 
 impl<C: CurveParams> AffinePoint<C> {
-  pub fn new(x: C::FieldElement, y: C::FieldElement) -> Self {
+  /// Create a new point on the curve so long as it satisfies the curve equation.
+  ///
+  /// ## Panics
+  /// If the point is not on the curve; validated by checking if `y^2 = x^3 + ax + b`.
+  pub fn new(x: C::BaseField, y: C::BaseField) -> Self {
     // okay so this is breaking because the curve equation doesn't know how to plug in polynomials.
     // y = 31x -> y^2 = 52x^2
     // x = 36 -> x^3 = 95 + 3
     // 52x^2 = 98 ???
     assert_eq!(y * y, x * x * x + C::EQUATION_A * x + C::EQUATION_B, "Point is not on curve");
-    Self::XY(x, y)
-  }
-
-  pub fn new_infty() -> Self { Self::Infty }
-
-  pub fn negate(&mut self) {
-    match self {
-      Self::XY(_x, ref mut y) => *y = -*y,
-      Self::Infty => (),
-    }
+    Self::PointOnCurve(x, y)
   }
 }
 
 // Example:
 // Base
 
-impl<C: CurveParams> std::ops::Neg for AffinePoint<C> {
+impl<C: CurveParams> Neg for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
   fn neg(self) -> Self::Output {
     let (x, y) = match self {
-      AffinePoint::XY(x, y) => (x, y),
-      AffinePoint::Infty => panic!("Cannot double point at infinity"),
+      AffinePoint::PointOnCurve(x, y) => (x, -y),
+      AffinePoint::Infinity => panic!("Cannot double point at infinity"),
     };
-    AffinePoint::new(x, C::FieldElement::ZERO - y)
+    AffinePoint::new(x, y)
   }
 }
+
+// TODO: This should likely use a `Self::ScalarField` instead of `u32`.
 /// Scalar multiplication on the rhs: P*(u32)
-impl<C: CurveParams> std::ops::Mul<u32> for AffinePoint<C> {
+impl<C: CurveParams> Mul<u32> for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
   fn mul(self, scalar: u32) -> Self::Output {
-    let mut result = AffinePoint::new_infty();
+    let mut result = AffinePoint::Infinity;
     let mut base = self;
     let mut exp = scalar;
 
@@ -97,7 +103,7 @@ impl<C: CurveParams> std::ops::Mul<AffinePoint<C>> for u32 {
   type Output = AffinePoint<C>;
 
   fn mul(self, _rhs: AffinePoint<C>) -> Self::Output {
-    let mut result = AffinePoint::new_infty();
+    let mut result = AffinePoint::Infinity;
     let mut base = AffinePoint::generator();
     let mut exp = self;
 
@@ -118,26 +124,26 @@ impl<C: CurveParams> Add for AffinePoint<C> {
   fn add(self, rhs: Self) -> Self::Output {
     // infty checks
     match (self, rhs) {
-      (AffinePoint::Infty, _) => return rhs,
-      (_, AffinePoint::Infty) => return self,
+      (AffinePoint::Infinity, _) => return rhs,
+      (_, AffinePoint::Infinity) => return self,
 
       _ => (),
     }
     let (x1, y1) = match self {
-      AffinePoint::XY(x, y) => (x, y),
-      AffinePoint::Infty => unreachable!(),
+      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Infinity => unreachable!(),
     };
     let (x2, y2) = match rhs {
-      AffinePoint::XY(x, y) => (x, y),
-      AffinePoint::Infty => unreachable!(),
+      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Infinity => unreachable!(),
     };
     if x1 == x2 && y1 == -y2 {
-      return AffinePoint::new_infty();
+      return AffinePoint::Infinity;
     }
     // compute new point using elliptic curve point group law
     // https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication
     let lambda = if x1 == x2 && y1 == y2 {
-      (C::THREE * x1 * x1 + C::EQUATION_A) / (C::TWO * y1)
+      ((C::BaseField::TWO + C::BaseField::ONE) * x1 * x1 + C::EQUATION_A) / (C::BaseField::TWO * y1)
     } else {
       (y2 - y1) / (x2 - x1)
     };
@@ -149,25 +155,24 @@ impl<C: CurveParams> Add for AffinePoint<C> {
 
 // NOTE: Apparently there is a faster way to do this with twisted curve methods
 impl<C: CurveParams> AffinePoint<C> {
+  /// Compute the point doubling operation on this point.
   pub fn point_doubling(self) -> AffinePoint<C> {
     let (x, y) = match self {
-      AffinePoint::XY(x, y) => (x, y),
-      AffinePoint::Infty => panic!("Cannot double point at infinity"),
+      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Infinity => panic!("Cannot double point at infinity"),
     };
     // m = (3x^2) / (2y)
-    let m = (C::THREE * x * x) / (C::TWO * y);
+    let m = ((C::BaseField::TWO + C::BaseField::ONE) * x * x) / (C::BaseField::TWO * y);
 
     // 2P = (m^2 - 2x, m(3x - m^2)- y)
-    let x_new = m * m - C::TWO * x;
-    let y_new = m * (C::THREE * x - m * m) - y;
+    let x_new = m * m - C::BaseField::TWO * x;
+    let y_new = m * ((C::BaseField::TWO + C::BaseField::ONE) * x - m * m) - y;
     AffinePoint::new(x_new, y_new)
   }
 
+  /// Get the generator point of this curve.
   pub fn generator() -> Self {
     let (x, y) = C::GENERATOR;
     AffinePoint::new(x, y)
   }
 }
-
-pub mod g1_curve;
-pub mod g2_curve;

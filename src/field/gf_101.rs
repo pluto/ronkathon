@@ -1,10 +1,16 @@
+//! This module contains the implementation of the finite field GF(101) and its arithmetic
+//! operations.
+
 use rand::distributions::{Distribution, Standard};
 
 use super::*;
 
-const PLUTO_FIELD_PRIME: u32 = 101;
+/// The prime number that defines the base prime-order finite field used throughout this crate.
+pub const PLUTO_FIELD_PRIME: u32 = 101;
 
-#[derive(Copy, Clone, Default, Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+/// [`GF101`] represents the finite field GF(101) that has 101 elements and works with typical sum
+/// and multiplication operations modulo 101.
+#[derive(Copy, Clone, Default, Debug, Hash, PartialEq, Eq)]
 pub struct GF101 {
   value: u32,
 }
@@ -14,6 +20,8 @@ impl fmt::Display for GF101 {
 }
 
 impl GF101 {
+  /// Create a new [`GF101`] element from the given value. The value is reduced modulo 101 to
+  /// ensure it is within the field.
   pub const fn new(value: u32) -> Self { Self { value: value % PLUTO_FIELD_PRIME } }
 }
 
@@ -47,8 +55,6 @@ impl FiniteField for GF101 {
   }
 
   fn generator() -> Self { Self::new(2) }
-
-  fn from_canonical_u32(n: u32) -> Self { Self::new(n) }
 }
 
 impl Add for GF101 {
@@ -151,7 +157,7 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_overflowing_add() {
+  fn overflowing_add() {
     let a = GF101::new(100);
     let b = GF101::new(20);
     let c = a + b;
@@ -208,7 +214,7 @@ mod tests {
   }
 
   #[test]
-  fn test_add_sub_neg_mul() {
+  fn add_sub_neg_mul() {
     let mut rng = rand::thread_rng();
     // for i in 0..1000 {
     let x = rng.gen::<GF101>();

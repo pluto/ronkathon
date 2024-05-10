@@ -1,3 +1,22 @@
+//! This module contains the implementation of polynomials in the [`Monomial`] and [`Lagrange`]
+//! bases.
+//! ## Overview
+//! A polynomial is a mathematical expression that consists of variables and coefficients. The
+//! variables are raised to non-negative integer powers and multiplied by the coefficients. For
+//! example, the polynomial $f(x) = 1 + 2x + 3x^2 + 4x^3$ has coefficients $1, 2, 3, 4$ in the
+//! [`Monomial`] [`Basis`].
+//!
+//! - [`Polynomial`] struct represents a polynomial in any basis. These are generic over the
+//!   [`Basis`] and [`FiniteField`] traits.
+//! - [`Basis`] trait is used to specify the basis of the polynomial which can be either:
+//!    - [`Monomial`] basis as shown above.
+//!    - [`Lagrange`] basis which is used in the [Lagrange interpolation](https://en.wikipedia.org/wiki/Lagrange_polynomial).
+//! - Includes arithmetic operations such as addition, subtraction, multiplication, and
+//! division in the [`arithmetic`] module. The [`Polynomial`] struct is generic over the [`Basis`]
+//! and [`FiniteField`] traits.
+//! - Includes Discrete Fourier Transform (DFT) for polynomials in the [`Monomial`] basis to convert
+//!   into the [`Lagrange`] basis via evaluation at the roots of unity.
+
 use super::*;
 
 pub mod arithmetic;
@@ -11,13 +30,20 @@ pub mod arithmetic;
 /// Highest degree term should be non-zero.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Polynomial<B: Basis, F: FiniteField> {
+  /// Coefficients of the polynomial in the chosen basis.
+  /// These will be in either:
+  /// - Increasing order of degree for [`Monomial`] basis.
+  /// - Order of the nodes of the Lagrange polynomial for [`Lagrange`] basis.
   pub coefficients: Vec<F>,
-  pub basis:        B,
+
+  /// The basis of the polynomial. Additional node points are stored for [`Lagrange`] basis.
+  pub basis: B,
 }
 
 /// [`Basis`] trait is used to specify the basis of the polynomial.
 /// The basis can be [`Monomial`] or [`Lagrange`]. This is a type-state pattern for [`Polynomial`].
 pub trait Basis {
+  /// The associated data type for the basis.
   type Data;
 }
 
@@ -35,6 +61,7 @@ impl Basis for Monomial {
 /// Lagrange basis.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Lagrange<F: FiniteField> {
+  /// Nodes (evaluation points) of the [`Lagrange`] [`Basis`].
   pub nodes: Vec<F>,
 }
 impl<F: FiniteField> Basis for Lagrange<F> {
@@ -307,4 +334,14 @@ impl Display for Polynomial<Lagrange<GF101>, GF101> {
     }
     Ok(())
   }
+}
+
+/// Convert from an array of field elements into a polynomial in the [`Monomial`] basis.
+impl<const N: usize, F: FiniteField> From<[F; N]> for Polynomial<Monomial, F> {
+  fn from(coeffs: [F; N]) -> Self { Self::new(coeffs.to_vec()) }
+}
+
+/// Convert from an [`Ext`] field element into a polynomial in the [`Monomial`] basis.
+impl<const N: usize, F: FiniteField> From<Ext<N, F>> for Polynomial<Monomial, F> {
+  fn from(ext: Ext<N, F>) -> Self { Self::from(ext.coeffs) }
 }

@@ -1,3 +1,6 @@
+//! KZG10 is a polynomial commitment scheme that allows for efficient verification of polynomial
+//! evaluations.
+
 use ark_bn254::{Bn254, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::{AffineRepr, CurveGroup, VariableBaseMSM};
 use ark_ff::Field;
@@ -7,7 +10,7 @@ use rand::thread_rng;
 
 use super::*;
 
-// simple setup to get params.
+/// simple setup to get params.
 pub fn setup(d: u64) -> (Vec<G1Affine>, Vec<G2Affine>) {
   // NOTE: For demonstration purposes only.
   // Create some toxic waste, typically done in MPC and discarded.
@@ -38,7 +41,7 @@ pub fn setup(d: u64) -> (Vec<G1Affine>, Vec<G2Affine>) {
   (srs_g1_points, srs_g2_points)
 }
 
-// kzg commit
+/// kzg commit
 pub fn commit<const MSM: bool>(coefs: Vec<Fr>, g1_srs: Vec<G1Affine>) -> G1Affine {
   assert!(g1_srs.len() >= coefs.len());
 
@@ -58,7 +61,7 @@ pub fn commit<const MSM: bool>(coefs: Vec<Fr>, g1_srs: Vec<G1Affine>) -> G1Affin
     .into_affine();
 }
 
-// divide the poly by the point to find the witness poly
+/// divide the poly by the point to find the witness poly
 pub fn open(coefs: Vec<Fr>, point: Fr, g1_srs: Vec<G1Affine>) -> G1Affine {
   use std::ops::Div;
 
@@ -71,6 +74,7 @@ pub fn open(coefs: Vec<Fr>, point: Fr, g1_srs: Vec<G1Affine>) -> G1Affine {
   commit::<false>(poly.div(&divisor).coeffs, g1_srs)
 }
 
+/// Verify the polynomial evaluation.
 pub fn check(
   p: G1Affine,
   q: G1Affine,
@@ -90,6 +94,7 @@ pub fn check(
   lhs == rhs
 }
 
+/// Evaluate a polynomial at a point.
 pub fn evaluate(coefs: Vec<Fr>, point: Fr) -> Fr {
   coefs
     .iter()
@@ -107,7 +112,7 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_e2e() {
+  fn e2e() {
     // A univariate polynomial with roots 1,2,3 converted into coefficient form for simplicity.
     //
     // p(x) = (x-1)(x-2)(x-3)
