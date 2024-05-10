@@ -68,7 +68,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     // Evaluate the polynomial at the roots of unity to get the coefficients of the Lagrange basis
     let mut coeffs = vec![F::ZERO; n];
     for j in 0..self.coefficients.len() {
-      coeffs[j] = self.evaluate(primitive_root.pow(F::Storage::from(j as u32)));
+      coeffs[j] = self.evaluate(primitive_root.pow(j as u64));
     }
     Polynomial::<Lagrange<F>, F>::new(coeffs)
   }
@@ -77,7 +77,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   pub fn evaluate(&self, x: F) -> F {
     let mut result = F::ZERO;
     for (i, c) in self.coefficients.iter().enumerate() {
-      result += *c * x.pow(F::Storage::from(i as u32));
+      result += *c * x.pow(i as u64);
     }
     result
   }
@@ -127,8 +127,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
     let mut result = vec![F::ZERO; n];
     for i in 0..n {
       for j in 0..n {
-        result[i] +=
-          self.coefficients[j] * primitive_root_of_unity.pow(F::Storage::from(i as u32 * j as u32));
+        result[i] += self.coefficients[j] * primitive_root_of_unity.pow(i as u64 * j as u64);
       }
     }
     result
@@ -163,7 +162,7 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
       F::Storage::from(0)
     );
     let primitive_root = F::primitive_root_of_unity(F::Storage::from(n as u32));
-    let nodes: Vec<F> = (0..n).map(|i| primitive_root.pow(F::Storage::from(i as u32))).collect();
+    let nodes: Vec<F> = (0..n).map(|i| primitive_root.pow(i as u64)).collect();
 
     Self { coefficients, basis: Lagrange { nodes } }
   }

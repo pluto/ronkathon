@@ -6,18 +6,12 @@ use crate::{
   field::{gf_101::GF101, FiniteField},
 };
 
-fn setup(degree: u32) -> (Vec<AffinePoint<C101>>, Vec<AffinePoint<G2Curve>>) {
+// hardcoded degree for now
+fn setup() -> (Vec<AffinePoint<C101>>, Vec<AffinePoint<G2Curve>>) {
   // NOTE: For demonstration purposes only.
-  // Create some toxic waste, typically done in MPC and discarded.
-  let mut rng = thread_rng();
-  let mut tau_bytes = [0u8; 4];
-  rng.fill(&mut tau_bytes[..]);
-  //   println!("tau_toxic_waste={:?}", BigUint::from_bytes_le(&tau_bytes));
 
-  // This does get concatenated rn
-  let tau = GF101::from_canonical_u32(u32::from_le_bytes(tau_bytes));
-
-  // let tau = Fr::rand(&mut rng);
+  // This is just tau from plonk by hand, it is not actually secure
+  let tau: u32 = 2;
 
   // NOTE: Just sample the d of both for now.
   // - g1 and g2 SRS have variable sizes for diff kzg uses
@@ -25,26 +19,53 @@ fn setup(degree: u32) -> (Vec<AffinePoint<C101>>, Vec<AffinePoint<G2Curve>>) {
   // - in plonk, we need d+5 g1 elements and one g2 element
   let mut srs_g1_points: Vec<AffinePoint<C101>> = vec![];
   let mut srs_g2_points: Vec<AffinePoint<G2Curve>> = vec![];
-  //   for i in 1..degree + 1 {
-  //     // G1 Group
-  //     let result = AffinePoint::<C101>::generator() *
-  // tau.pow(field::gf_101::GF101::Storage::from(i));     srs_g1_points.push(result);
+  for i in 0..7 {
+    // G1 Group
 
-  //     // G2 Group
-  //     let result = AffinePoint::<G2Curve>::generator() * tau.pow(i as u32);
-  //     srs_g2_points.push(result);
-  //   }
+    // degree seven commitment poly
+    let result = AffinePoint::<C101>::generator() * tau.pow(i);
+    srs_g1_points.push(result);
+    // G2 Group
+
+    // degree two divisor poly
+    if i < 2 {
+      let result = AffinePoint::<G2Curve>::generator() * tau.pow(i);
+      srs_g2_points.push(result);
+    }
+  }
 
   (srs_g1_points, srs_g2_points)
 }
 
 mod tests {
   use super::*;
+  use crate::field::gf_101_2::QuadraticPlutoField;
 
   #[test]
   fn test_setup() {
-    let (g1, g2) = setup(5);
-    println!("{:?}", g1);
-    println!("{:?}", g2);
+    let (g1srs, g2srs) = setup();
+    assert!(g1srs.len() == 7);
+    assert!(g2srs.len() == 2);
+    let expected_g1srs = vec![
+      AffinePoint::<C101>::new(GF101::new(1), GF101::new(2)),
+      AffinePoint::<C101>::new(GF101::new(68), GF101::new(74)),
+      AffinePoint::<C101>::new(GF101::new(65), GF101::new(98)),
+      AffinePoint::<C101>::new(GF101::new(18), GF101::new(49)),
+      AffinePoint::<C101>::new(GF101::new(1), GF101::new(99)),
+      AffinePoint::<C101>::new(GF101::new(68), GF101::new(27)),
+      AffinePoint::<C101>::new(GF101::new(65), GF101::new(3)),
+    ];
+    assert_eq!(g1srs, expected_g1srs);
+
+    println!("g2srs {:?}", g2srs);
+    let expected_2g = AffinePoint::<G2Curve>::new(
+      QuadraticPlutoField::<GF101>::new(GF101::new(90), GF101::ZERO),
+      QuadraticPlutoField::<GF101>::new(GF101::ZERO, GF101::new(82)),
+    );
+
+    let g2_gen = AffinePoint::<G2Curve>::generator();
+    let expected_g2srs = vec![g2_gen, expected_2g];
+
+    assert_eq!(g2srs, expected_g2srs);
   }
 }

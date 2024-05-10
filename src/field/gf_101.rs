@@ -251,6 +251,30 @@ fn barret_reduction(x: u32) -> u32 {
   r.wrapping_sub(corr)
 }
 
+impl From<u32> for GF101 {
+  fn from(val: u32) -> Self { Self::new(val) }
+}
+
+impl From<u64> for GF101 {
+  fn from(val: u64) -> Self { Self::new(val as u32) }
+}
+
+impl From<usize> for GF101 {
+  fn from(val: usize) -> Self { Self::new(val as u32) }
+}
+
+impl Into<usize> for GF101 {
+  fn into(self) -> usize { self.value as usize }
+}
+
+impl Into<u64> for GF101 {
+  fn into(self) -> u64 { self.value as u64 }
+}
+
+impl Into<u32> for GF101 {
+  fn into(self) -> u32 { self.value }
+}
+
 mod tests {
   use rand::{thread_rng, Rng};
 
@@ -432,9 +456,9 @@ mod tests {
     let omega = GF101::primitive_root_of_unity(n);
     println!("omega: {:?}", omega);
     assert_eq!(omega, F::new(95));
-    let omega_n = omega.pow(n);
+    let omega_n = omega.pow(n.into());
     for i in 1..n {
-      let omega_i = omega.pow(i);
+      let omega_i = omega.pow(i.into());
       println!("omega^{}: {:?}", i, omega_i);
       assert_ne!(omega_i, F::new(1));
     }
@@ -445,11 +469,11 @@ mod tests {
     println!("omega: {:?}", omega);
     assert_eq!(omega, F::new(16));
     for i in 1..n {
-      let omega_i = omega.pow(i);
+      let omega_i = omega.pow(i.into());
       println!("omega^{}: {:?}", i, omega_i);
       assert_ne!(omega_i, F::new(1));
     }
-    let omega_n = omega.pow(n);
+    let omega_n = omega.pow(n.into());
     assert_eq!(omega_n, F::new(1));
   }
 
