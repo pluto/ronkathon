@@ -24,6 +24,8 @@ pub trait EllipticCurve: Copy {
   const GENERATOR: (Self::BaseField, Self::BaseField);
 }
 
+// TODO: A potential issue here is that you can have a point that is not on the curve created via
+// this enum. This is a potential issue that should be addressed.
 /// An Affine Coordinate Point on a Weierstrass elliptic curve
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub enum AffinePoint<C: EllipticCurve> {

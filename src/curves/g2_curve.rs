@@ -22,58 +22,48 @@ impl EllipticCurve for G2Curve {
   const ORDER: u32 = 289;
 }
 
-// a naive impl with affine point
-
-impl G2Curve {
-  /// Create a new point on the curve so long as it satisfies the curve equation.
-  pub fn on_curve(x: Ext<2, GF101>, y: Ext<2, GF101>) -> (Ext<2, GF101>, Ext<2, GF101>) {
-    println!("X: {:?}, Y: {:?}", x, y);
-    // TODO Continue working on this
-    //                  (   x  )  (  y   )  ( x , y )
-    // example: plug in ((36, 0), (0, 31)): (36, 31t)
-    // x = 36, y = 31t,
-    // curve : y^2=x^3+3,
-
-    // y = (31t)^2 = 52 * t^2
-    // check if there are any x terms, if not, element is in base field
-    let mut lhs = x;
-    let mut rhs = y;
-    if lhs.coeffs[1] != GF101::ZERO {
-      lhs = x * x * (-GF101::new(2)) - Self::EQUATION_B;
-    } else {
-      lhs = x * x * x - Self::EQUATION_B;
-    }
-    if y.coeffs[1] != GF101::ZERO {
-      // y has degree two so if there is a x -> there will be an x^2 term which we substitude with
-      // -2 since... TODO explain this and relationship to embedding degree
-      rhs *= -GF101::new(2);
-    }
-    // minus
-    lhs -= Self::EQUATION_B;
-    assert_eq!(lhs, rhs, "Point is not on curve");
-    (x, y)
-  }
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  fn point() -> AffinePoint<G2Curve> {
+    AffinePoint::<G2Curve>::new(
+      Ext::<2, GF101>::new([GF101::new(90), GF101::ZERO]),
+      Ext::<2, GF101>::new([GF101::ZERO, GF101::new(82)]),
+    )
+  }
+
+  fn false_point() -> AffinePoint<G2Curve> {
+    AffinePoint::<G2Curve>::new(
+      Ext::<2, GF101>::new([GF101::new(36), GF101::ZERO]),
+      Ext::<2, GF101>::new([GF101::ZERO, GF101::new(81)]),
+    )
+  }
+
+  fn generator() -> AffinePoint<G2Curve> {
+    AffinePoint::<G2Curve>::new(
+      Ext::<2, GF101>::new([GF101::new(36), GF101::ZERO]),
+      Ext::<2, GF101>::new([GF101::ZERO, GF101::new(31)]),
+    )
+  }
+
+  #[rstest]
+  #[case(AffinePoint::<G2Curve>::generator())]
+  #[case(generator())]
+  #[case(point())]
+  #[should_panic]
+  #[case(false_point())]
+  fn on_curve(#[case] p: AffinePoint<G2Curve>) { let _ = p; }
 
   #[test]
   fn point_doubling() {
     let g = AffinePoint::<G2Curve>::generator();
     let two_g = g.point_doubling();
 
-    let expected_2g = AffinePoint::<G2Curve>::new(
-      Ext::<2, GF101>::new([GF101::new(90), GF101::ZERO]),
-      Ext::<2, GF101>::new([GF101::ZERO, GF101::new(82)]),
-    );
-    let expected_g = AffinePoint::<G2Curve>::new(
-      Ext::<2, GF101>::new([GF101::new(36), GF101::ZERO]),
-      Ext::<2, GF101>::new([GF101::ZERO, GF101::new(31)]),
-    );
+    let expected_g = generator();
+    let expected_two_g = point();
 
-    assert_eq!(two_g, expected_2g);
+    assert_eq!(two_g, expected_two_g);
     assert_eq!(g, expected_g);
   }
 
@@ -81,17 +71,17 @@ mod tests {
   fn scalar_multiplication_rhs() {
     let g = AffinePoint::<G2Curve>::generator();
     let two_g = g * 2;
-    let expected_2g = g.point_doubling();
-    assert_eq!(two_g, expected_2g);
-    assert_eq!(-two_g, -expected_2g);
+    let expected_two_g = g.point_doubling();
+    assert_eq!(two_g, expected_two_g);
+    assert_eq!(-two_g, -expected_two_g);
   }
 
   #[test]
   fn scalar_multiplication_lhs() {
     let g = AffinePoint::<G2Curve>::generator();
     let two_g = 2 * g;
-    let expected_2g = g.point_doubling();
-    assert_eq!(two_g, expected_2g);
-    assert_eq!(-two_g, -expected_2g);
+    let expected_two_g = g.point_doubling();
+    assert_eq!(two_g, expected_two_g);
+    assert_eq!(-two_g, -expected_two_g);
   }
 }
