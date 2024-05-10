@@ -3,7 +3,6 @@
 
 use super::*;
 
-// TODO: This seems unecessary?
 /// A container to implement curve parameters for the G2 curve.
 /// The Elliptic curve $y^2=x^3+3$, i.e.
 // a = 0
@@ -11,7 +10,7 @@ use super::*;
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct G2Curve;
 
-impl CurveParams for G2Curve {
+impl EllipticCurve for G2Curve {
   type BaseField = Ext<2, GF101>;
 
   const EQUATION_A: Self::BaseField = Ext::<2, GF101>::ZERO;

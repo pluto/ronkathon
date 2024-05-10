@@ -5,24 +5,11 @@ use super::*;
 pub mod g1_curve;
 pub mod g2_curve;
 
-/// Elliptic curve in Weierstrass form: `y^2 = x^3 + ax + b`
-pub struct Curve<F: FiniteField> {
-  /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
-  pub a: F,
-
-  /// Coefficient `b` in the Weierstrass equation of this elliptic curve.
-  pub b: F,
-
-  _three: F,
-  _two:   F,
-}
-
-// TODO: This should probably have a `type ScalarField`.
 /// Elliptic curve parameters for a curve over a finite field in Weierstrass form
 /// `y^2 = x^3 + ax + b`
-pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord {
+pub trait EllipticCurve: Copy {
   /// Integer field element type
-  type BaseField: FiniteField + Neg + Mul;
+  type BaseField: FiniteField;
 
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
   const ORDER: u32;
@@ -39,7 +26,7 @@ pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord 
 
 /// An Affine Coordinate Point on a Weierstrass elliptic curve
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
-pub enum AffinePoint<C: CurveParams> {
+pub enum AffinePoint<C: EllipticCurve> {
   /// A point on the curve.
   PointOnCurve(C::BaseField, C::BaseField),
 
@@ -47,7 +34,7 @@ pub enum AffinePoint<C: CurveParams> {
   Infinity,
 }
 
-impl<C: CurveParams> AffinePoint<C> {
+impl<C: EllipticCurve> AffinePoint<C> {
   /// Create a new point on the curve so long as it satisfies the curve equation.
   ///
   /// ## Panics
@@ -65,7 +52,7 @@ impl<C: CurveParams> AffinePoint<C> {
 // Example:
 // Base
 
-impl<C: CurveParams> Neg for AffinePoint<C> {
+impl<C: EllipticCurve> Neg for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
   fn neg(self) -> Self::Output {
@@ -79,7 +66,7 @@ impl<C: CurveParams> Neg for AffinePoint<C> {
 
 // TODO: This should likely use a `Self::ScalarField` instead of `u32`.
 /// Scalar multiplication on the rhs: P*(u32)
-impl<C: CurveParams> Mul<u32> for AffinePoint<C> {
+impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
   fn mul(self, scalar: u32) -> Self::Output {
@@ -99,7 +86,7 @@ impl<C: CurveParams> Mul<u32> for AffinePoint<C> {
 }
 
 /// Scalar multiplication on the Lhs (u32)*P
-impl<C: CurveParams> std::ops::Mul<AffinePoint<C>> for u32 {
+impl<C: EllipticCurve> std::ops::Mul<AffinePoint<C>> for u32 {
   type Output = AffinePoint<C>;
 
   fn mul(self, _rhs: AffinePoint<C>) -> Self::Output {
@@ -118,7 +105,7 @@ impl<C: CurveParams> std::ops::Mul<AffinePoint<C>> for u32 {
   }
 }
 
-impl<C: CurveParams> Add for AffinePoint<C> {
+impl<C: EllipticCurve> Add for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
   fn add(self, rhs: Self) -> Self::Output {
@@ -154,7 +141,7 @@ impl<C: CurveParams> Add for AffinePoint<C> {
 }
 
 // NOTE: Apparently there is a faster way to do this with twisted curve methods
-impl<C: CurveParams> AffinePoint<C> {
+impl<C: EllipticCurve> AffinePoint<C> {
   /// Compute the point doubling operation on this point.
   pub fn point_doubling(self) -> AffinePoint<C> {
     let (x, y) = match self {

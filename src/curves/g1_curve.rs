@@ -2,10 +2,6 @@
 
 use super::*;
 
-// TODO: An empty struct like this and G2Curve is a code smell. We should probably
-// have a single struct that can be instantiated with the correct parameters (i.e., just
-// allows for extension fields.).
-
 /// The Elliptic curve $y^2=x^3+3$, i.e.
 /// - a = 0
 /// - b = 3
@@ -15,7 +11,7 @@ use super::*;
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct G1Curve;
 
-impl CurveParams for G1Curve {
+impl EllipticCurve for G1Curve {
   type BaseField = GF101;
 
   const EQUATION_A: Self::BaseField = GF101::new(0);
