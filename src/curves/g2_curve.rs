@@ -1,10 +1,15 @@
+//! This module implements the G2 curve which is defined over the base field `GF101` and the
+//! extension field `GF101^2`.
+
 use super::*;
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
-pub struct G2Curve {}
-// The Elliptic curve $y^2=x^3+3$, i.e.
+// TODO: This seems unecessary?
+/// A container to implement curve parameters for the G2 curve.
+/// The Elliptic curve $y^2=x^3+3$, i.e.
 // a = 0
 // b = 3
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
+pub struct G2Curve;
 
 impl CurveParams for G2Curve {
   type BaseField = Ext<2, GF101>;
@@ -21,6 +26,7 @@ impl CurveParams for G2Curve {
 // a naive impl with affine point
 
 impl G2Curve {
+  /// Create a new point on the curve so long as it satisfies the curve equation.
   pub fn on_curve(x: Ext<2, GF101>, y: Ext<2, GF101>) -> (Ext<2, GF101>, Ext<2, GF101>) {
     println!("X: {:?}, Y: {:?}", x, y);
     // TODO Continue working on this

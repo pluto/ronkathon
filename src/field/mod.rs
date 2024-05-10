@@ -1,3 +1,5 @@
+//! This module contains the definition of finite fields and their extension fields.
+
 use std::array;
 
 use super::*;
