@@ -3,12 +3,6 @@ use rand::distributions::{Distribution, Standard};
 use super::*;
 
 const PLUTO_FIELD_PRIME: u32 = 101;
-// value chosen such that 2^k is closest power of two from modulus
-const MONTY_BITS: u32 = 7;
-// mask used in (mod R) operation for montgomery reduciton
-const MONTY_MASK: u32 = (1 << MONTY_BITS) - 1;
-// (-P^-1) mod 2^MONTY_BITS
-const MONTY_MU: u32 = 19;
 
 #[derive(Copy, Clone, Default, Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct GF101 {
@@ -16,26 +10,11 @@ pub struct GF101 {
 }
 
 impl fmt::Display for GF101 {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", from_monty(self.value))
-  }
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.value) }
 }
 
 impl GF101 {
-  // pub const fn new(value: u32) -> Self { Self { value: to_monty(value) } }
   pub const fn new(value: u32) -> Self { Self { value: value % PLUTO_FIELD_PRIME } }
-
-  // fn from_bigint(r: BigInt<N>) -> Option<Fp<MontBackend<Self, N>, N>> {
-  //   let mut r = Fp::new_unchecked(r);
-  //   if r.is_zero() {
-  //     Some(r)
-  //   } else if r.is_geq_modulus() {
-  //     None
-  //   } else {
-  //     r *= &Fp::new_unchecked(Self::R2);
-  //     Some(r)
-  //   }
-  // }
 }
 
 impl FiniteField for GF101 {
@@ -93,7 +72,7 @@ impl Sub for GF101 {
 
   fn sub(self, rhs: Self) -> Self {
     let (mut diff, over) = self.value.overflowing_sub(rhs.value);
-    let corr = if over { PLUTO_FIELD_PRIME } else { 0 };
+    let corr = if over { Self::ORDER } else { 0 };
     diff = diff.wrapping_add(corr);
     Self { value: diff }
   }
@@ -106,7 +85,7 @@ impl SubAssign for GF101 {
 impl Mul for GF101 {
   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self { Self { value: from_monty(self.value * rhs.value) } }
+  fn mul(self, rhs: Self) -> Self { Self { value: (self.value * rhs.value) % Self::ORDER } }
 }
 
 impl MulAssign for GF101 {
@@ -167,18 +146,7 @@ impl From<usize> for GF101 {
   fn from(val: usize) -> Self { Self::new(val as u32) }
 }
 
-impl Into<usize> for GF101 {
-  fn into(self) -> usize { self.value as usize }
-}
-
-impl Into<u64> for GF101 {
-  fn into(self) -> u64 { self.value as u64 }
-}
-
-impl Into<u32> for GF101 {
-  fn into(self) -> u32 { self.value }
-}
-
+#[cfg(test)]
 mod tests {
   use super::*;
 
@@ -210,13 +178,6 @@ mod tests {
     let b = GF101::new(20);
     let c = a * b;
     assert_eq!(c, GF101::new(99));
-  }
-
-  #[test]
-  fn test_barret_reduction() {
-    let x = 200 * 10;
-    let res = _barret_reduction(x);
-    assert_eq!(res, x % PLUTO_FIELD_PRIME);
   }
 
   #[test]
@@ -355,7 +316,7 @@ mod tests {
     let n = 5;
     let omega = GF101::primitive_root_of_unity(n);
     println!("omega: {:?}", omega);
-    assert_eq!(omega, F::new(95));
+    assert_eq!(omega, GF101::new(95));
     let omega_n = omega.pow(n.into());
     for i in 1..n {
       let omega_i = omega.pow(i.into());
@@ -374,7 +335,7 @@ mod tests {
       assert_ne!(omega_i, GF101::new(1));
     }
     let omega_n = omega.pow(n.into());
-    assert_eq!(omega_n, F::new(1));
+    assert_eq!(omega_n, GF101::new(1));
   }
 
   #[test]

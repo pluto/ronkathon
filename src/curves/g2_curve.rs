@@ -54,9 +54,10 @@ impl G2Curve {
   }
 }
 
+#[cfg(test)]
 mod tests {
-  // use super::*;
-  // use crate::curves::AffinePoint;
+  use super::*;
+  use crate::curves::AffinePoint;
 
   #[test]
   fn point_doubling() {
@@ -64,18 +65,16 @@ mod tests {
     let two_g = g.point_doubling();
 
     let expected_2g = AffinePoint::<G2Curve>::new(
-      F::new(GF101::new(90), GF101::ZERO),
-      F::new(GF101::ZERO, GF101::new(82)),
+      Ext2::<GF101>::new(GF101::new(90), GF101::ZERO),
+      Ext2::<GF101>::new(GF101::ZERO, GF101::new(82)),
     );
     let expected_g = AffinePoint::<G2Curve>::new(
-      F::new(GF101::new(36), GF101::ZERO),
-      F::new(GF101::ZERO, GF101::new(31)),
+      Ext2::<GF101>::new(GF101::new(36), GF101::ZERO),
+      Ext2::<GF101>::new(GF101::ZERO, GF101::new(31)),
     );
 
     assert_eq!(two_g, expected_2g);
     assert_eq!(g, expected_g);
-
-    let four_g = two_g.point_doubling();
   }
 
   #[test]

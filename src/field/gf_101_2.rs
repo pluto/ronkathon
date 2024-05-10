@@ -209,25 +209,18 @@ impl<F: FiniteField> Rem for Ext2<F> {
   fn rem(self, rhs: Self) -> Self::Output { self - (self / rhs) * rhs }
 }
 
-impl From<u32> for QuadraticPlutoField<GF101> {
+impl From<u32> for Ext2<GF101> {
   fn from(val: u32) -> Self { Self::new(GF101::from(val), GF101::ZERO) }
 }
 
-impl From<u64> for QuadraticPlutoField<GF101> {
+impl From<u64> for Ext2<GF101> {
   fn from(val: u64) -> Self { Self::new(GF101::from(val), GF101::ZERO) }
-}
-
-impl Into<u64> for QuadraticPlutoField<GF101> {
-  fn into(self) -> u64 { self.value[0].into() }
-}
-
-impl Into<u32> for QuadraticPlutoField<GF101> {
-  fn into(self) -> u32 { self.value[0].into() }
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::curves::{g2_curve::G2Curve, AffinePoint};
 
   #[test]
   fn test_field() {

@@ -1,12 +1,9 @@
-use num_bigint::BigUint;
-use rand::{thread_rng, Rng};
-
-use crate::{
-  curves::{g1_curve::C101, g2_curve::G2Curve, AffinePoint, CurveParams},
-  field::{gf_101::GF101, FiniteField},
-};
+#![allow(unused_imports)]
+use super::*;
+use crate::curves::{g1_curve::C101, g2_curve::G2Curve, AffinePoint};
 
 // hardcoded degree for now
+#[allow(dead_code)]
 fn setup() -> (Vec<AffinePoint<C101>>, Vec<AffinePoint<G2Curve>>) {
   // NOTE: For demonstration purposes only.
 
@@ -37,9 +34,10 @@ fn setup() -> (Vec<AffinePoint<C101>>, Vec<AffinePoint<G2Curve>>) {
   (srs_g1_points, srs_g2_points)
 }
 
+#[cfg(test)]
 mod tests {
   use super::*;
-  use crate::field::gf_101_2::QuadraticPlutoField;
+  use crate::field::gf_101_2::Ext2;
 
   #[test]
   fn test_setup() {
@@ -59,8 +57,8 @@ mod tests {
 
     println!("g2srs {:?}", g2srs);
     let expected_2g = AffinePoint::<G2Curve>::new(
-      QuadraticPlutoField::<GF101>::new(GF101::new(90), GF101::ZERO),
-      QuadraticPlutoField::<GF101>::new(GF101::ZERO, GF101::new(82)),
+      Ext2::<GF101>::new(GF101::new(90), GF101::ZERO),
+      Ext2::<GF101>::new(GF101::ZERO, GF101::new(82)),
     );
 
     let g2_gen = AffinePoint::<G2Curve>::generator();
