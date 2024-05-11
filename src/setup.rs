@@ -34,6 +34,16 @@ fn setup() -> (Vec<AffinePoint<G1Curve>>, Vec<AffinePoint<G2Curve>>) {
   (srs_g1_points, srs_g2_points)
 }
 
+
+fn commit(coefs: Vec<GF101>, g1_srs: Vec<AffinePoint<G1Curve>>) {
+  // commit to a polynomial
+  // - given a polynomial, commit to it
+  assert!(g1_srs.len() >= coefs.len());
+  // Todo implement multiplication with field elements as scalar mult. 
+  // Maybe having the scalar mult be around the base field like colin suggested is better
+  return g1_srs.iter().zip(coefs).map(|x| x.0 * x.1).reduce(|x, y| x + y).expect("srs not large enough");
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

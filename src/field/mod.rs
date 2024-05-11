@@ -122,7 +122,7 @@ where [B; N + 1]: {
 /// A struct that represents an element of an extension field. The element is represented as
 /// [`Monomial`] coefficients of a [`Polynomial`] of degree `N - 1` over the base [`FiniteField`]
 /// `F`.
-#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug, PartialOrd)]
 pub struct Ext<const N: usize, F: FiniteField> {
   pub(crate) coeffs: [F; N],
 }

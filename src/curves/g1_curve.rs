@@ -100,7 +100,7 @@ mod tests {
   #[test]
   fn scalar_multiplication_rhs() {
     let g = AffinePoint::<G1Curve>::generator();
-    let two_g = g * 2;
+    let two_g = g * GF101::new(2);
     let expected_2g = g.point_doubling();
     assert_eq!(two_g, expected_2g);
     assert_eq!(-two_g, -expected_2g);

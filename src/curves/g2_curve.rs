@@ -81,7 +81,7 @@ mod tests {
   #[test]
   fn scalar_multiplication_rhs() {
     let g = AffinePoint::<G2Curve>::generator();
-    let two_g = g * 2;
+    let two_g = g * Ext::<2, GF101>::new([GF101::new(2), GF101::ZERO]);
     let expected_2g = g.point_doubling();
     assert_eq!(two_g, expected_2g);
     assert_eq!(-two_g, -expected_2g);

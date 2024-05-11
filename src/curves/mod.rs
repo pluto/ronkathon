@@ -22,7 +22,7 @@ pub struct Curve<F: FiniteField> {
 /// `y^2 = x^3 + ax + b`
 pub trait CurveParams: 'static + Copy + Clone + fmt::Debug + Default + Eq + Ord {
   /// Integer field element type
-  type BaseField: FiniteField + Neg + Mul;
+  type BaseField: FiniteField + Neg + Mul + Eq + PartialOrd;
 
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
   const ORDER: u32;
@@ -79,24 +79,25 @@ impl<C: CurveParams> Neg for AffinePoint<C> {
 
 // TODO: This should likely use a `Self::ScalarField` instead of `u32`.
 /// Scalar multiplication on the rhs: P*(u32)
-impl<C: CurveParams> Mul<u32> for AffinePoint<C> {
+impl<C: CurveParams> Mul<C::BaseField> for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
-  fn mul(self, scalar: u32) -> Self::Output {
+  fn mul(self, scalar: C::BaseField) -> Self::Output {
     let mut result = AffinePoint::Infinity;
     let mut base = self;
     let mut exp = scalar;
 
-    while exp > 0 {
-      if exp % 2 == 1 {
+    while exp > C::BaseField::ZERO {
+      if exp % C::BaseField::TWO == C::BaseField::ONE {
         result = result + base;
       }
       base = base.point_doubling();
-      exp /= 2;
+      exp = exp / C::BaseField::TWO;
     }
     result
   }
 }
+
 
 /// Scalar multiplication on the Lhs (u32)*P
 impl<C: CurveParams> std::ops::Mul<AffinePoint<C>> for u32 {
