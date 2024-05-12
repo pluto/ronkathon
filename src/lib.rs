@@ -20,7 +20,9 @@
 pub mod curves;
 pub mod field;
 pub mod kzg;
+pub mod parser;
 pub mod polynomial;
+pub mod program;
 pub mod setup;
 
 use core::{
