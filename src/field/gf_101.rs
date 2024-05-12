@@ -152,6 +152,17 @@ impl From<usize> for GF101 {
   fn from(val: usize) -> Self { Self::new(val as u32) }
 }
 
+impl From<i32> for GF101 {
+  fn from(value: i32) -> Self {
+    let abs = Self::new(value.unsigned_abs());
+    if value.is_positive() {
+      abs
+    } else {
+      -abs
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
