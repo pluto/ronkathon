@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
   field::{gf_101::GF101, FiniteField},
-  parser::{parse_constraints, WireValues},
+  parser::{get_product_key, parse_constraints, WireValues},
   polynomial::{Lagrange, Polynomial},
 };
 
@@ -201,5 +201,45 @@ impl<'a> Program<'a> {
   }
 
   /// Evaluates the circuit and fill intermediate variable assignments
-  fn evaluate_circuit(&self) -> HashMap<String, u32> { todo!() }
+  fn evaluate_circuit(
+    &'a self,
+    starting_assignments: HashMap<Option<&'a str>, GF101>,
+  ) -> HashMap<Option<&'a str>, GF101> {
+    let mut out = starting_assignments.clone();
+    out.insert(None, GF101::ZERO);
+
+    for constraint in self.constraints.iter() {
+      let in_l = constraint.wires[0];
+      let in_r = constraint.wires[1];
+      let output = constraint.wires[2];
+
+      let out_coeff = constraint.coeffs.get("$output_coeff").unwrap_or(&1);
+      let product_key = get_product_key(in_l.unwrap_or(""), in_r.unwrap_or(""));
+      if output.is_some() && (*out_coeff == 1 || *out_coeff == -1) {
+        let l_value = *out.get(&in_l).unwrap()
+          * GF101::from(*constraint.coeffs.get(in_l.unwrap()).unwrap_or(&0));
+        let r_value = *out.get(&in_r).unwrap()
+          * GF101::from(*constraint.coeffs.get(in_r.unwrap()).unwrap_or(&0))
+          * GF101::from(in_l.cmp(&in_r) as u32);
+        let c_value = GF101::from(*constraint.coeffs.get("").unwrap_or(&0));
+        let m_value = *out.get(&in_l).unwrap()
+          * *out.get(&in_r).unwrap()
+          * GF101::from(*constraint.coeffs.get(&product_key).unwrap_or(&0));
+
+        let output_value = (l_value + r_value + c_value + m_value) * GF101::from(*out_coeff);
+
+        match out.get(&output) {
+          Some(out_value) =>
+            if *out_value != output_value {
+              panic!("output value doesn't match");
+            },
+          None => {
+            out.insert(output, output_value);
+          },
+        }
+      }
+    }
+
+    out
+  }
 }

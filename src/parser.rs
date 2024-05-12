@@ -88,7 +88,7 @@ impl<'a> WireValues<'a> {
 //   }
 // }
 
-fn get_product_key(a: &str, b: &str) -> String {
+pub fn get_product_key(a: &str, b: &str) -> String {
   let mut a_star: Vec<&str> = a.split('*').collect();
   a_star.append(&mut b.split('*').collect());
 
