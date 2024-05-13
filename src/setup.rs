@@ -3,11 +3,13 @@
 use super::*;
 
 #[allow(dead_code, clippy::type_complexity)]
-fn setup() -> (Vec<AffinePoint<PlutoCurve<GF101>>>, Vec<AffinePoint<PlutoCurve<Ext<2, GF101>>>>) {
+pub fn setup() -> (Vec<AffinePoint<PlutoCurve<GF101>>>, Vec<AffinePoint<PlutoCurve<Ext<2, GF101>>>>)
+{
+  println!("Entered Setup");
   // NOTE: For demonstration purposes only.
 
   // This is just tau from plonk by hand, it is not actually secure
-  let tau = 2;
+  let tau = GF101::new(2);
 
   // NOTE: Just sample the d of both for now.
   // - g1 and g2 SRS have variable sizes for diff kzg uses
@@ -15,17 +17,19 @@ fn setup() -> (Vec<AffinePoint<PlutoCurve<GF101>>>, Vec<AffinePoint<PlutoCurve<E
   // - in plonk, we need d+5 g1 elements and one g2 element
   let mut srs_g1_points: Vec<AffinePoint<PlutoCurve<GF101>>> = vec![];
   let mut srs_g2_points: Vec<AffinePoint<PlutoCurve<Ext<2, GF101>>>> = vec![];
+  println!("Before Loop Tau: {:?}", tau);
   for i in 0..7 {
     // G1 Group
-    let t_power = GF101::new(field::powmod(tau, i, 101));
     // degree seven commitment poly
-    let result = AffinePoint::<PlutoCurve<GF101>>::generator() * t_power;
+    println!("tau.pow(i) {:?}", tau.pow(i));
+    let result = AffinePoint::<PlutoCurve<GF101>>::generator() * tau.pow(i);
     srs_g1_points.push(result);
     // G2 Group
 
     // degree two divisor poly
     if i < 2 {
-      let result = AffinePoint::<PlutoCurve<Ext<2, GF101>>>::generator() * t_power;
+      println!("tau.pow(i) in conditional: {:?}", tau.pow(i));
+      let result = AffinePoint::<PlutoCurve<Ext<2, GF101>>>::generator() * tau.pow(i).into();
       srs_g2_points.push(result);
     }
   }

@@ -124,7 +124,7 @@ mod plut_curve_gf101_tests {
   #[test]
   fn scalar_multiplication_rhs() {
     let g = AffinePoint::<PlutoCurve<GF101>>::generator();
-    let two_g = g * 2;
+    let two_g = g * GF101::new(2);
     let expected_2g = g.point_doubling();
     assert_eq!(two_g, expected_2g);
     assert_eq!(-two_g, -expected_2g);
@@ -188,7 +188,7 @@ mod pluto_curve_ext2gf101_tests {
   #[test]
   fn scalar_multiplication_rhs() {
     let g = AffinePoint::<PlutoCurve<Ext<2, GF101>>>::generator();
-    let two_g = g * 2;
+    let two_g = g * GF101::new(2).into();
     let expected_two_g = g.point_doubling();
     assert_eq!(two_g, expected_two_g);
     assert_eq!(-two_g, -expected_two_g);

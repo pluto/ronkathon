@@ -73,7 +73,7 @@ impl<C: EllipticCurve> Neg for AffinePoint<C> {
 
 // TODO: This should likely use a `Self::ScalarField` instead of `u32`.
 /// Scalar multiplication on the rhs: P*(u32)
-impl<C: CurveParams> Mul<C::BaseField> for AffinePoint<C> {
+impl<C: EllipticCurve> Mul<C::BaseField> for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
   fn mul(self, scalar: C::BaseField) -> Self::Output {
