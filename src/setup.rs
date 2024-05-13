@@ -2,8 +2,7 @@
 
 use super::*;
 
-// hardcoded degree for now
-#[allow(dead_code)]
+#[allow(dead_code, clippy::type_complexity)]
 fn setup() -> (Vec<AffinePoint<PlutoCurve<GF101>>>, Vec<AffinePoint<PlutoCurve<Ext<2, GF101>>>>) {
   // NOTE: For demonstration purposes only.
 

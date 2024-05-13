@@ -15,7 +15,6 @@
 #![feature(const_trait_impl)]
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
-#![feature(specialization)]
 #![warn(missing_docs)]
 
 pub mod curves;

@@ -1,7 +1,19 @@
+//! This module contains the constants and methods for the Pluto curve over the prime field `GF101`
+//! and its extensions.
+//!
+//! The basic idea here is that we have a curve that fixes `EQUATION_A` to 0 and `EQUATION_B` to 3.
+//! The rest of the properties of the curve depend solely on the field for which we define it over.
+//! This interface allows us to have an easily swappable curve definition for different fields.
+//!
+//! Note that this would be cleaner if we could use trait specialization to keep the default
+//! implementations in the trait itself, but this feature is not yet to that point of utility.
+
 use std::marker::PhantomData;
 
 use super::*;
 
+/// A struct that houses the constants and methods for the Pluto curve over the prime field `GF101`
+/// and its extensions.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PlutoCurve<B: FiniteField> {
   _phantom: PhantomData<B>,
@@ -13,23 +25,23 @@ impl EllipticCurve for PlutoCurve<GF101> {
   type BaseField = GF101;
   type Coefficient = GF101;
 
-  default const EQUATION_A: Self::Coefficient = GF101::ZERO;
-  default const EQUATION_B: Self::Coefficient = GF101::new(3);
-  default const GENERATOR: (Self::BaseField, Self::BaseField) = (GF101::ONE, GF101::TWO);
-  default const ORDER: u32 = GF101::ORDER;
+  const EQUATION_A: Self::Coefficient = GF101::ZERO;
+  const EQUATION_B: Self::Coefficient = GF101::new(3);
+  const GENERATOR: (Self::BaseField, Self::BaseField) = (GF101::ONE, GF101::TWO);
+  const ORDER: u32 = GF101::ORDER;
 }
 
 impl EllipticCurve for PlutoCurve<Ext<2, GF101>> {
   type BaseField = Ext<2, GF101>;
   type Coefficient = GF101;
 
-  default const EQUATION_A: Self::Coefficient = GF101::ZERO;
-  default const EQUATION_B: Self::Coefficient = GF101::new(3);
-  default const GENERATOR: (Self::BaseField, Self::BaseField) = (
+  const EQUATION_A: Self::Coefficient = GF101::ZERO;
+  const EQUATION_B: Self::Coefficient = GF101::new(3);
+  const GENERATOR: (Self::BaseField, Self::BaseField) = (
     Ext::<2, GF101>::new([GF101::new(36), GF101::ZERO]),
     Ext::<2, GF101>::new([GF101::ZERO, GF101::new(31)]),
   );
-  default const ORDER: u32 = 289;
+  const ORDER: u32 = 289;
 }
 
 #[cfg(test)]
