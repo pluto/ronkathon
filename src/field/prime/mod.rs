@@ -50,7 +50,7 @@ impl<const P: u32> const FiniteField for PrimeField<P> {
     Some(result)
   }
 
-  fn pow(self, power: u64) -> Self {
+  fn pow(self, power: u32) -> Self {
     if power == 0 {
       Self::ONE
     } else if power == 1 {
@@ -77,9 +77,9 @@ const fn find_generator<const P: u32>() -> PrimeField<P> {
   let mut i = 2;
   while i * i <= P {
     if (P - 1) % i == 0 {
-      if PrimeField::<P>::new(i).pow(((P - 1) / i) as u64).value != PrimeField::<P>::ONE.value {
+      if PrimeField::<P>::new(i).pow((P - 1) / i).value != PrimeField::<P>::ONE.value {
         return PrimeField::<P>::new(i);
-      } else if PrimeField::<P>::new(P + 1 - i).pow(i as u64).value != PrimeField::<P>::ONE.value {
+      } else if PrimeField::<P>::new(P + 1 - i).pow(i).value != PrimeField::<P>::ONE.value {
         return PrimeField::<P>::new(P + 1 - i);
       }
     }
@@ -111,6 +111,15 @@ impl<const P: u32> From<u64> for PrimeField<P> {
 
 impl<const P: u32> From<usize> for PrimeField<P> {
   fn from(val: usize) -> Self { Self::new(val as u32) }
+}
+
+impl From<PlutoPrime> for u32 {
+  fn from(prime: PlutoPrime) -> u32 {
+    match prime {
+      res @ PlutoPrime::Base => res as u32,
+      res @ PlutoPrime::Scalar => res as u32,
+    }
+  }
 }
 
 #[cfg(test)]

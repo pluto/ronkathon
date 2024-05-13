@@ -153,7 +153,7 @@ mod tests {
   #[case(PrimeField::<17>::new(10), 10, PrimeField::<17>::new(2))]
   fn field_pow<const P: u32>(
     #[case] a: PrimeField<P>,
-    #[case] pow: u64,
+    #[case] pow: u32,
     #[case] expected: PrimeField<P>,
   ) {
     assert_eq!(a.pow(pow), expected);
