@@ -40,13 +40,7 @@ pub enum AffinePoint<C: EllipticCurve> {
 
 impl<C: EllipticCurve> AffinePoint<C> {
   /// Create a new point on the curve so long as it satisfies the curve equation.
-  ///
-  /// If the point is not on the curve; validated by checking if `y^2 = x^3 + ax + b`.
   pub fn new(x: C::BaseField, y: C::BaseField) -> Self {
-    // okay so this is breaking because the curve equation doesn't know how to plug in polynomials.
-    // y = 31x -> y^2 = 52x^2
-    // x = 36 -> x^3 = 95 + 3
-    // 52x^2 = 98 ???
     assert_eq!(
       y * y,
       x * x * x + C::EQUATION_A.into() * x + C::EQUATION_B.into(),
@@ -73,6 +67,9 @@ impl<C: EllipticCurve> Neg for AffinePoint<C> {
 
 // TODO: This should likely use a `Self::ScalarField` instead of `u32`.
 /// Scalar multiplication on the rhs: P*(u32)
+/// This is the niave implementation of scalar multiplication
+/// There is a faster way to do this but this is simpler to reason about for now
+#[allow(clippy::suspicious_arithmetic_impl)]
 impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
@@ -83,20 +80,6 @@ impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
     }
     self
   }
-
-  //   let mut result = AffinePoint::new(C::BaseField::ZERO, C::BaseField::ZERO);
-  //   let mut base = self;
-  //   let mut exp = scalar;
-
-  //   while exp > C::BaseField::ZERO {
-  //     if exp % C::BaseField::TWO == C::BaseField::ONE {
-  //       result = result + base;
-  //     }
-  //     base = base.point_doubling();
-  //     exp = exp / C::BaseField::TWO;
-  //   }
-  //   result
-  // }
 }
 
 /// Scalar multiplication on the Lhs (u32)*P

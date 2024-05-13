@@ -47,16 +47,13 @@ fn commit(
   // Todo implement multiplication with field elements as scalar mult.
   // Maybe having the scalar mult be around the base field like colin suggested is better
 
-  let result =
-    g1_srs.iter().zip(coefs.iter()).map(|(point, &coef)| *point * coef).collect::<Vec<_>>();
-
-  let mut commitment = result[0];
-  for i in 1..result.len() {
-    println!("commitment {:?} after addition {:?}", commitment, result[i]);
-    commitment = commitment + result[i];
+  let mut commitment = AffinePoint::Infinity;
+  for (coef, point) in coefs.iter().zip(g1_srs) {
+    let res = point * *coef;
+    // println!("res {:?}, of multiplying point {:?}, and coef {:?}", res, point, coef);
+    println!("commitment {:?} before addition with {:?}", commitment, res);
+    commitment = commitment + res;
   }
-  // // let commitment = result.iter.reduce(|x, y| x + y).expect("srs not large enough");
-  // println!("commitment {:?}", commitment);
   commitment
 }
 
@@ -96,17 +93,29 @@ mod tests {
   #[test]
   fn test_commit() {
     let (g1srs, _) = setup();
-
-    // A univariate polynomial with roots 1,2,3 converted into coefficient form for simplicity.
-    //
     // p(x) = (x-1)(x-2)(x-3)
     // p(x) = x^3 - 6x^2 + 11x - 6
-    //
+    // -> -6 mod 17 is 11 so this is [1, 11, 11, 1]
     let coefficients = vec![11, 11, 11, 1];
-    // let polynomial = Polynomial::<Monomial, GF101>::new(coefficients);
-    // println!("polynomial {:?}", polynomial);
-    let commit = commit(coefficients, g1srs);
-    println!("commit {:?}", commit);
-    assert_eq!(commit, AffinePoint::<PlutoCurve<GF101>>::Infinity);
+    //  g1srs[0] * 11 + g1srs[1] * 11 + g1srs[2] * 11 + g1srs[3] * 1
+    let commit_1 = commit(coefficients, g1srs.clone());
+    assert_eq!(commit_1, AffinePoint::<PlutoCurve<GF101>>::Infinity);
+
+    // p(x) = (x-1)(x-2)(x-3)(x-4)
+    // p(x) = x^4 - 10x^3 + 35x^2 - 50x + 24
+    // -> 24 mod 17 is 7
+    // -> 50 mod 17 is 16
+    // -> 35 mod 17 is 1
+    // coefficients = [7, 16, 1, 11, 1]
+    let coefficients = vec![7, 16, 1, 11, 1];
+    //  g1srs[0] * 7 + g1srs[1] * 16 + g1srs[2] * 1 + g1srs[3] * 11 + g1srs[4] * 1
+    let commit_2 = commit(coefficients, g1srs.clone());
+    assert_eq!(commit_2, AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(32), GF101::new(59)));
+
+    // p(x)  = x^2 + 2x + 3
+    let coefficients = vec![3, 2, 1];
+    // g1srs[0] * 3 + g1srs[1] * 2  + g1srs[2] * 1
+    let commit_3 = commit(coefficients, g1srs);
+    assert_eq!(commit_3, AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(32), GF101::new(59)));
   }
 }
