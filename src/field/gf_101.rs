@@ -1,8 +1,6 @@
 //! This module contains the implementation of the finite field GF(101) and its arithmetic
 //! operations.
 
-use rand::distributions::{Distribution, Standard};
-
 use super::*;
 
 /// The prime number that defines the base prime-order finite field used throughout this crate.

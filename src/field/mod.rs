@@ -2,10 +2,13 @@
 
 use std::array;
 
+use rand::distributions::{Distribution, Standard};
+
 use super::*;
 
 pub mod gf_101;
 pub mod gf_101_2;
+pub mod gf_17;
 
 /// A field is a set of elements on which addition, subtraction, multiplication, and division are
 /// defined.
