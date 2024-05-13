@@ -34,7 +34,7 @@ use rand::Rng;
 #[cfg(test)] use rstest::{fixture, rstest};
 
 use self::{
-  curves::{g1_curve::G1Curve, g2_curve::G2Curve, AffinePoint},
+  curves::{pluto_curve::PlutoCurve, AffinePoint},
   field::{gf_101::GF101, Ext, FiniteField},
   polynomial::{Monomial, Polynomial},
 };
