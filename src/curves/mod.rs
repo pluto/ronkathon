@@ -50,20 +50,12 @@ pub enum AffinePoint<C: CurveParams> {
 impl<C: CurveParams> AffinePoint<C> {
   /// Create a new point on the curve so long as it satisfies the curve equation.
   ///
-  /// ## Panics
   /// If the point is not on the curve; validated by checking if `y^2 = x^3 + ax + b`.
   pub fn new(x: C::BaseField, y: C::BaseField) -> Self {
-    // okay so this is breaking because the curve equation doesn't know how to plug in polynomials.
-    // y = 31x -> y^2 = 52x^2
-    // x = 36 -> x^3 = 95 + 3
-    // 52x^2 = 98 ???
     assert_eq!(y * y, x * x * x + C::EQUATION_A * x + C::EQUATION_B, "Point is not on curve");
     Self::PointOnCurve(x, y)
   }
 }
-
-// Example:
-// Base
 
 impl<C: CurveParams> Neg for AffinePoint<C> {
   type Output = AffinePoint<C>;
@@ -97,7 +89,6 @@ impl<C: CurveParams> Mul<C::BaseField> for AffinePoint<C> {
     result
   }
 }
-
 
 /// Scalar multiplication on the Lhs (u32)*P
 impl<C: CurveParams> std::ops::Mul<AffinePoint<C>> for u32 {
@@ -162,7 +153,7 @@ impl<C: CurveParams> AffinePoint<C> {
       AffinePoint::PointOnCurve(x, y) => (x, y),
       AffinePoint::Infinity => panic!("Cannot double point at infinity"),
     };
-    // m = (3x^2) / (2y)
+    // m = (3x^2) + a / (2y) (a = 0 on our curve)
     let m = ((C::BaseField::TWO + C::BaseField::ONE) * x * x) / (C::BaseField::TWO * y);
 
     // 2P = (m^2 - 2x, m(3x - m^2)- y)

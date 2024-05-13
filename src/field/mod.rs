@@ -298,7 +298,7 @@ pub fn get_generator(p: u32) -> i32 {
   -1
 }
 
-fn powmod(base: u32, exponent: u32, modulus: u32) -> u32 {
+pub fn powmod(base: u32, exponent: u32, modulus: u32) -> u32 {
   let mut base = base as u64;
   let mut exponent = exponent;
   let modulus = modulus as u64;
@@ -313,3 +313,11 @@ fn powmod(base: u32, exponent: u32, modulus: u32) -> u32 {
   }
   result as u32
 }
+
+// #[cfg(test)]
+// mod tests {
+//   use super::*;
+
+//   #[test]
+//   fn test_pow
+// }
