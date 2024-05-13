@@ -26,4 +26,8 @@ dump
 *.swp
 *.swo
 
+# coverage
+lcov.info
+
+# sage
 *.sage.py

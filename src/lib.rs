@@ -17,12 +17,11 @@
 #![feature(generic_const_exprs)]
 #![warn(missing_docs)]
 
+pub mod compiler;
 pub mod curves;
 pub mod field;
 pub mod kzg;
-pub mod parser;
 pub mod polynomial;
-pub mod program;
 pub mod setup;
 
 use core::{
