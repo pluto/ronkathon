@@ -14,14 +14,17 @@
 
 #![feature(const_trait_impl)]
 #![allow(incomplete_features)]
+#![feature(effects)]
+#![feature(const_mut_refs)]
+#![feature(const_for)]
 #![feature(generic_const_exprs)]
 #![warn(missing_docs)]
 
-pub mod curves;
+// pub mod curves;
 pub mod field;
-pub mod kzg;
-pub mod polynomial;
-pub mod setup;
+// pub mod kzg;
+// pub mod polynomial;
+// pub mod setup;
 
 use core::{
   fmt::{self, Display, Formatter},
@@ -34,7 +37,7 @@ use rand::Rng;
 #[cfg(test)] use rstest::{fixture, rstest};
 
 use self::{
-  curves::{pluto_curve::PlutoCurve, AffinePoint},
-  field::{gf_101::GF101, Ext, FiniteField},
-  polynomial::{Monomial, Polynomial},
+  // curves::{pluto_curve::PlutoCurve, AffinePoint},
+  field::{extension::Ext, prime::PrimeField, FiniteField},
+  // polynomial::{Monomial, Polynomial},
 };

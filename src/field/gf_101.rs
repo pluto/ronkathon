@@ -51,8 +51,6 @@ impl FiniteField for GF101 {
     }
     Some(result)
   }
-
-  fn generator() -> Self { Self::new(2) }
 }
 
 impl Add for GF101 {
