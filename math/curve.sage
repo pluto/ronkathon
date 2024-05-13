@@ -59,3 +59,15 @@ print(g1SRS)
 
 g2SRS = [(2**i)*G2 for i in range(2)]
 print(g2SRS)
+
+
+######################################################################
+GF17 = GF(17)
+
+coefs = [11, 11, 11, 1]
+# 11 * g1_srs[0] + 11 * g1_srs[1] + 11 * g1_srs[2] + 1 * g1_srs[3]
+muls  = [(coefs[i] * g1SRS[i]) for i in range(4)] 
+commitment = sum(muls)
+print(commitment)
+
+

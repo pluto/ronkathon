@@ -73,23 +73,30 @@ impl<C: EllipticCurve> Neg for AffinePoint<C> {
 
 // TODO: This should likely use a `Self::ScalarField` instead of `u32`.
 /// Scalar multiplication on the rhs: P*(u32)
-impl<C: EllipticCurve> Mul<C::BaseField> for AffinePoint<C> {
+impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
-  fn mul(self, scalar: C::BaseField) -> Self::Output {
-    let mut result = AffinePoint::Infinity;
-    let mut base = self;
-    let mut exp = scalar;
-
-    while exp > C::BaseField::ZERO {
-      if exp % C::BaseField::TWO == C::BaseField::ONE {
-        result = result + base;
-      }
-      base = base.point_doubling();
-      exp = exp / C::BaseField::TWO;
+  fn mul(mut self, scalar: u32) -> Self::Output {
+    let val = self;
+    for _ in 1..scalar {
+      self = self + val;
     }
-    result
+    self
   }
+
+  //   let mut result = AffinePoint::new(C::BaseField::ZERO, C::BaseField::ZERO);
+  //   let mut base = self;
+  //   let mut exp = scalar;
+
+  //   while exp > C::BaseField::ZERO {
+  //     if exp % C::BaseField::TWO == C::BaseField::ONE {
+  //       result = result + base;
+  //     }
+  //     base = base.point_doubling();
+  //     exp = exp / C::BaseField::TWO;
+  //   }
+  //   result
+  // }
 }
 
 /// Scalar multiplication on the Lhs (u32)*P
