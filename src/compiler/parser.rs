@@ -268,16 +268,19 @@ pub fn parse_constraints(constraint: &str) -> WireValues {
 
 #[cfg(test)]
 mod tests {
+  use rstest::rstest;
+
   use super::*;
 
-  #[test]
-  fn product_key() {
-    assert_eq!(get_product_key("a", "b"), "a*b");
-    assert_eq!(get_product_key("a*b", "c"), "a*b*c");
-    assert_eq!(get_product_key("a*c", "d*b"), "a*b*c*d");
-    assert_eq!(get_product_key("", ""), "");
-    assert_eq!(get_product_key("", "a"), "a");
-    assert_eq!(get_product_key("a", ""), "a");
+  #[rstest]
+  #[case("a", "b", "a*b")]
+  #[case("a*b", "c", "a*b*c")]
+  #[case("a*c", "d*b", "a*b*c*d")]
+  #[case("", "", "")]
+  #[case("", "a", "a")]
+  #[case("a", "", "a")]
+  fn product_key(#[case] a: &str, #[case] b: &str, #[case] expected: &str) {
+    assert_eq!(get_product_key(a, b), expected);
   }
 
   #[test]
