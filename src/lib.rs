@@ -21,7 +21,7 @@
 #![feature(generic_const_exprs)]
 #![warn(missing_docs)]
 
-pub mod curves;
+pub mod curve;
 pub mod field;
 pub mod kzg;
 pub mod polynomial;
@@ -38,7 +38,7 @@ use rand::Rng;
 #[cfg(test)] use rstest::{fixture, rstest};
 
 use self::{
-  curves::{pluto_curve::PlutoCurve, AffinePoint},
+  curve::{pluto_curve::PlutoCurve, AffinePoint},
   field::{
     extension::{GaloisField, PlutoBaseFieldExtension, PlutoExtensions},
     prime::{PlutoBaseField, PlutoPrime, PlutoScalarField, PrimeField},
