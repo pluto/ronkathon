@@ -17,13 +17,14 @@
 #![feature(effects)]
 #![feature(const_mut_refs)]
 #![feature(const_for)]
+#![feature(const_option)]
 #![feature(generic_const_exprs)]
 #![warn(missing_docs)]
 
 // pub mod curves;
 pub mod field;
 // pub mod kzg;
-// pub mod polynomial;
+pub mod polynomial;
 // pub mod setup;
 
 use core::{
@@ -38,6 +39,10 @@ use rand::Rng;
 
 use self::{
   // curves::{pluto_curve::PlutoCurve, AffinePoint},
-  field::{extension::Ext, prime::PrimeField, FiniteField},
-  // polynomial::{Monomial, Polynomial},
+  field::{
+    extension::{ExtensionField, GaloisField},
+    prime::PrimeField,
+    FiniteField,
+  },
+  polynomial::{Monomial, Polynomial},
 };

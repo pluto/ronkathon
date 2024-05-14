@@ -88,6 +88,10 @@ const fn find_generator<const P: u32>() -> PrimeField<P> {
   panic!("generator not found");
 }
 
+impl<const P: u32> fmt::Display for PrimeField<P> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.value) }
+}
+
 impl<const P: u32> Distribution<PrimeField<P>> for Standard {
   #[inline]
   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PrimeField<P> {
@@ -213,22 +217,6 @@ mod tests {
       PlutoPrime::Base => identity_elements_check::<BASE_FIELD_ORDER>(),
       PlutoPrime::Scalar => identity_elements_check::<SCALAR_FIELD_ORDER>(),
     }
-  }
-
-  #[rstest]
-  #[should_panic]
-  // First case will panic here so the "expected" value is not relevant.
-  #[case(PrimeField::<17>::new(0), PrimeField::<17>::new(69420))]
-  #[case(PrimeField::<17>::new(1), PrimeField::<17>::new(1))]
-  #[case(PrimeField::<17>::new(12), PrimeField::<17>::new(10))]
-  #[case(PrimeField::<17>::new(5), PrimeField::<17>::new(7))]
-  #[case(PrimeField::<17>::new(10), PrimeField::<17>::new(12))]
-  fn multiplicative_inverse<const P: u32>(
-    #[case] a: PrimeField<P>,
-    #[case] expected: PrimeField<P>,
-  ) {
-    assert_eq!(a.inverse().unwrap(), expected);
-    assert_eq!(a.inverse().unwrap() * a, PrimeField::<P>::ONE);
   }
 
   fn inverse_of_inverse_check<const P: u32>() {

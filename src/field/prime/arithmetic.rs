@@ -80,6 +80,11 @@ mod tests {
   #[case(PrimeField::<17>::new(12), PrimeField::<17>::new(5), PrimeField::<17>::new(0))]
   #[case(PrimeField::<17>::new(5), PrimeField::<17>::new(12), PrimeField::<17>::new(0))]
   #[case(PrimeField::<17>::new(10), PrimeField::<17>::new(10), PrimeField::<17>::new(3))]
+  #[case(PrimeField::<101>::new(0), PrimeField::<101>::new(0), PrimeField::<101>::new(0))]
+  #[case(PrimeField::<101>::new(1), PrimeField::<101>::new(1), PrimeField::<101>::new(2))]
+  #[case(PrimeField::<101>::new(40), PrimeField::<101>::new(61), PrimeField::<101>::new(0))]
+  #[case(PrimeField::<101>::new(61), PrimeField::<101>::new(40), PrimeField::<101>::new(0))]
+  #[case(PrimeField::<101>::new(60), PrimeField::<101>::new(60), PrimeField::<101>::new(19))]
   fn add<const P: u32>(
     #[case] a: PrimeField<P>,
     #[case] b: PrimeField<P>,
@@ -94,6 +99,11 @@ mod tests {
   #[case(PrimeField::<17>::new(12), PrimeField::<17>::new(5), PrimeField::<17>::new(7))]
   #[case(PrimeField::<17>::new(5), PrimeField::<17>::new(12), PrimeField::<17>::new(10))]
   #[case(PrimeField::<17>::new(10), PrimeField::<17>::new(17), PrimeField::<17>::new(10))]
+  #[case(PrimeField::<101>::new(0), PrimeField::<101>::new(0), PrimeField::<101>::new(0))]
+  #[case(PrimeField::<101>::new(1), PrimeField::<101>::new(1), PrimeField::<101>::new(0))]
+  #[case(PrimeField::<101>::new(40), PrimeField::<101>::new(61), PrimeField::<101>::new(80))]
+  #[case(PrimeField::<101>::new(61), PrimeField::<101>::new(40), PrimeField::<101>::new(21))]
+  #[case(PrimeField::<101>::new(60), PrimeField::<101>::new(60), PrimeField::<101>::new(0))]
   fn sub<const P: u32>(
     #[case] a: PrimeField<P>,
     #[case] b: PrimeField<P>,
@@ -108,6 +118,11 @@ mod tests {
   #[case(PrimeField::<17>::new(12), PrimeField::<17>::new(5), PrimeField::<17>::new(9))]
   #[case(PrimeField::<17>::new(5), PrimeField::<17>::new(12), PrimeField::<17>::new(9))]
   #[case(PrimeField::<17>::new(10), PrimeField::<17>::new(10), PrimeField::<17>::new(15))]
+  #[case(PrimeField::<101>::new(0), PrimeField::<101>::new(0), PrimeField::<101>::new(0))]
+  #[case(PrimeField::<101>::new(1), PrimeField::<101>::new(1), PrimeField::<101>::new(1))]
+  #[case(PrimeField::<101>::new(40), PrimeField::<101>::new(61), PrimeField::<101>::new(16))]
+  #[case(PrimeField::<101>::new(61), PrimeField::<101>::new(40), PrimeField::<101>::new(16))]
+  #[case(PrimeField::<101>::new(60), PrimeField::<101>::new(60), PrimeField::<101>::new(65))]
   fn mul<const P: u32>(
     #[case] a: PrimeField<P>,
     #[case] b: PrimeField<P>,
@@ -151,12 +166,40 @@ mod tests {
   #[case(PrimeField::<17>::new(12), 5, PrimeField::<17>::new(3))]
   #[case(PrimeField::<17>::new(5), 12, PrimeField::<17>::new(4))]
   #[case(PrimeField::<17>::new(10), 10, PrimeField::<17>::new(2))]
+  #[case(PrimeField::<101>::new(0), 0, PrimeField::<101>::new(1))]
+  #[case(PrimeField::<101>::new(0), 10, PrimeField::<101>::new(0))]
+  #[case(PrimeField::<101>::new(40), 5, PrimeField::<101>::new(39))]
+  #[case(PrimeField::<101>::new(61), 3, PrimeField::<101>::new(34))]
+  #[case(PrimeField::<101>::new(25), 25, PrimeField::<101>::new(1))]
   fn field_pow<const P: u32>(
     #[case] a: PrimeField<P>,
     #[case] pow: u32,
     #[case] expected: PrimeField<P>,
   ) {
     assert_eq!(a.pow(pow), expected);
+  }
+
+  #[rstest]
+  // First case will panic here so the "expected" value is not relevant.
+  #[should_panic]
+  #[case(PrimeField::<17>::new(0), PrimeField::<17>::new(69420))]
+  #[case(PrimeField::<17>::new(1), PrimeField::<17>::new(1))]
+  #[case(PrimeField::<17>::new(12), PrimeField::<17>::new(10))]
+  #[case(PrimeField::<17>::new(5), PrimeField::<17>::new(7))]
+  #[case(PrimeField::<17>::new(10), PrimeField::<17>::new(12))]
+  // First case will panic here so the "expected" value is not relevant.
+  #[should_panic]
+  #[case(PrimeField::<101>::new(0),  PrimeField::<101>::new(69420))]
+  #[case(PrimeField::<101>::new(1),  PrimeField::<101>::new(1))]
+  #[case(PrimeField::<101>::new(15), PrimeField::<101>::new(27))]
+  #[case(PrimeField::<101>::new(61), PrimeField::<101>::new(53))]
+  #[case(PrimeField::<101>::new(25), PrimeField::<101>::new(97))]
+  fn multiplicative_inverse<const P: u32>(
+    #[case] a: PrimeField<P>,
+    #[case] expected: PrimeField<P>,
+  ) {
+    assert_eq!(a.inverse().unwrap(), expected);
+    assert_eq!(a.inverse().unwrap() * a, PrimeField::<P>::ONE);
   }
 
   #[rstest]
