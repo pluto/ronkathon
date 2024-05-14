@@ -21,11 +21,11 @@
 #![feature(generic_const_exprs)]
 #![warn(missing_docs)]
 
-// pub mod curves;
+pub mod curves;
 pub mod field;
-// pub mod kzg;
+pub mod kzg;
 pub mod polynomial;
-// pub mod setup;
+pub mod setup;
 
 use core::{
   fmt::{self, Display, Formatter},
@@ -38,7 +38,7 @@ use rand::Rng;
 #[cfg(test)] use rstest::{fixture, rstest};
 
 use self::{
-  // curves::{pluto_curve::PlutoCurve, AffinePoint},
+  curves::{pluto_curve::PlutoCurve, AffinePoint},
   field::{
     extension::{ExtensionField, GaloisField},
     prime::PrimeField,

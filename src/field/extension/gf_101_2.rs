@@ -29,8 +29,7 @@ impl FiniteField for GaloisField<2, 101> {
   /// f_2_primitive_element = F_2([2, 1])
   /// assert f_2_primitive_element.multiplicative_order() == 101^2-1
   /// ```
-  const GENERATOR: Self =
-    Self::new([PrimeField::<101>::new(14), PrimeField::<101>::new(9)]);
+  const GENERATOR: Self = Self::new([PrimeField::<101>::new(14), PrimeField::<101>::new(9)]);
   const NEG_ONE: Self = Self::new([PrimeField::<101>::NEG_ONE, PrimeField::<101>::ZERO]);
   const ONE: Self = Self::new([PrimeField::<101>::ONE, PrimeField::<101>::ZERO]);
   const ORDER: u32 = QUADRATIC_EXTENSION_FIELD_ORDER;
@@ -132,139 +131,149 @@ mod tests {
 
   #[rstest]
   #[case(
-    <GaloisField<2, 101>>::new([PrimeField::<101>::new(10), PrimeField::<101>::new(20)]), 
+    <GaloisField<2, 101>>::new([PrimeField::<101>::new(10), PrimeField::<101>::new(20)]),
     <GaloisField<2, 101>>::new([PrimeField::<101>::new(20), PrimeField::<101>::new(10)]),
     <GaloisField<2, 101>>::new([PrimeField::<101>::new(30), PrimeField::<101>::new(30)])
   )]
   #[case(
-    <GaloisField<2, 101>>::new([PrimeField::<101>::new(70), PrimeField::<101>::new(80)]), 
+    <GaloisField<2, 101>>::new([PrimeField::<101>::new(70), PrimeField::<101>::new(80)]),
     <GaloisField<2, 101>>::new([PrimeField::<101>::new(80), PrimeField::<101>::new(70)]),
     <GaloisField<2, 101>>::new([PrimeField::<101>::new(49), PrimeField::<101>::new(49)])
   )]
-  
-  fn add(#[case] a: GaloisField<2, 101>, #[case] b: GaloisField<2, 101>, #[case] expected: GaloisField<2, 101>) {
+
+  fn add(
+    #[case] a: GaloisField<2, 101>,
+    #[case] b: GaloisField<2, 101>,
+    #[case] expected: GaloisField<2, 101>,
+  ) {
     assert_eq!(a + b, expected);
   }
 
-    #[test]
-    fn neg() {
-      let a = <GaloisField<2, 101>>::new([PrimeField::<101>::new(10), PrimeField::<101>::new(20)]);
-      assert_eq!(-a, <GaloisField<2, 101>>::new([PrimeField::<101>::new(91), PrimeField::<101>::new(81)]));
+  #[test]
+  fn neg() {
+    let a = <GaloisField<2, 101>>::new([PrimeField::<101>::new(10), PrimeField::<101>::new(20)]);
+    assert_eq!(
+      -a,
+      <GaloisField<2, 101>>::new([PrimeField::<101>::new(91), PrimeField::<101>::new(81)])
+    );
+  }
+
+  #[test]
+  fn sub() {
+    let a = <GaloisField<2, 101>>::new([PrimeField::<101>::new(10), PrimeField::<101>::new(20)]);
+    let b = <GaloisField<2, 101>>::new([PrimeField::<101>::new(20), PrimeField::<101>::new(10)]);
+    assert_eq!(
+      a - b,
+      <GaloisField<2, 101>>::new([PrimeField::<101>::new(91), PrimeField::<101>::new(10)])
+    );
+  }
+
+  #[test]
+  fn mul() {
+    let a = <GaloisField<2, 101>>::new([PrimeField::<101>::new(10), PrimeField::<101>::new(20)]);
+    let b = <GaloisField<2, 101>>::new([PrimeField::<101>::new(20), PrimeField::<101>::new(10)]);
+    assert_eq!(
+      a * b,
+      <GaloisField<2, 101>>::new([PrimeField::<101>::new(2), PrimeField::<101>::new(96)])
+    );
+  }
+
+  #[test]
+  fn add_sub_neg_mul() {
+    let mut rng = rand::thread_rng();
+    let x = <GaloisField<2, 101>>::from(rng.gen::<PrimeField<101>>());
+    let y = <GaloisField<2, 101>>::from(rng.gen::<PrimeField<101>>());
+    let z = <GaloisField<2, 101>>::from(rng.gen::<PrimeField<101>>());
+    assert_eq!(x + (-x), <GaloisField<2, 101>>::ZERO);
+    assert_eq!(-x, <GaloisField<2, 101>>::ZERO - x);
+    assert_eq!(x + x, x * <GaloisField<2, 101>>::TWO);
+    assert_eq!(x * (-x), -(x * x));
+    assert_eq!(x + y, y + x);
+    assert_eq!(x * y, y * x);
+    assert_eq!(x * (y * z), (x * y) * z);
+    assert_eq!(x - (y + z), (x - y) - z);
+    assert_eq!((x + y) - z, x + (y - z));
+    assert_eq!(x * (y + z), x * y + x * z);
+    assert_eq!(x + y + z + x + y + z, [x, x, y, y, z, z].iter().cloned().sum());
+  }
+
+  #[test]
+  fn pow() {
+    let mut rng = rand::thread_rng();
+    let x = <GaloisField<2, 101>>::from(rng.gen::<PrimeField<101>>());
+
+    assert_eq!(x, x.pow(1));
+
+    let res = x.pow(4);
+    assert_eq!(res, x * x * x * x);
+  }
+
+  #[test]
+  fn inv_div() {
+    let mut rng = rand::thread_rng();
+    // Loop rng's until we get something with inverse.
+    let mut x = <GaloisField<2, 101>>::ZERO;
+    let mut x_inv = None;
+    while x_inv.is_none() {
+      x = <GaloisField<2, 101>>::from(rng.gen::<PrimeField<101>>());
+      x_inv = x.inverse();
     }
-
-    #[test]
-    fn sub() {
-      let a = <GaloisField<2, 101>>::new([PrimeField::<101>::new(10), PrimeField::<101>::new(20)]);
-      let b = <GaloisField<2, 101>>::new([PrimeField::<101>::new(20), PrimeField::<101>::new(10)]);
-      assert_eq!(a - b, <GaloisField<2, 101>>::new([PrimeField::<101>::new(91), PrimeField::<101>::new(10)]));
+    let mut y = <GaloisField<2, 101>>::ZERO;
+    let mut y_inv = None;
+    while y_inv.is_none() {
+      y = <GaloisField<2, 101>>::from(rng.gen::<PrimeField<101>>());
+      y_inv = y.inverse();
     }
-
-    #[test]
-    fn mul() {
-      let a = <GaloisField<2, 101>>::new([PrimeField::<101>::new(10), PrimeField::<101>::new(20)]);
-      let b = <GaloisField<2, 101>>::new([PrimeField::<101>::new(20), PrimeField::<101>::new(10)]);
-      assert_eq!(a * b, <GaloisField<2, 101>>::new([PrimeField::<101>::new(2), PrimeField::<101>::new(96)]));
+    let mut z = <GaloisField<2, 101>>::ZERO;
+    let mut z_inv = None;
+    while z_inv.is_none() {
+      z = <GaloisField<2, 101>>::from(rng.gen::<PrimeField<101>>());
+      z_inv = z.inverse();
     }
+    assert_eq!(x * x.inverse().unwrap(), <GaloisField<2, 101>>::ONE);
+    assert_eq!(x.inverse().unwrap_or(<GaloisField<2, 101>>::ONE) * x, <GaloisField<2, 101>>::ONE);
+    assert_eq!(
+      (x * x).inverse().unwrap_or(<GaloisField<2, 101>>::ONE),
+      x.inverse().unwrap_or(<GaloisField<2, 101>>::ONE).pow(2)
+    );
+    assert_eq!((x / y) * y, x);
+    assert_eq!(x / (y * z), (x / y) / z);
+    assert_eq!((x * y) / z, x * (y / z));
+  }
 
-    #[test]
-    fn add_sub_neg_mul() {
-      let mut rng = rand::thread_rng();
-      let x = <GaloisField<2, 101>>::from(rng.gen::<PrimeField::<101>>());
-      let y = <GaloisField<2, 101>>::from(rng.gen::<PrimeField::<101>>());
-      let z = <GaloisField<2, 101>>::from(rng.gen::<PrimeField::<101>>());
-      assert_eq!(x + (-x), <GaloisField<2, 101>>::ZERO);
-      assert_eq!(-x, <GaloisField<2, 101>>::ZERO - x);
-      assert_eq!(x + x, x * <GaloisField<2, 101>>::TWO);
-      assert_eq!(x * (-x), -(x * x));
-      assert_eq!(x + y, y + x);
-      assert_eq!(x * y, y * x);
-      assert_eq!(x * (y * z), (x * y) * z);
-      assert_eq!(x - (y + z), (x - y) - z);
-      assert_eq!((x + y) - z, x + (y - z));
-      assert_eq!(x * (y + z), x * y + x * z);
-      assert_eq!(x + y + z + x + y + z, [x, x, y, y, z, z].iter().cloned().sum());
+  #[test]
+  fn generator() {
+    assert_eq!(
+      <GaloisField<2, 101>>::GENERATOR * PrimeField::<101>::ZERO,
+      <GaloisField<2, 101>>::ZERO
+    );
+  }
+
+  #[test]
+  fn add_sub_mul_subfield() {
+    let mut rng = rand::thread_rng();
+    let x = <GaloisField<2, 101>>::from(rng.gen::<PrimeField<101>>());
+    let y = rng.gen::<PrimeField<101>>();
+
+    let add1 = x + y;
+    let sub1 = x - y;
+    let res: GaloisField<2, 101> = x * PrimeField::<101>::TWO;
+    assert_eq!(add1 + sub1, res);
+
+    let mul1 = x * y;
+    let inv_mul = x * y.inverse().unwrap();
+    let res = x * x;
+    assert_eq!(mul1 * inv_mul, res);
+  }
+
+  #[test]
+  fn generator_order() {
+    let generator = <GaloisField<2, 101>>::GENERATOR;
+
+    let mut val = generator;
+    for _ in 0..<GaloisField<2, 101>>::ORDER - 1 {
+      val *= generator;
     }
-
-    #[test]
-    fn pow() {
-      let mut rng = rand::thread_rng();
-      let x = <GaloisField<2, 101>>::from(rng.gen::<PrimeField::<101>>());
-
-      assert_eq!(x, x.pow(1));
-
-      let res = x.pow(4);
-      assert_eq!(res, x * x * x * x);
-    }
-
-    #[test]
-    fn inv_div() {
-      let mut rng = rand::thread_rng();
-      // Loop rng's until we get something with inverse.
-      let mut x = <GaloisField<2, 101>>::ZERO;
-      let mut x_inv = None;
-      while x_inv.is_none() {
-        x = <GaloisField<2, 101>>::from(rng.gen::<PrimeField::<101>>());
-        x_inv = x.inverse();
-      }
-      let mut y = <GaloisField<2, 101>>::ZERO;
-      let mut y_inv = None;
-      while y_inv.is_none() {
-        y = <GaloisField<2, 101>>::from(rng.gen::<PrimeField::<101>>());
-        y_inv = y.inverse();
-      }
-      let mut z = <GaloisField<2, 101>>::ZERO;
-      let mut z_inv = None;
-      while z_inv.is_none() {
-        z = <GaloisField<2, 101>>::from(rng.gen::<PrimeField::<101>>());
-        z_inv = z.inverse();
-      }
-      assert_eq!(x * x.inverse().unwrap(), <GaloisField<2, 101>>::ONE);
-      assert_eq!(
-        x.inverse().unwrap_or(<GaloisField<2, 101>>::ONE) * x,
-        <GaloisField<2, 101>>::ONE
-      );
-      assert_eq!(
-        (x * x).inverse().unwrap_or(<GaloisField<2, 101>>::ONE),
-        x.inverse().unwrap_or(<GaloisField<2, 101>>::ONE).pow(2)
-      );
-      assert_eq!((x / y) * y, x);
-      assert_eq!(x / (y * z), (x / y) / z);
-      assert_eq!((x * y) / z, x * (y / z));
-    }
-
-    #[test]
-    fn generator() {
-      assert_eq!(
-        <GaloisField<2, 101>>::GENERATOR * PrimeField::<101>::ZERO,
-        <GaloisField<2, 101>>::ZERO
-      );
-    }
-
-    #[test]
-    fn add_sub_mul_subfield() {
-      let mut rng = rand::thread_rng();
-      let x = <GaloisField<2, 101>>::from(rng.gen::<PrimeField::<101>>());
-      let y = rng.gen::<PrimeField::<101>>();
-
-      let add1 = x + y;
-      let sub1 = x - y;
-      let res: GaloisField<2, 101> = x * PrimeField::<101>::TWO;
-      assert_eq!(add1 + sub1, res);
-
-      let mul1 = x * y;
-      let inv_mul = x * y.inverse().unwrap();
-      let res = x * x;
-      assert_eq!(mul1 * inv_mul, res);
-    }
-
-    #[test]
-    fn generator_order() {
-      let generator = <GaloisField<2, 101>>::GENERATOR;
-
-      let mut val = generator;
-      for _ in 0..<GaloisField<2, 101>>::ORDER - 1 {
-        val *= generator;
-      }
-      assert_eq!(val, generator);
-    }
+    assert_eq!(val, generator);
+  }
 }
