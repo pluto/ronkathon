@@ -14,7 +14,7 @@ pub trait EllipticCurve: Copy {
   type BaseField: FiniteField;
 
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
-  const ORDER: u32;
+  const ORDER: usize;
 
   /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
   const EQUATION_A: Self::Coefficient;

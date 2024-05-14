@@ -40,8 +40,8 @@ use rand::Rng;
 use self::{
   curves::{pluto_curve::PlutoCurve, AffinePoint},
   field::{
-    extension::{ExtensionField, GaloisField},
-    prime::PrimeField,
+    extension::{GaloisField, PlutoExtensions},
+    prime::{PlutoPrime, PrimeField},
     FiniteField,
   },
   polynomial::{Monomial, Polynomial},

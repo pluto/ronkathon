@@ -1,13 +1,30 @@
+//! This module contains the [`ExtensionField`] trait and the [`GaloisField`] struct that represents
+//! elements of an extension field. The extension field is constructed by adjoining the roots of a
+//! polynomial to the original field via the [`ExtensionField::IRREDUCIBLE_POLYNOMIAL_COEFFS`]
+//! array.
+//!
+//! This is still a work in progress to push towards a more generic implementation as the current
+//! still requires that specific irreducibles are given in order to construct the extension, though
+//! it should be possible to construct the extension at compile time.
+
 use super::*;
 
 mod arithmetic;
 pub mod gf_101_2;
 
+/// Sizes of the fields for extensions on the [`PlutoPrime`]s.
+pub enum PlutoExtensions {
+  /// The size of the quadratic extension field over the [`PlutoPrime::Base`] field.
+  QuadraticBase = 101 * 101,
+  /// The size of the quadratic extension field over the [`PlutoPrime::Scalar`] field.
+  QuadraticScalar = 17 * 17,
+}
+
 /// A field extension is a field that contains the original field and additional elements that are
 /// not in the original field. The extension field is constructed by adjoining the roots of a
 /// polynomial to the original field.
 #[const_trait]
-pub trait ExtensionField<const N: usize, const P: u32>:
+pub trait ExtensionField<const N: usize, const P: usize>:
   FiniteField
   + From<PrimeField<P>>
   + Add<PrimeField<P>, Output = Self>
@@ -26,35 +43,36 @@ where [PrimeField<P>; N + 1]: {
 /// [`Monomial`] coefficients of a [`Polynomial`] of degree `N - 1` over the base [`FiniteField`]
 /// `F`.
 #[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
-pub struct GaloisField<const N: usize, const P: u32> {
+pub struct GaloisField<const N: usize, const P: usize> {
   pub(crate) coeffs: [PrimeField<P>; N],
 }
 
-// impl<const N: usize, const P: u32> FiniteField for GaloisField<N, P> {
+// impl<const N: usize, const P: usize> FiniteField for GaloisField<N, P> {
 //   const GENERATOR: Self = panic!();
 //   const NEG_ONE: Self = Self::new(single_instance_array(PrimeField::<P>::NEG_ONE));
 //   const ONE: Self = Self::new(single_instance_array(PrimeField::<P>::ONE));
-//   const ORDER: u32 = P.pow(N as u32) as u32;
+//   const ORDER: usize = P.pow(N as usize) as usize;
 //   const THREE: Self = Self::new(single_instance_array(PrimeField::<P>::THREE));
-//   const TWO: Self = Self::new(single_instance_array(PrimeField::<P>::from(2u32)));
+//   const TWO: Self = Self::new(single_instance_array(PrimeField::<P>::from(2usize)));
 //   const ZERO: Self = Self::new([PrimeField::<P>::ZERO; N]);
 
 //   fn inverse(&self) -> Option<Self> { todo!() }
 
-//   fn pow(self, power: u32) -> Self { todo!() }
+//   fn pow(self, power: usize) -> Self { todo!() }
 // }
 
-const fn single_instance_array<const N: usize, const P: u32>(
-  value: PrimeField<P>,
-) -> [PrimeField<P>; N] {
-  let mut arr = [PrimeField::<P>::ZERO; N];
-  arr[0] = value;
-  arr
-}
+// TODO: This is useful for generating arrays at const time
+// const fn single_instance_array<const N: usize, const P: usize>(
+//   value: PrimeField<P>,
+// ) -> [PrimeField<P>; N] {
+//   let mut arr = [PrimeField::<P>::ZERO; N];
+//   arr[0] = value;
+//   arr
+// }
 
 // TODO: We could get the irreducible polynomial with const fn
 /// A polynomial is irreducible if `x^(p^q) - x` is divisible by the polynomial.
-// const fn get_irreducible_poly<const N: usize, const P: u32>() -> [PrimeField<P>; N + 1]
+// const fn get_irreducible_poly<const N: usize, const P: usize>() -> [PrimeField<P>; N + 1]
 // where [(); P as usize * N + 1]: {
 //   // Make our polynomial x^(p^q) - x
 //   let mut divisible = [PrimeField::<P>::ZERO; P as usize * N + 1];
@@ -66,7 +84,7 @@ const fn single_instance_array<const N: usize, const P: u32>(
 
 //   for i in 0..N + 1 {
 //     for j in 0..P as usize * i {
-//       poly.coefficients[j / i] = PrimeField::<P>::new((j % i) as u32);
+//       poly.coefficients[j / i] = PrimeField::<P>::new((j % i) as usize);
 //       if divisible.clone() % poly.clone()
 //         == Polynomial::<Monomial, PrimeField<P>>::from([PrimeField::<P>::ZERO; 1])
 //       {
@@ -112,11 +130,11 @@ const fn single_instance_array<const N: usize, const P: u32>(
 //   (q, p)
 // }
 
-impl<const N: usize, const P: u32> Default for GaloisField<N, P> {
+impl<const N: usize, const P: usize> Default for GaloisField<N, P> {
   fn default() -> Self { Self { coeffs: [PrimeField::<P>::ZERO; N] } }
 }
 
-impl<const N: usize, const P: u32> GaloisField<N, P> {
+impl<const N: usize, const P: usize> GaloisField<N, P> {
   /// Create a new extension field element from the given coefficients of the field in polynomial
   /// form. The coefficients are expected to be from [`FiniteField`] you are extending over in the
   /// order of increasing degree. For example, for a quadratic (`N=2`) extension field, the
@@ -125,7 +143,7 @@ impl<const N: usize, const P: u32> GaloisField<N, P> {
 }
 
 /// Convert from a [`FiniteField`] element into the [`Ext`] field element in the natural way.
-impl<const N: usize, const P: u32> From<PrimeField<P>> for GaloisField<N, P> {
+impl<const N: usize, const P: usize> From<PrimeField<P>> for GaloisField<N, P> {
   fn from(value: PrimeField<P>) -> Self {
     let mut coeffs = [PrimeField::<P>::ZERO; N];
     coeffs[0] = value;
@@ -134,11 +152,16 @@ impl<const N: usize, const P: u32> From<PrimeField<P>> for GaloisField<N, P> {
 }
 
 /// Convert from a [`u32`] into the [`Ext`] field element in the natural way.
-impl<const N: usize, const P: u32> From<u32> for GaloisField<N, P> {
+impl<const N: usize, const P: usize> From<u32> for GaloisField<N, P> {
   fn from(val: u32) -> Self { Self::from(PrimeField::<P>::from(val)) }
 }
 
 /// Convert from a [`u64`] into the [`Ext`] field element in the natural way.
-impl<const N: usize, const P: u32> From<u64> for GaloisField<N, P> {
-  fn from(val: u64) -> Self { Self::from(PrimeField::<P>::from(val as u32)) }
+impl<const N: usize, const P: usize> From<u64> for GaloisField<N, P> {
+  fn from(val: u64) -> Self { Self::from(PrimeField::<P>::from(val)) }
+}
+
+/// Convert from a [`usize`] into the [`Ext`] field element in the natural way.
+impl<const N: usize, const P: usize> From<usize> for GaloisField<N, P> {
+  fn from(val: usize) -> Self { Self::from(PrimeField::<P>::from(val)) }
 }

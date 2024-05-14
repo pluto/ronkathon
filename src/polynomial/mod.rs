@@ -132,7 +132,7 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   pub fn evaluate(&self, x: F) -> F {
     let mut result = F::ZERO;
     for (i, c) in self.coefficients.iter().enumerate() {
-      result += *c * x.pow(i as u32);
+      result += *c * x.pow(i);
     }
     result
   }
@@ -212,21 +212,23 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   /// does not have roots of unity for the degree of the polynomial.
   pub fn dft(&self) -> Polynomial<Lagrange<F>, F> {
     let n = self.num_terms();
-    let primitive_root_of_unity = F::primitive_root_of_unity(n as u32);
+    let primitive_root_of_unity = F::primitive_root_of_unity(n);
 
     Polynomial::<Lagrange<F>, F>::new(
       (0..n)
         .map(|i| {
-          self.coefficients.iter().enumerate().fold(F::ZERO, |acc, (j, &coeff)| {
-            acc + coeff * primitive_root_of_unity.pow(i as u32 * j as u32)
-          })
+          self
+            .coefficients
+            .iter()
+            .enumerate()
+            .fold(F::ZERO, |acc, (j, &coeff)| acc + coeff * primitive_root_of_unity.pow(i * j))
         })
         .collect(),
     )
   }
 }
 
-impl<const P: u32> Display for Polynomial<Monomial, PrimeField<P>> {
+impl<const P: usize> Display for Polynomial<Monomial, PrimeField<P>> {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     let mut first = true;
     for (i, c) in self.coefficients.iter().enumerate() {
@@ -261,9 +263,9 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
   pub fn new(coefficients: Vec<F>) -> Self {
     // Check that the polynomial degree divides the field order so that there are roots of unity.
     let n = coefficients.len();
-    assert_eq!((F::ORDER - 1) % n as u32, 0);
-    let primitive_root = F::primitive_root_of_unity(n as u32);
-    let nodes: Vec<F> = (0..n).map(|i| primitive_root.pow(i as u32)).collect();
+    assert_eq!((F::ORDER - 1) % n, 0);
+    let primitive_root = F::primitive_root_of_unity(n);
+    let nodes: Vec<F> = (0..n).map(|i| primitive_root.pow(i)).collect();
 
     Self { coefficients, basis: Lagrange { nodes } }
   }
@@ -319,7 +321,7 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
   }
 }
 
-impl<const P: u32> Display for Polynomial<Lagrange<PrimeField<P>>, PrimeField<P>> {
+impl<const P: usize> Display for Polynomial<Lagrange<PrimeField<P>>, PrimeField<P>> {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     let d = self.num_terms() - 1;
     for (idx, (coeff, node)) in self.coefficients.iter().zip(self.basis.nodes.iter()).enumerate() {
@@ -339,6 +341,8 @@ impl<const N: usize, F: FiniteField> From<[F; N]> for Polynomial<Monomial, F> {
 }
 
 /// Convert from an [`Ext`] field element into a polynomial in the [`Monomial`] basis.
-impl<const N: usize, const P: u32> From<GaloisField<N, P>> for Polynomial<Monomial, PrimeField<P>> {
+impl<const N: usize, const P: usize> From<GaloisField<N, P>>
+  for Polynomial<Monomial, PrimeField<P>>
+{
   fn from(ext: GaloisField<N, P>) -> Self { Self::from(ext.coeffs) }
 }

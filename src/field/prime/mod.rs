@@ -1,32 +1,44 @@
+//! This module contains abstractions specifically for fields of prime order.
+//! All the arithmetic operations are implemented for the [`PrimeField`] struct and the
+//! [`FiniteField`] trait is implemented. This module asserts at compile time that the order of the
+//! field is a prime number and allows for creation of generic prime order fields.
+
 use super::*;
 
 mod arithmetic;
 
+/// The two prime fields used in the Pluto `ronkathon` system.
 pub enum PlutoPrime {
-  Base = BASE_FIELD_ORDER as isize,
-  Scalar = SCALAR_FIELD_ORDER as isize,
+  /// The base field of curves used throughout the system.
+  Base = 101,
+
+  /// The scalar field for the curve over the [`PrimeField`] used in the polynomial commitment
+  /// scheme.
+  Scalar = 17,
 }
 
-pub const BASE_FIELD_ORDER: u32 = 101;
-pub const SCALAR_FIELD_ORDER: u32 = 17;
-
+/// The [`PrimeField`] struct represents elements of a field with prime order. The field is defined
+/// by a prime number `P`, and the elements are integers modulo `P`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
-pub struct PrimeField<const P: u32> {
-  value: u32,
+pub struct PrimeField<const P: usize> {
+  value: usize,
 }
 
-impl<const P: u32> PrimeField<P> {
-  pub const fn new(value: u32) -> Self {
+impl<const P: usize> PrimeField<P> {
+  /// Creates a new element of the [`PrimeField`] and will automatically compute the modulus and
+  /// return a congruent element between 0 and `P`. Given the `const fn is_prime`, a program that
+  /// tries to compile for a non-prime `P` will fail at compile time.
+  pub const fn new(value: usize) -> Self {
     is_prime(P);
     Self { value: value % P }
   }
 }
 
-impl<const P: u32> const FiniteField for PrimeField<P> {
+impl<const P: usize> const FiniteField for PrimeField<P> {
   const GENERATOR: Self = if P == 2 { Self::ONE } else { find_generator::<P>() };
   const NEG_ONE: Self = Self { value: P - 1 };
   const ONE: Self = Self { value: 1 };
-  const ORDER: u32 = P;
+  const ORDER: usize = P;
   const THREE: Self = Self { value: 3 };
   const TWO: Self = Self { value: 2 };
   const ZERO: Self = Self { value: 0 };
@@ -50,7 +62,7 @@ impl<const P: u32> const FiniteField for PrimeField<P> {
     Some(result)
   }
 
-  fn pow(self, power: u32) -> Self {
+  fn pow(self, power: usize) -> Self {
     if power == 0 {
       Self::ONE
     } else if power == 1 {
@@ -63,7 +75,7 @@ impl<const P: u32> const FiniteField for PrimeField<P> {
   }
 }
 
-const fn is_prime(n: u32) {
+const fn is_prime(n: usize) {
   let mut i = 2;
   while i * i <= n {
     if n % i == 0 {
@@ -73,7 +85,7 @@ const fn is_prime(n: u32) {
   }
 }
 
-const fn find_generator<const P: u32>() -> PrimeField<P> {
+const fn find_generator<const P: usize>() -> PrimeField<P> {
   let mut i = 2;
   while i * i <= P {
     if (P - 1) % i == 0 {
@@ -88,15 +100,15 @@ const fn find_generator<const P: u32>() -> PrimeField<P> {
   panic!("generator not found");
 }
 
-impl<const P: u32> fmt::Display for PrimeField<P> {
+impl<const P: usize> fmt::Display for PrimeField<P> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.value) }
 }
 
-impl<const P: u32> Distribution<PrimeField<P>> for Standard {
+impl<const P: usize> Distribution<PrimeField<P>> for Standard {
   #[inline]
   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PrimeField<P> {
     loop {
-      let next_u31 = rng.next_u32() >> 4;
+      let next_u31 = (rng.next_u32() >> 4) as usize;
       let is_canonical = next_u31 < PrimeField::<P>::ORDER;
       if is_canonical {
         return PrimeField::<P> { value: next_u31 };
@@ -105,23 +117,23 @@ impl<const P: u32> Distribution<PrimeField<P>> for Standard {
   }
 }
 
-impl<const P: u32> From<u32> for PrimeField<P> {
-  fn from(val: u32) -> Self { Self::new(val) }
+impl<const P: usize> From<u32> for PrimeField<P> {
+  fn from(val: u32) -> Self { Self::new(val as usize) }
 }
 
-impl<const P: u32> From<u64> for PrimeField<P> {
-  fn from(val: u64) -> Self { Self::new(val as u32) }
+impl<const P: usize> From<u64> for PrimeField<P> {
+  fn from(val: u64) -> Self { Self::new(val as usize) }
 }
 
-impl<const P: u32> From<usize> for PrimeField<P> {
-  fn from(val: usize) -> Self { Self::new(val as u32) }
+impl<const P: usize> From<usize> for PrimeField<P> {
+  fn from(val: usize) -> Self { Self::new(val) }
 }
 
-impl From<PlutoPrime> for u32 {
-  fn from(prime: PlutoPrime) -> u32 {
+impl From<PlutoPrime> for usize {
+  fn from(prime: PlutoPrime) -> usize {
     match prime {
-      res @ PlutoPrime::Base => res as u32,
-      res @ PlutoPrime::Scalar => res as u32,
+      res @ PlutoPrime::Base => res as usize,
+      res @ PlutoPrime::Scalar => res as usize,
     }
   }
 }
@@ -137,10 +149,10 @@ mod tests {
   fn prime_field(#[case] prime: PlutoPrime) {
     match prime {
       PlutoPrime::Base => {
-        PrimeField::<BASE_FIELD_ORDER>::new(0);
+        PrimeField::<{ PlutoPrime::Base as usize }>::new(0);
       },
       PlutoPrime::Scalar => {
-        PrimeField::<SCALAR_FIELD_ORDER>::new(0);
+        PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0);
       },
     };
   }
@@ -149,7 +161,7 @@ mod tests {
   #[should_panic]
   fn non_prime_is_not_finite_field() { let _ = PrimeField::<100>::new(0); }
 
-  fn generator_check<const P: u32>() {
+  fn generator_check<const P: usize>() {
     let g = PrimeField::<P>::GENERATOR;
     let mut counter = 1;
     let mut val = g;
@@ -163,12 +175,12 @@ mod tests {
   #[rstest]
   fn generator(#[values(PlutoPrime::Base, PlutoPrime::Scalar)] prime: PlutoPrime) {
     match prime {
-      PlutoPrime::Base => generator_check::<BASE_FIELD_ORDER>(),
-      PlutoPrime::Scalar => generator_check::<SCALAR_FIELD_ORDER>(),
+      PlutoPrime::Base => generator_check::<{ PlutoPrime::Base as usize }>(),
+      PlutoPrime::Scalar => generator_check::<{ PlutoPrime::Scalar as usize }>(),
     }
   }
 
-  fn zero_check<const P: u32>() {
+  fn zero_check<const P: usize>() {
     assert_eq!(PrimeField::<P>::new(0).value, 0);
     assert_eq!(PrimeField::<P>::new(P).value, 0);
   }
@@ -178,12 +190,12 @@ mod tests {
   #[case(PlutoPrime::Scalar)]
   fn zero(#[case] prime: PlutoPrime) {
     match prime {
-      PlutoPrime::Base => zero_check::<BASE_FIELD_ORDER>(),
-      PlutoPrime::Scalar => zero_check::<SCALAR_FIELD_ORDER>(),
+      PlutoPrime::Base => zero_check::<{ PlutoPrime::Base as usize }>(),
+      PlutoPrime::Scalar => zero_check::<{ PlutoPrime::Scalar as usize }>(),
     }
   }
 
-  fn non_zero_check<const P: u32>() {
+  fn non_zero_check<const P: usize>() {
     let a = PrimeField::<P>::new(10);
     assert!(!(a == PrimeField::<P>::ZERO));
   }
@@ -193,12 +205,12 @@ mod tests {
   #[case(PlutoPrime::Scalar)]
   fn non_zero(#[case] prime: PlutoPrime) {
     match prime {
-      PlutoPrime::Base => non_zero_check::<BASE_FIELD_ORDER>(),
-      PlutoPrime::Scalar => non_zero_check::<SCALAR_FIELD_ORDER>(),
+      PlutoPrime::Base => non_zero_check::<{ PlutoPrime::Base as usize }>(),
+      PlutoPrime::Scalar => non_zero_check::<{ PlutoPrime::Scalar as usize }>(),
     }
   }
 
-  fn identity_elements_check<const P: u32>() {
+  fn identity_elements_check<const P: usize>() {
     let zero = PrimeField::<P>::new(0);
     let one = PrimeField::<P>::new(1);
     for i in 0..PrimeField::<P>::ORDER {
@@ -214,12 +226,12 @@ mod tests {
   #[case(PlutoPrime::Scalar)]
   fn identity_elements(#[case] prime: PlutoPrime) {
     match prime {
-      PlutoPrime::Base => identity_elements_check::<BASE_FIELD_ORDER>(),
-      PlutoPrime::Scalar => identity_elements_check::<SCALAR_FIELD_ORDER>(),
+      PlutoPrime::Base => identity_elements_check::<{ PlutoPrime::Base as usize }>(),
+      PlutoPrime::Scalar => identity_elements_check::<{ PlutoPrime::Scalar as usize }>(),
     }
   }
 
-  fn inverse_of_inverse_check<const P: u32>() {
+  fn inverse_of_inverse_check<const P: usize>() {
     for i in 1..PrimeField::<P>::ORDER {
       let a = PrimeField::<P>::new(i);
       let a_inv = a.inverse().unwrap();
@@ -233,8 +245,8 @@ mod tests {
   #[case(PlutoPrime::Scalar)]
   fn inverse_of_inverse(#[case] prime: PlutoPrime) {
     match prime {
-      PlutoPrime::Base => inverse_of_inverse_check::<BASE_FIELD_ORDER>(),
-      PlutoPrime::Scalar => inverse_of_inverse_check::<SCALAR_FIELD_ORDER>(),
+      PlutoPrime::Base => inverse_of_inverse_check::<{ PlutoPrime::Base as usize }>(),
+      PlutoPrime::Scalar => inverse_of_inverse_check::<{ PlutoPrime::Scalar as usize }>(),
     }
   }
 
@@ -242,6 +254,6 @@ mod tests {
   #[test]
   fn not_primitive_root_of_unity() {
     let n = 3;
-    let _root = PrimeField::<17>::primitive_root_of_unity(n);
+    let _root = PrimeField::<{ PlutoPrime::Scalar as usize }>::primitive_root_of_unity(n);
   }
 }

@@ -151,212 +151,224 @@ mod tests {
   use super::*;
 
   #[fixture]
-  fn poly_a() -> Polynomial<Monomial, PrimeField<101>> {
-    Polynomial::<Monomial, PrimeField<101>>::new(vec![
-      PrimeField::<101>::new(1),
-      PrimeField::<101>::new(2),
-      PrimeField::<101>::new(3),
-      PrimeField::<101>::new(4),
+  fn poly_a() -> Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>> {
+    Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(2),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(3),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(4),
     ])
   }
 
   #[fixture]
-  fn poly_b() -> Polynomial<Monomial, PrimeField<101>> {
-    Polynomial::<Monomial, PrimeField<101>>::new(vec![
-      PrimeField::<101>::new(5),
-      PrimeField::<101>::new(6),
-      PrimeField::<101>::new(7),
-      PrimeField::<101>::new(8),
-      PrimeField::<101>::new(9),
+  fn poly_b() -> Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>> {
+    Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(5),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(6),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(7),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(8),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(9),
     ])
   }
 
   #[fixture]
-  fn poly_c() -> Polynomial<Monomial, PrimeField<101>> {
-    Polynomial::<Monomial, PrimeField<101>>::new(vec![
-      PrimeField::<101>::new(1),
-      PrimeField::<101>::new(2),
+  fn poly_c() -> Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>> {
+    Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(2),
     ])
   }
 
   #[fixture]
-  fn poly_d() -> Polynomial<Monomial, PrimeField<101>> {
-    Polynomial::<Monomial, PrimeField<101>>::new(vec![
-      PrimeField::<101>::new(3),
-      PrimeField::<101>::new(4),
+  fn poly_d() -> Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>> {
+    Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(3),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(4),
     ])
   }
 
   #[rstest]
   fn add(
-    poly_a: Polynomial<Monomial, PrimeField<101>>,
-    poly_b: Polynomial<Monomial, PrimeField<101>>,
+    poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
+    poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
   ) {
     assert_eq!((poly_a + poly_b).coefficients, [
-      PrimeField::<101>::new(6),
-      PrimeField::<101>::new(8),
-      PrimeField::<101>::new(10),
-      PrimeField::<101>::new(12),
-      PrimeField::<101>::new(9)
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(6),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(8),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(10),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(12),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(9)
     ]);
   }
 
   #[rstest]
   fn add_assign(
-    mut poly_a: Polynomial<Monomial, PrimeField<101>>,
-    poly_b: Polynomial<Monomial, PrimeField<101>>,
+    mut poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
+    poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
   ) {
     poly_a += poly_b;
     assert_eq!(poly_a.coefficients, [
-      PrimeField::<101>::new(6),
-      PrimeField::<101>::new(8),
-      PrimeField::<101>::new(10),
-      PrimeField::<101>::new(12),
-      PrimeField::<101>::new(9)
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(6),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(8),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(10),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(12),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(9)
     ]);
   }
 
   #[rstest]
   fn sum(
-    poly_a: Polynomial<Monomial, PrimeField<101>>,
-    poly_b: Polynomial<Monomial, PrimeField<101>>,
+    poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
+    poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
   ) {
     assert_eq!(
-      [poly_a, poly_b].into_iter().sum::<Polynomial<Monomial, PrimeField::<101>>>().coefficients,
+      [poly_a, poly_b]
+        .into_iter()
+        .sum::<Polynomial<Monomial, PrimeField::<{ PlutoPrime::Base as usize }>>>()
+        .coefficients,
       [
-        PrimeField::<101>::new(6),
-        PrimeField::<101>::new(8),
-        PrimeField::<101>::new(10),
-        PrimeField::<101>::new(12),
-        PrimeField::<101>::new(9)
+        PrimeField::<{ PlutoPrime::Base as usize }>::new(6),
+        PrimeField::<{ PlutoPrime::Base as usize }>::new(8),
+        PrimeField::<{ PlutoPrime::Base as usize }>::new(10),
+        PrimeField::<{ PlutoPrime::Base as usize }>::new(12),
+        PrimeField::<{ PlutoPrime::Base as usize }>::new(9)
       ]
     );
   }
 
   #[rstest]
   fn sub(
-    poly_a: Polynomial<Monomial, PrimeField<101>>,
-    poly_b: Polynomial<Monomial, PrimeField<101>>,
+    poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
+    poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
   ) {
     assert_eq!((poly_a - poly_b).coefficients, [
-      PrimeField::<101>::new(97),
-      PrimeField::<101>::new(97),
-      PrimeField::<101>::new(97),
-      PrimeField::<101>::new(97),
-      PrimeField::<101>::new(92)
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(97),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(97),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(97),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(97),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(92)
     ]);
   }
 
   #[rstest]
   fn sub_assign(
-    mut poly_a: Polynomial<Monomial, PrimeField<101>>,
-    poly_b: Polynomial<Monomial, PrimeField<101>>,
+    mut poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
+    poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
   ) {
     poly_a -= poly_b;
     assert_eq!(poly_a.coefficients, [
-      PrimeField::<101>::new(97),
-      PrimeField::<101>::new(97),
-      PrimeField::<101>::new(97),
-      PrimeField::<101>::new(97),
-      PrimeField::<101>::new(92)
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(97),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(97),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(97),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(97),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(92)
     ]);
   }
 
   #[rstest]
-  fn neg(poly_a: Polynomial<Monomial, PrimeField<101>>) {
+  fn neg(poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>) {
     assert_eq!((-poly_a).coefficients, [
-      PrimeField::<101>::new(100),
-      PrimeField::<101>::new(99),
-      PrimeField::<101>::new(98),
-      PrimeField::<101>::new(97)
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(100),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(99),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(98),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(97)
     ]);
   }
 
   #[rstest]
   fn div(
-    poly_a: Polynomial<Monomial, PrimeField<101>>,
-    poly_b: Polynomial<Monomial, PrimeField<101>>,
+    poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
+    poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
   ) {
-    assert_eq!((poly_a.clone() / poly_b.clone()).coefficients, [PrimeField::<101>::new(0)]);
+    assert_eq!((poly_a.clone() / poly_b.clone()).coefficients, [PrimeField::<
+      { PlutoPrime::Base as usize },
+    >::new(0)]);
     assert_eq!((poly_b / poly_a).coefficients, [
-      PrimeField::<101>::new(95),
-      PrimeField::<101>::new(78)
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(95),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(78)
     ]);
 
-    let p = Polynomial::<Monomial, PrimeField<101>>::new(vec![
-      PrimeField::<101>::new(1),
-      PrimeField::<101>::new(2),
-      PrimeField::<101>::new(1),
+    let p = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(2),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
     ]);
-    let q = Polynomial::<Monomial, PrimeField<101>>::new(vec![
-      PrimeField::<101>::new(1),
-      PrimeField::<101>::new(1),
+    let q = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
     ]);
     let r = p / q;
-    assert_eq!(r.coefficients, [PrimeField::<101>::new(1), PrimeField::<101>::new(1)]);
+    assert_eq!(r.coefficients, [
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1)
+    ]);
   }
 
   #[rstest]
   fn rem(
-    poly_a: Polynomial<Monomial, PrimeField<101>>,
-    poly_b: Polynomial<Monomial, PrimeField<101>>,
+    poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
+    poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
   ) {
     assert_eq!((poly_a.clone() % poly_b.clone()).coefficients, poly_a.coefficients);
     assert_eq!((poly_b % poly_a).coefficients, [
-      PrimeField::<101>::new(11),
-      PrimeField::<101>::new(41),
-      PrimeField::<101>::new(71)
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(11),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(41),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(71)
     ]);
 
-    let p = Polynomial::<Monomial, PrimeField<101>>::new(vec![
-      PrimeField::<101>::new(1),
-      PrimeField::<101>::new(2),
-      PrimeField::<101>::new(1),
+    let p = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(2),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
     ]);
-    let q = Polynomial::<Monomial, PrimeField<101>>::new(vec![
-      PrimeField::<101>::new(1),
-      PrimeField::<101>::new(1),
+    let q = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
     ]);
     let r = p % q;
-    assert_eq!(r.coefficients, [PrimeField::<101>::new(0)]);
+    assert_eq!(r.coefficients, [PrimeField::<{ PlutoPrime::Base as usize }>::new(0)]);
   }
 
   #[rstest]
   fn mul(
-    poly_c: Polynomial<Monomial, PrimeField<101>>,
-    poly_d: Polynomial<Monomial, PrimeField<101>>,
+    poly_c: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
+    poly_d: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
   ) {
     assert_eq!((poly_c * poly_d).coefficients, [
-      PrimeField::<101>::new(3),
-      PrimeField::<101>::new(10),
-      PrimeField::<101>::new(8)
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(3),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(10),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(8)
     ]);
   }
 
   #[rstest]
   fn mul_assign(
-    mut poly_c: Polynomial<Monomial, PrimeField<101>>,
-    poly_d: Polynomial<Monomial, PrimeField<101>>,
+    mut poly_c: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
+    poly_d: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
   ) {
     poly_c *= poly_d;
     assert_eq!(poly_c.coefficients, [
-      PrimeField::<101>::new(3),
-      PrimeField::<101>::new(10),
-      PrimeField::<101>::new(8)
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(3),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(10),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(8)
     ]);
   }
 
   #[rstest]
   fn product(
-    poly_c: Polynomial<Monomial, PrimeField<101>>,
-    poly_d: Polynomial<Monomial, PrimeField<101>>,
+    poly_c: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
+    poly_d: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
   ) {
     assert_eq!(
       [poly_c, poly_d]
         .into_iter()
-        .product::<Polynomial<Monomial, PrimeField::<101>>>()
+        .product::<Polynomial<Monomial, PrimeField::<{ PlutoPrime::Base as usize }>>>()
         .coefficients,
-      [PrimeField::<101>::new(3), PrimeField::<101>::new(10), PrimeField::<101>::new(8)]
+      [
+        PrimeField::<{ PlutoPrime::Base as usize }>::new(3),
+        PrimeField::<{ PlutoPrime::Base as usize }>::new(10),
+        PrimeField::<{ PlutoPrime::Base as usize }>::new(8)
+      ]
     );
   }
 }
