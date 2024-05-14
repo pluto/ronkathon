@@ -75,16 +75,16 @@ mod tests {
   use super::*;
 
   #[rstest]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(1), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(1), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(2))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(12), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(5), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(5), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(12), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(3))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(0), PrimeField::<{ PlutoPrime::Base as usize }>::new(0), PrimeField::<{ PlutoPrime::Base as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(1), PrimeField::<{ PlutoPrime::Base as usize }>::new(1), PrimeField::<{ PlutoPrime::Base as usize }>::new(2))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(40), PrimeField::<{ PlutoPrime::Base as usize }>::new(61), PrimeField::<{ PlutoPrime::Base as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(61), PrimeField::<{ PlutoPrime::Base as usize }>::new(40), PrimeField::<{ PlutoPrime::Base as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(60), PrimeField::<{ PlutoPrime::Base as usize }>::new(60), PrimeField::<{ PlutoPrime::Base as usize }>::new(19))]
+  #[case(PlutoScalarField::new(0), PlutoScalarField::new(0), PlutoScalarField::new(0))]
+  #[case(PlutoScalarField::new(1), PlutoScalarField::new(1), PlutoScalarField::new(2))]
+  #[case(PlutoScalarField::new(12), PlutoScalarField::new(5), PlutoScalarField::new(0))]
+  #[case(PlutoScalarField::new(5), PlutoScalarField::new(12), PlutoScalarField::new(0))]
+  #[case(PlutoScalarField::new(10), PlutoScalarField::new(10), PlutoScalarField::new(3))]
+  #[case(PlutoBaseField::new(0), PlutoBaseField::new(0), PlutoBaseField::new(0))]
+  #[case(PlutoBaseField::new(1), PlutoBaseField::new(1), PlutoBaseField::new(2))]
+  #[case(PlutoBaseField::new(40), PlutoBaseField::new(61), PlutoBaseField::new(0))]
+  #[case(PlutoBaseField::new(61), PlutoBaseField::new(40), PlutoBaseField::new(0))]
+  #[case(PlutoBaseField::new(60), PlutoBaseField::new(60), PlutoBaseField::new(19))]
   fn add<const P: usize>(
     #[case] a: PrimeField<P>,
     #[case] b: PrimeField<P>,
@@ -94,16 +94,16 @@ mod tests {
   }
 
   #[rstest]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(1), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(1), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(12), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(5), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(7))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(5), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(12), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(17), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(0), PrimeField::<{ PlutoPrime::Base as usize }>::new(0), PrimeField::<{ PlutoPrime::Base as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(1), PrimeField::<{ PlutoPrime::Base as usize }>::new(1), PrimeField::<{ PlutoPrime::Base as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(40), PrimeField::<{ PlutoPrime::Base as usize }>::new(61), PrimeField::<{ PlutoPrime::Base as usize }>::new(80))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(61), PrimeField::<{ PlutoPrime::Base as usize }>::new(40), PrimeField::<{ PlutoPrime::Base as usize }>::new(21))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(60), PrimeField::<{ PlutoPrime::Base as usize }>::new(60), PrimeField::<{ PlutoPrime::Base as usize }>::new(0))]
+  #[case(PlutoScalarField::new(0), PlutoScalarField::new(0), PlutoScalarField::new(0))]
+  #[case(PlutoScalarField::new(1), PlutoScalarField::new(1), PlutoScalarField::new(0))]
+  #[case(PlutoScalarField::new(12), PlutoScalarField::new(5), PlutoScalarField::new(7))]
+  #[case(PlutoScalarField::new(5), PlutoScalarField::new(12), PlutoScalarField::new(10))]
+  #[case(PlutoScalarField::new(10), PlutoScalarField::new(17), PlutoScalarField::new(10))]
+  #[case(PlutoBaseField::new(0), PlutoBaseField::new(0), PlutoBaseField::new(0))]
+  #[case(PlutoBaseField::new(1), PlutoBaseField::new(1), PlutoBaseField::new(0))]
+  #[case(PlutoBaseField::new(40), PlutoBaseField::new(61), PlutoBaseField::new(80))]
+  #[case(PlutoBaseField::new(61), PlutoBaseField::new(40), PlutoBaseField::new(21))]
+  #[case(PlutoBaseField::new(60), PlutoBaseField::new(60), PlutoBaseField::new(0))]
   fn sub<const P: usize>(
     #[case] a: PrimeField<P>,
     #[case] b: PrimeField<P>,
@@ -113,16 +113,16 @@ mod tests {
   }
 
   #[rstest]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(1), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(1), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(1))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(12), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(5), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(9))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(5), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(12), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(9))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(15))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(0), PrimeField::<{ PlutoPrime::Base as usize }>::new(0), PrimeField::<{ PlutoPrime::Base as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(1), PrimeField::<{ PlutoPrime::Base as usize }>::new(1), PrimeField::<{ PlutoPrime::Base as usize }>::new(1))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(40), PrimeField::<{ PlutoPrime::Base as usize }>::new(61), PrimeField::<{ PlutoPrime::Base as usize }>::new(16))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(61), PrimeField::<{ PlutoPrime::Base as usize }>::new(40), PrimeField::<{ PlutoPrime::Base as usize }>::new(16))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(60), PrimeField::<{ PlutoPrime::Base as usize }>::new(60), PrimeField::<{ PlutoPrime::Base as usize }>::new(65))]
+  #[case(PlutoScalarField::new(0), PlutoScalarField::new(0), PlutoScalarField::new(0))]
+  #[case(PlutoScalarField::new(1), PlutoScalarField::new(1), PlutoScalarField::new(1))]
+  #[case(PlutoScalarField::new(12), PlutoScalarField::new(5), PlutoScalarField::new(9))]
+  #[case(PlutoScalarField::new(5), PlutoScalarField::new(12), PlutoScalarField::new(9))]
+  #[case(PlutoScalarField::new(10), PlutoScalarField::new(10), PlutoScalarField::new(15))]
+  #[case(PlutoBaseField::new(0), PlutoBaseField::new(0), PlutoBaseField::new(0))]
+  #[case(PlutoBaseField::new(1), PlutoBaseField::new(1), PlutoBaseField::new(1))]
+  #[case(PlutoBaseField::new(40), PlutoBaseField::new(61), PlutoBaseField::new(16))]
+  #[case(PlutoBaseField::new(61), PlutoBaseField::new(40), PlutoBaseField::new(16))]
+  #[case(PlutoBaseField::new(60), PlutoBaseField::new(60), PlutoBaseField::new(65))]
   fn mul<const P: usize>(
     #[case] a: PrimeField<P>,
     #[case] b: PrimeField<P>,
@@ -161,16 +161,16 @@ mod tests {
   }
 
   #[rstest]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0), 0, PrimeField::<{ PlutoPrime::Scalar as usize }>::new(1))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0), 10, PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(12), 5, PrimeField::<{ PlutoPrime::Scalar as usize }>::new(3))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(5), 12, PrimeField::<{ PlutoPrime::Scalar as usize }>::new(4))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10), 10, PrimeField::<{ PlutoPrime::Scalar as usize }>::new(2))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(0), 0, PrimeField::<{ PlutoPrime::Base as usize }>::new(1))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(0), 10, PrimeField::<{ PlutoPrime::Base as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(40), 5, PrimeField::<{ PlutoPrime::Base as usize }>::new(39))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(61), 3, PrimeField::<{ PlutoPrime::Base as usize }>::new(34))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(25), 25, PrimeField::<{ PlutoPrime::Base as usize }>::new(1))]
+  #[case(PlutoScalarField::new(0), 0, PlutoScalarField::new(1))]
+  #[case(PlutoScalarField::new(0), 10, PlutoScalarField::new(0))]
+  #[case(PlutoScalarField::new(12), 5, PlutoScalarField::new(3))]
+  #[case(PlutoScalarField::new(5), 12, PlutoScalarField::new(4))]
+  #[case(PlutoScalarField::new(10), 10, PlutoScalarField::new(2))]
+  #[case(PlutoBaseField::new(0), 0, PlutoBaseField::new(1))]
+  #[case(PlutoBaseField::new(0), 10, PlutoBaseField::new(0))]
+  #[case(PlutoBaseField::new(40), 5, PlutoBaseField::new(39))]
+  #[case(PlutoBaseField::new(61), 3, PlutoBaseField::new(34))]
+  #[case(PlutoBaseField::new(25), 25, PlutoBaseField::new(1))]
   fn field_pow<const P: usize>(
     #[case] a: PrimeField<P>,
     #[case] pow: usize,
@@ -182,18 +182,18 @@ mod tests {
   #[rstest]
   // First case will panic here so the "expected" value is not relevant.
   #[should_panic]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(69420))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(1), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(1))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(12), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(5), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(7))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(12))]
+  #[case(PlutoScalarField::new(0), PlutoScalarField::new(69420))]
+  #[case(PlutoScalarField::new(1), PlutoScalarField::new(1))]
+  #[case(PlutoScalarField::new(12), PlutoScalarField::new(10))]
+  #[case(PlutoScalarField::new(5), PlutoScalarField::new(7))]
+  #[case(PlutoScalarField::new(10), PlutoScalarField::new(12))]
   // First case will panic here so the "expected" value is not relevant.
   #[should_panic]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(0),  PrimeField::<{ PlutoPrime::Base as usize }>::new(69420))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(1),  PrimeField::<{ PlutoPrime::Base as usize }>::new(1))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(15), PrimeField::<{ PlutoPrime::Base as usize }>::new(27))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(61), PrimeField::<{ PlutoPrime::Base as usize }>::new(53))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(25), PrimeField::<{ PlutoPrime::Base as usize }>::new(97))]
+  #[case(PlutoBaseField::new(0), PlutoBaseField::new(69420))]
+  #[case(PlutoBaseField::new(1), PlutoBaseField::new(1))]
+  #[case(PlutoBaseField::new(15), PlutoBaseField::new(27))]
+  #[case(PlutoBaseField::new(61), PlutoBaseField::new(53))]
+  #[case(PlutoBaseField::new(25), PlutoBaseField::new(97))]
   fn multiplicative_inverse<const P: usize>(
     #[case] a: PrimeField<P>,
     #[case] expected: PrimeField<P>,
@@ -203,16 +203,16 @@ mod tests {
   }
 
   #[rstest]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(5))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(12), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(6))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(1), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(9))]
-  #[case(PrimeField::<{ PlutoPrime::Scalar as usize }>::new(3), PrimeField::<{ PlutoPrime::Scalar as usize }>::new(10))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(0),  PrimeField::<{ PlutoPrime::Base as usize }>::new(0))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(1),  PrimeField::<{ PlutoPrime::Base as usize }>::new(51))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(15), PrimeField::<{ PlutoPrime::Base as usize }>::new(58))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(61), PrimeField::<{ PlutoPrime::Base as usize }>::new(81))]
-  #[case(PrimeField::<{ PlutoPrime::Base as usize }>::new(25), PrimeField::<{ PlutoPrime::Base as usize }>::new(63))]
+  #[case(PlutoScalarField::new(0), PlutoScalarField::new(0))]
+  #[case(PlutoScalarField::new(10), PlutoScalarField::new(5))]
+  #[case(PlutoScalarField::new(12), PlutoScalarField::new(6))]
+  #[case(PlutoScalarField::new(1), PlutoScalarField::new(9))]
+  #[case(PlutoScalarField::new(3), PlutoScalarField::new(10))]
+  #[case(PlutoBaseField::new(0), PlutoBaseField::new(0))]
+  #[case(PlutoBaseField::new(1), PlutoBaseField::new(51))]
+  #[case(PlutoBaseField::new(15), PlutoBaseField::new(58))]
+  #[case(PlutoBaseField::new(61), PlutoBaseField::new(81))]
+  #[case(PlutoBaseField::new(25), PlutoBaseField::new(63))]
   fn halve<const P: usize>(#[case] a: PrimeField<P>, #[case] expected: PrimeField<P>) {
     assert_eq!(a / PrimeField::<P>::TWO, expected);
   }

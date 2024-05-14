@@ -17,6 +17,14 @@ pub enum PlutoPrime {
   Scalar = 17,
 }
 
+/// The [`PlutoBaseField`] is a specific instance of the [`PrimeField`] struct with the order set to
+/// the prime number `101`. This is the base field used in the Pluto `ronkathon` system.
+pub type PlutoBaseField = PrimeField<{ PlutoPrime::Base as usize }>;
+
+/// The [`PlutoScalarField`] is a specific instance of the [`PrimeField`] struct with the order set
+/// to the prime number `17`. This is the scalar field used in the Pluto `ronkathon` system.
+pub type PlutoScalarField = PrimeField<{ PlutoPrime::Scalar as usize }>;
+
 /// The [`PrimeField`] struct represents elements of a field with prime order. The field is defined
 /// by a prime number `P`, and the elements are integers modulo `P`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
@@ -149,10 +157,10 @@ mod tests {
   fn prime_field(#[case] prime: PlutoPrime) {
     match prime {
       PlutoPrime::Base => {
-        PrimeField::<{ PlutoPrime::Base as usize }>::new(0);
+        PlutoBaseField::new(0);
       },
       PlutoPrime::Scalar => {
-        PrimeField::<{ PlutoPrime::Scalar as usize }>::new(0);
+        PlutoScalarField::new(0);
       },
     };
   }
@@ -254,6 +262,6 @@ mod tests {
   #[test]
   fn not_primitive_root_of_unity() {
     let n = 3;
-    let _root = PrimeField::<{ PlutoPrime::Scalar as usize }>::primitive_root_of_unity(n);
+    let _root = PlutoScalarField::primitive_root_of_unity(n);
   }
 }
