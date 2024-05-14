@@ -93,6 +93,14 @@ const fn is_prime(n: usize) {
   }
 }
 
+/// This function takes in a prime number `P` and returns a generator of the multiplicative group
+/// (also called a [primitive element](https://en.wikipedia.org/wiki/Primitive_element_(finite_field)))
+/// of the field. The generator is found by iterating through the numbers from 2 to `P - 1` and
+/// checking if the number is a generator of the field.
+/// A generator `g` of a field `F` is an element such that the powers of `g` generate all the
+/// non-zero elements of the field, so we check here that `g` raised to the power of `(P-1)/g` where
+/// this division is integer division, is not equal to 1. In other words, we are checking that `g`
+/// is coprime to `P-1`. This follows from [Lagrange's theorem](https://en.wikipedia.org/wiki/Lagrange%27s_theorem_(group_theory)).
 const fn find_generator<const P: usize>() -> PrimeField<P> {
   let mut i = 2;
   while i * i <= P {
