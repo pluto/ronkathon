@@ -38,9 +38,12 @@ use rand::Rng;
 #[cfg(test)] use rstest::{fixture, rstest};
 
 use self::{
-  curve::{pluto_curve::PlutoCurve, AffinePoint},
+  curve::{
+    pluto_curve::{PlutoBaseCurve, PlutoExtendedCurve},
+    AffinePoint,
+  },
   field::{
-    extension::{GaloisField, PlutoBaseFieldExtension, PlutoExtensions},
+    extension::{GaloisField, PlutoBaseFieldExtension},
     prime::{PlutoBaseField, PlutoPrime, PlutoScalarField, PrimeField},
     FiniteField,
   },

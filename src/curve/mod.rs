@@ -14,7 +14,10 @@ pub trait EllipticCurve: Copy {
   type BaseField: FiniteField;
 
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
-  const ORDER: usize;
+  type ScalarField: FiniteField;
+
+  /// Order of this elliptic curve, i.e. number of elements in the scalar field.
+  const ORDER: usize = Self::ScalarField::ORDER;
 
   /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
   const EQUATION_A: Self::Coefficient;

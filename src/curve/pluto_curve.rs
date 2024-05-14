@@ -8,43 +8,37 @@
 //! Note that this would be cleaner if we could use trait specialization to keep the default
 //! implementations in the trait itself, but this feature is not yet to that point of utility.
 
-use std::marker::PhantomData;
-
 use super::*;
 
-/// The [`PlutoBaseCurve`] is a specific instance of the [`PlutoCurve`] struct with the base field
-/// set to the [`PlutoBaseField`]. This is the curve used in the Pluto `ronkathon` system.
-/// The curve is defined by the equation `y^2 = x^3 + 3`.
-pub type PlutoBaseCurve = PlutoCurve<PlutoBaseField>;
-
-/// The [`PlutoExtendedCurve`] is a specific instance of the [`PlutoCurve`] struct with the base
-/// field set to the [`PlutoBaseFieldExtension`]. This is the curve used in the Pluto `ronkathon`
-/// system. The curve is defined by the equation `y^2 = x^3 + 3`, but the field is extended to the
-/// quadratic extension field over the base field.
-pub type PlutoExtendedCurve = PlutoCurve<PlutoBaseFieldExtension>;
-
-/// A struct that houses the constants and methods for the Pluto curve over the prime field `GF101`
-/// and its extensions.
+/// The [`PlutoBaseCurve`] is an the base field set to the [`PlutoBaseField`]. This is the curve
+/// used in the Pluto `ronkathon` system. The curve is defined by the equation `y^2 = x^3 + 3`.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
-pub struct PlutoCurve<B: FiniteField> {
-  _phantom: PhantomData<B>,
-}
+pub struct PlutoBaseCurve;
 
-// TODO: It would be really nice if trait specialization could be used here to keep the default
-// implementations in the trait itself, e.g., for the `EQUATION_A` and `EQUATION_B` constants.
-impl EllipticCurve for PlutoCurve<PlutoBaseField> {
+/// The [`PlutoExtendedCurve`] is an instance of the same curve as the [`PlutoBaseCurve`], but with
+/// field set to the [`PlutoBaseFieldExtension`].
+///
+/// This is the curve used in the Pluto `ronkathon`  system. The curve is defined by the equation
+/// `y^2 = x^3 + 3`, but the field is extended to the quadratic extension field over the base field.
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
+pub struct PlutoExtendedCurve;
+
+impl EllipticCurve for PlutoBaseCurve {
   type BaseField = PlutoBaseField;
   type Coefficient = PlutoBaseField;
+  type ScalarField = PlutoScalarField;
 
   const EQUATION_A: Self::Coefficient = PlutoBaseField::ZERO;
   const EQUATION_B: Self::Coefficient = PlutoBaseField::new(3);
   const GENERATOR: (Self::BaseField, Self::BaseField) = (PlutoBaseField::ONE, PlutoBaseField::TWO);
-  const ORDER: usize = PlutoPrime::Base as usize;
 }
 
-impl EllipticCurve for PlutoCurve<GaloisField<2, { PlutoPrime::Base as usize }>> {
+impl EllipticCurve for PlutoExtendedCurve {
   type BaseField = PlutoBaseFieldExtension;
   type Coefficient = PlutoBaseField;
+  // TODO: This scalar field is not correct yet. We need to implement the correct scalar field for
+  // the extension field as `PlutoScalarFieldExtension`
+  type ScalarField = PlutoScalarField;
 
   const EQUATION_A: Self::Coefficient = PlutoBaseField::ZERO;
   const EQUATION_B: Self::Coefficient = PlutoBaseField::new(3);
@@ -52,7 +46,6 @@ impl EllipticCurve for PlutoCurve<GaloisField<2, { PlutoPrime::Base as usize }>>
     PlutoBaseFieldExtension::new([PlutoBaseField::new(36), PlutoBaseField::ZERO]),
     PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::new(31)]),
   );
-  const ORDER: usize = PlutoExtensions::QuadraticBase as usize;
 }
 
 #[cfg(test)]
