@@ -133,7 +133,6 @@ mod tests {
 
   fn combined_arithmetic_check<const P: usize>() {
     let mut rng = rand::thread_rng();
-    // for i in 0..1000 {
     let x = rng.gen::<PrimeField<P>>();
     let y = rng.gen::<PrimeField<P>>();
     let z = rng.gen::<PrimeField<P>>();

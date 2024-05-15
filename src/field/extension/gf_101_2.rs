@@ -255,7 +255,12 @@ mod tests {
   fn add_sub_mul_subfield() {
     let mut rng = rand::thread_rng();
     let x = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
-    let y = rng.gen::<PlutoBaseField>();
+    let mut y = <PlutoBaseFieldExtension>::ZERO;
+    let mut y_inv = None;
+    while y_inv.is_none() {
+      y = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
+      y_inv = y.inverse();
+    }
 
     let add1 = x + y;
     let sub1 = x - y;

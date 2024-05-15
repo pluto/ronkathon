@@ -38,8 +38,8 @@ fn setup() -> (Vec<AffinePoint<PlutoBaseCurve>>, Vec<AffinePoint<PlutoExtendedCu
 #[allow(dead_code)]
 fn commit(
   coefs: Vec<u32>,
-  g1_srs: Vec<AffinePoint<PlutoCurve<GF101>>>,
-) -> AffinePoint<PlutoCurve<GF101>> {
+  g1_srs: Vec<AffinePoint<PlutoBaseCurve>>,
+) -> AffinePoint<PlutoBaseCurve> {
   // commit to a polynomial
   // - given a polynomial, commit to it
   assert!(g1_srs.len() >= coefs.len());
@@ -98,7 +98,7 @@ mod tests {
     let coefficients = vec![11, 11, 11, 1];
     //  g1srs[0] * 11 + g1srs[1] * 11 + g1srs[2] * 11 + g1srs[3] * 1
     let commit_1 = commit(coefficients, g1srs.clone());
-    assert_eq!(commit_1, AffinePoint::<PlutoCurve<GF101>>::Infinity);
+    assert_eq!(commit_1, AffinePoint::<PlutoBaseCurve>::Infinity);
 
     // p(x) = (x-1)(x-2)(x-3)(x-4)
     // p(x) = x^4 - 10x^3 + 35x^2 - 50x + 24
@@ -109,12 +109,18 @@ mod tests {
     let coefficients = vec![7, 16, 1, 11, 1];
     //  g1srs[0] * 7 + g1srs[1] * 16 + g1srs[2] * 1 + g1srs[3] * 11 + g1srs[4] * 1
     let commit_2 = commit(coefficients, g1srs.clone());
-    assert_eq!(commit_2, AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(32), GF101::new(59)));
+    assert_eq!(
+      commit_2,
+      AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(32), PlutoBaseField::new(59))
+    );
 
     // p(x)  = x^2 + 2x + 3
     let coefficients = vec![3, 2, 1];
     // g1srs[0] * 3 + g1srs[1] * 2  + g1srs[2] * 1
     let commit_3 = commit(coefficients, g1srs);
-    assert_eq!(commit_3, AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(32), GF101::new(59)));
+    assert_eq!(
+      commit_3,
+      AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(32), PlutoBaseField::new(59))
+    );
   }
 }

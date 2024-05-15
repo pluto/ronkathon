@@ -19,7 +19,6 @@ pub trait FiniteField:
   + Clone
   + PartialEq
   + Eq
-  + PartialOrd
   + Add<Output = Self>
   + AddAssign
   + Sum
