@@ -2,8 +2,10 @@
 
 use super::*;
 
+/// simple setup to get params.
 #[allow(dead_code, clippy::type_complexity)]
-fn setup() -> (Vec<AffinePoint<PlutoCurve<GF101>>>, Vec<AffinePoint<PlutoCurve<Ext<2, GF101>>>>) {
+pub fn setup() -> (Vec<AffinePoint<PlutoCurve<GF101>>>, Vec<AffinePoint<PlutoCurve<Ext<2, GF101>>>>)
+{
   // NOTE: For demonstration purposes only.
 
   // This is just tau from plonk by hand, it is not actually secure
@@ -33,6 +35,28 @@ fn setup() -> (Vec<AffinePoint<PlutoCurve<GF101>>>, Vec<AffinePoint<PlutoCurve<E
   (srs_g1_points, srs_g2_points)
 }
 
+/// kzg poly commit
+#[allow(dead_code)]
+fn commit(
+  coefs: Vec<u32>,
+  g1_srs: Vec<AffinePoint<PlutoCurve<GF101>>>,
+) -> AffinePoint<PlutoCurve<GF101>> {
+  // commit to a polynomial
+  // - given a polynomial, commit to it
+  assert!(g1_srs.len() >= coefs.len());
+  // Todo implement multiplication with field elements as scalar mult.
+  // Maybe having the scalar mult be around the base field like colin suggested is better
+
+  let mut commitment = AffinePoint::Infinity;
+  for (coef, point) in coefs.iter().zip(g1_srs) {
+    let res = point * *coef;
+    // println!("res {:?}, of multiplying point {:?}, and coef {:?}", res, point, coef);
+    println!("commitment {:?} before addition with {:?}", commitment, res);
+    commitment = commitment + res;
+  }
+  commitment
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -51,6 +75,7 @@ mod tests {
       AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(68), GF101::new(27)),
       AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(65), GF101::new(3)),
     ];
+
     assert_eq!(g1srs, expected_g1srs);
 
     println!("g2srs {:?}", g2srs);
@@ -63,5 +88,34 @@ mod tests {
     let expected_g2srs = vec![g2_gen, expected_2g];
 
     assert_eq!(g2srs, expected_g2srs);
+  }
+
+  #[test]
+  fn test_commit() {
+    let (g1srs, _) = setup();
+    // p(x) = (x-1)(x-2)(x-3)
+    // p(x) = x^3 - 6x^2 + 11x - 6
+    // -> -6 mod 17 is 11 so this is [1, 11, 11, 1]
+    let coefficients = vec![11, 11, 11, 1];
+    //  g1srs[0] * 11 + g1srs[1] * 11 + g1srs[2] * 11 + g1srs[3] * 1
+    let commit_1 = commit(coefficients, g1srs.clone());
+    assert_eq!(commit_1, AffinePoint::<PlutoCurve<GF101>>::Infinity);
+
+    // p(x) = (x-1)(x-2)(x-3)(x-4)
+    // p(x) = x^4 - 10x^3 + 35x^2 - 50x + 24
+    // -> 24 mod 17 is 7
+    // -> 50 mod 17 is 16
+    // -> 35 mod 17 is 1
+    // coefficients = [7, 16, 1, 11, 1]
+    let coefficients = vec![7, 16, 1, 11, 1];
+    //  g1srs[0] * 7 + g1srs[1] * 16 + g1srs[2] * 1 + g1srs[3] * 11 + g1srs[4] * 1
+    let commit_2 = commit(coefficients, g1srs.clone());
+    assert_eq!(commit_2, AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(32), GF101::new(59)));
+
+    // p(x)  = x^2 + 2x + 3
+    let coefficients = vec![3, 2, 1];
+    // g1srs[0] * 3 + g1srs[1] * 2  + g1srs[2] * 1
+    let commit_3 = commit(coefficients, g1srs);
+    assert_eq!(commit_3, AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(32), GF101::new(59)));
   }
 }

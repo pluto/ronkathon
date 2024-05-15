@@ -20,6 +20,7 @@ pub trait FiniteField:
   + Clone
   + PartialEq
   + Eq
+  + PartialOrd
   + Add<Output = Self>
   + AddAssign
   + Sum
@@ -122,7 +123,7 @@ where [B; N + 1]: {
 /// A struct that represents an element of an extension field. The element is represented as
 /// [`Monomial`] coefficients of a [`Polynomial`] of degree `N - 1` over the base [`FiniteField`]
 /// `F`.
-#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug, PartialOrd)]
 pub struct Ext<const N: usize, F: FiniteField> {
   pub(crate) coeffs: [F; N],
 }
@@ -297,19 +298,36 @@ pub fn get_generator(p: u32) -> i32 {
   }
   -1
 }
-
-fn powmod(base: u32, exponent: u32, modulus: u32) -> u32 {
-  let mut base = base as u64;
+//
+/// Computes the power of a base raised to an exponent under modulo using the method of
+/// Exponentiation by Squaring.
+///
+/// This method is used for its efficiency in calculating large powers of a number in modular
+/// arithmetic, which is a common operation in many cryptographic algorithms. It reduces the number
+/// of multiplications needed by squaring the base and halving the exponent in each step, thus
+/// operating in O(log exponent) time.
+///
+/// # Arguments
+/// * `base` - The base number as a `u32`.
+/// * `exponent` - The exponent as a `u32`.
+/// * `modulus` - The modulus as a `u32`.
+///
+/// # Returns
+/// * The result of (base^exponent) % modulus as a `u32`.
+pub fn powmod(base: u32, exponent: u32, modulus: u32) -> u32 {
+  let mut base = base as u64; // Use u64 to prevent overflow during calculations
   let mut exponent = exponent;
   let modulus = modulus as u64;
-  let mut result = 1;
-  base %= modulus;
+  let mut result = 1; // Start with the multiplicative identity
+  base %= modulus; // Reduce base modulo initially to simplify further calculations
+
   while exponent > 0 {
     if exponent % 2 == 1 {
+      // If the exponent is odd, multiply the current result by the base
       result = (result * base) % modulus;
     }
-    base = (base * base) % modulus;
-    exponent >>= 1;
+    base = (base * base) % modulus; // Square the base
+    exponent >>= 1; // Divide the exponent by 2
   }
-  result as u32
+  result as u32 // Return the result as u32
 }
