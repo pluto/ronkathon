@@ -2,6 +2,7 @@
 
 use super::*;
 
+pub mod pairing;
 pub mod pluto_curve;
 
 /// Elliptic curve parameters for a curve over a finite field in Weierstrass form
@@ -53,8 +54,45 @@ impl<C: EllipticCurve> AffinePoint<C> {
   }
 }
 
-// Example:
-// Base
+impl<C: EllipticCurve> Add for AffinePoint<C> {
+  type Output = AffinePoint<C>;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    // infty checks
+    match (self, rhs) {
+      (AffinePoint::Infinity, _) => return rhs,
+      (_, AffinePoint::Infinity) => return self,
+
+      _ => (),
+    }
+    let (x1, y1) = match self {
+      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Infinity => unreachable!(),
+    };
+    let (x2, y2) = match rhs {
+      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Infinity => unreachable!(),
+    };
+    if x1 == x2 && y1 == -y2 {
+      return AffinePoint::Infinity;
+    }
+    // compute new point using elliptic curve point group law
+    // https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication
+    let lambda = if x1 == x2 && y1 == y2 {
+      ((C::BaseField::ONE + C::BaseField::ONE + C::BaseField::ONE) * x1 * x1 + C::EQUATION_A.into())
+        / ((C::BaseField::ONE + C::BaseField::ONE) * y1)
+    } else {
+      (y2 - y1) / (x2 - x1)
+    };
+    let x = lambda * lambda - x1 - x2;
+    let y = lambda * (x1 - x) - y1;
+    AffinePoint::new(x, y)
+  }
+}
+
+impl<C: EllipticCurve> AddAssign for AffinePoint<C> {
+  fn add_assign(&mut self, rhs: Self) { *self = *self + rhs; }
+}
 
 impl<C: EllipticCurve> Neg for AffinePoint<C> {
   type Output = AffinePoint<C>;
@@ -102,42 +140,6 @@ impl<C: EllipticCurve> std::ops::Mul<AffinePoint<C>> for u32 {
       exp /= 2;
     }
     result
-  }
-}
-
-impl<C: EllipticCurve> Add for AffinePoint<C> {
-  type Output = AffinePoint<C>;
-
-  fn add(self, rhs: Self) -> Self::Output {
-    // infty checks
-    match (self, rhs) {
-      (AffinePoint::Infinity, _) => return rhs,
-      (_, AffinePoint::Infinity) => return self,
-
-      _ => (),
-    }
-    let (x1, y1) = match self {
-      AffinePoint::PointOnCurve(x, y) => (x, y),
-      AffinePoint::Infinity => unreachable!(),
-    };
-    let (x2, y2) = match rhs {
-      AffinePoint::PointOnCurve(x, y) => (x, y),
-      AffinePoint::Infinity => unreachable!(),
-    };
-    if x1 == x2 && y1 == -y2 {
-      return AffinePoint::Infinity;
-    }
-    // compute new point using elliptic curve point group law
-    // https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication
-    let lambda = if x1 == x2 && y1 == y2 {
-      ((C::BaseField::ONE + C::BaseField::ONE + C::BaseField::ONE) * x1 * x1 + C::EQUATION_A.into())
-        / ((C::BaseField::ONE + C::BaseField::ONE) * y1)
-    } else {
-      (y2 - y1) / (x2 - x1)
-    };
-    let x = lambda * lambda - x1 - x2;
-    let y = lambda * (x1 - x) - y1;
-    AffinePoint::new(x, y)
   }
 }
 
