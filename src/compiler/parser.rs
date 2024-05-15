@@ -6,6 +6,15 @@
 //! - each token should be separated by space.
 //!
 //! Outputs parsed output in form of [`WireCoeffs`] values and coefficients.
+//! - `wires`: represent variables corresponding to gate wires in each constraint.
+//! - `coefficients`: coefficient corresponding to each variable.
+//!
+//! ## Note
+//!
+//! Some default coefficients are used for certain constraints:
+//! - `$constant`: for constant variables
+//! - `$output_coeffs`: for output variables. Example: `-a <== b * b` has `$output_coeffs` as `-1`
+//! - `$public`: for public variable declarations
 //!
 //! ## Example
 //! - `a public` =>                    `(['a', None, None], {'$public': 1, 'a': -1,
