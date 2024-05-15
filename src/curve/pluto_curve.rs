@@ -30,7 +30,8 @@ impl EllipticCurve for PlutoBaseCurve {
 
   const EQUATION_A: Self::Coefficient = PlutoBaseField::ZERO;
   const EQUATION_B: Self::Coefficient = PlutoBaseField::new(3);
-  const GENERATOR: (Self::BaseField, Self::BaseField) = (PlutoBaseField::ONE, PlutoBaseField::TWO);
+  const GENERATOR: (Self::BaseField, Self::BaseField) =
+    (PlutoBaseField::ONE, PlutoBaseField::new(2));
 }
 
 impl EllipticCurve for PlutoExtendedCurve {

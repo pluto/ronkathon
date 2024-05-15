@@ -1,6 +1,6 @@
 use super::*;
 
-impl<const P: usize> Add for PrimeField<P> {
+impl<const P: usize> const Add for PrimeField<P> {
   type Output = Self;
 
   fn add(self, rhs: Self) -> Self { Self { value: (self.value + rhs.value) % Self::ORDER } }
@@ -139,8 +139,8 @@ mod tests {
     let z = rng.gen::<PrimeField<P>>();
     assert_eq!(x + (-x), <PrimeField<P>>::ZERO);
     assert_eq!(-x, <PrimeField<P>>::ZERO - x);
-    assert_eq!(x + x, x * <PrimeField<P>>::TWO);
-    assert_eq!(x, x.div(<PrimeField<P>>::TWO) * <PrimeField<P>>::TWO);
+    assert_eq!(x + x, x * <PrimeField<P>>::new(2));
+    assert_eq!(x, x.div(<PrimeField<P>>::new(2)) * <PrimeField<P>>::new(2));
     assert_eq!(x * (-x), -(x * x));
     assert_eq!(x * y, y * x);
     assert_eq!(x * (y * z), (x * y) * z);
@@ -214,7 +214,7 @@ mod tests {
   #[case(PlutoBaseField::new(61), PlutoBaseField::new(81))]
   #[case(PlutoBaseField::new(25), PlutoBaseField::new(63))]
   fn halve<const P: usize>(#[case] a: PrimeField<P>, #[case] expected: PrimeField<P>) {
-    assert_eq!(a / PrimeField::<P>::TWO, expected);
+    assert_eq!(a / PrimeField::<P>::new(2), expected);
   }
 
   fn negation_check<const P: usize>() {

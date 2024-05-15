@@ -3,6 +3,8 @@
 //! [`FiniteField`] trait is implemented. This module asserts at compile time that the order of the
 //! field is a prime number and allows for creation of generic prime order fields.
 
+use rand::distributions::{Distribution, Standard};
+
 use super::*;
 
 mod arithmetic;
@@ -43,12 +45,9 @@ impl<const P: usize> PrimeField<P> {
 }
 
 impl<const P: usize> const FiniteField for PrimeField<P> {
-  const GENERATOR: Self = if P == 2 { Self::ONE } else { find_generator::<P>() };
-  const NEG_ONE: Self = Self { value: P - 1 };
   const ONE: Self = Self { value: 1 };
   const ORDER: usize = P;
-  const THREE: Self = Self { value: 3 };
-  const TWO: Self = Self { value: 2 };
+  const PRIMITIVE_ELEMENT: Self = if P == 2 { Self::ONE } else { find_primitive_element::<P>() };
   const ZERO: Self = Self { value: 0 };
 
   fn inverse(&self) -> Option<Self> {
@@ -93,15 +92,15 @@ const fn is_prime(n: usize) {
   }
 }
 
-/// This function takes in a prime number `P` and returns a generator of the multiplicative group
-/// (also called a [primitive element](https://en.wikipedia.org/wiki/Primitive_element_(finite_field)))
+/// This function takes in a prime number `P` and returns a multiplicative generator of the
+/// multiplicative group which is typically called a [primitive element](https://en.wikipedia.org/wiki/Primitive_element_(finite_field))
 /// of the field. The generator is found by iterating through the numbers from 2 to `P - 1` and
 /// checking if the number is a generator of the field.
-/// A generator `g` of a field `F` is an element such that the powers of `g` generate all the
-/// non-zero elements of the field, so we check here that `g` raised to the power of `(P-1)/g` where
-/// this division is integer division, is not equal to 1. In other words, we are checking that `g`
-/// is coprime to `P-1`. This follows from [Lagrange's theorem](https://en.wikipedia.org/wiki/Lagrange%27s_theorem_(group_theory)).
-const fn find_generator<const P: usize>() -> PrimeField<P> {
+/// A primitive element `g` of a field `F` is an element such that the powers of `g` generate all
+/// the non-zero elements of the field, so we check here that `g` raised to the power of `(P-1)/g`
+/// where this division is integer division, is not equal to 1. In other words, we are checking that
+/// `g` is coprime to `P-1`. This follows from [Lagrange's theorem](https://en.wikipedia.org/wiki/Lagrange%27s_theorem_(group_theory)).
+const fn find_primitive_element<const P: usize>() -> PrimeField<P> {
   let mut i = 2;
   while i * i <= P {
     if (P - 1) % i == 0 {
@@ -178,7 +177,7 @@ mod tests {
   fn non_prime_is_not_finite_field() { let _ = PrimeField::<100>::new(0); }
 
   fn generator_check<const P: usize>() {
-    let g = PrimeField::<P>::GENERATOR;
+    let g = PrimeField::<P>::PRIMITIVE_ELEMENT;
     let mut counter = 1;
     let mut val = g;
     while val != PrimeField::<P>::ONE {

@@ -7,6 +7,8 @@
 //! still requires that specific irreducibles are given in order to construct the extension, though
 //! it should be possible to construct the extension at compile time.
 
+use std::array;
+
 use super::*;
 
 mod arithmetic;
@@ -46,7 +48,7 @@ pub trait ExtensionField<const N: usize, const P: usize>:
 where [PrimeField<P>; N + 1]: {
   /// The coefficients of the irreducible polynomial used to reduce field polynomials to the
   /// desired degree.
-  const IRREDUCIBLE_POLYNOMIAL_COEFFS: [PrimeField<P>; N + 1];
+  const IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS: [PrimeField<P>; N + 1];
 }
 
 /// A struct that represents an element of an extension field. The element is represented as

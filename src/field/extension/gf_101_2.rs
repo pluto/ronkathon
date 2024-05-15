@@ -12,11 +12,13 @@ use super::*;
 impl ExtensionField<2, { PlutoPrime::Base as usize }> for PlutoBaseFieldExtension {
   /// irreducible polynomial used to reduce field polynomials to second degree:
   /// F[X]/(X^2-2)
-  const IRREDUCIBLE_POLYNOMIAL_COEFFS: [PlutoBaseField; 3] =
-    [PlutoBaseField::TWO, PlutoBaseField::ZERO, PlutoBaseField::ONE];
+  const IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS: [PlutoBaseField; 3] =
+    [PlutoBaseField::new(2), PlutoBaseField::ZERO, PlutoBaseField::ONE];
 }
 
 impl FiniteField for PlutoBaseFieldExtension {
+  const ONE: Self = Self::new([PlutoBaseField::ONE, PlutoBaseField::ZERO]);
+  const ORDER: usize = PlutoExtensions::QuadraticBase as usize;
   /// Retrieves a multiplicative generator for GF(101) inside of [`Ext<2, GF101>`].
   /// This can be verified using sage script
   /// ```sage
@@ -27,12 +29,7 @@ impl FiniteField for PlutoBaseFieldExtension {
   /// f_2_primitive_element = F_2([2, 1])
   /// assert f_2_primitive_element.multiplicative_order() == 101^2-1
   /// ```
-  const GENERATOR: Self = Self::new([PlutoBaseField::new(14), PlutoBaseField::new(9)]);
-  const NEG_ONE: Self = Self::new([PlutoBaseField::NEG_ONE, PlutoBaseField::ZERO]);
-  const ONE: Self = Self::new([PlutoBaseField::ONE, PlutoBaseField::ZERO]);
-  const ORDER: usize = PlutoExtensions::QuadraticBase as usize;
-  const THREE: Self = Self::new([PlutoBaseField::THREE, PlutoBaseField::ZERO]);
-  const TWO: Self = Self::new([PlutoBaseField::TWO, PlutoBaseField::ZERO]);
+  const PRIMITIVE_ELEMENT: Self = Self::new([PlutoBaseField::new(14), PlutoBaseField::new(9)]);
   const ZERO: Self = Self::new([PlutoBaseField::ZERO, PlutoBaseField::ZERO]);
 
   /// Computes the multiplicative inverse of `a`, i.e. 1 / (a0 + a1 * t).
@@ -74,7 +71,7 @@ impl Mul for PlutoBaseFieldExtension {
     let poly_self = Polynomial::<Monomial, PlutoBaseField>::from(self);
     let poly_rhs = Polynomial::<Monomial, PlutoBaseField>::from(rhs);
     let poly_irred =
-      Polynomial::<Monomial, PlutoBaseField>::from(Self::IRREDUCIBLE_POLYNOMIAL_COEFFS);
+      Polynomial::<Monomial, PlutoBaseField>::from(Self::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS);
     let product = (poly_self * poly_rhs) % poly_irred;
     let res: [PlutoBaseField; 2] =
       array::from_fn(|i| product.coefficients.get(i).cloned().unwrap_or(PlutoBaseField::ZERO));
@@ -184,7 +181,10 @@ mod tests {
     let z = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
     assert_eq!(x + (-x), <PlutoBaseFieldExtension>::ZERO);
     assert_eq!(-x, <PlutoBaseFieldExtension>::ZERO - x);
-    assert_eq!(x + x, x * <PlutoBaseFieldExtension>::TWO);
+    assert_eq!(
+      x + x,
+      x * <PlutoBaseFieldExtension>::new([PlutoBaseField::new(2), PlutoBaseField::ZERO])
+    );
     assert_eq!(x * (-x), -(x * x));
     assert_eq!(x + y, y + x);
     assert_eq!(x * y, y * x);
@@ -245,7 +245,8 @@ mod tests {
   #[test]
   fn generator() {
     assert_eq!(
-      <PlutoBaseFieldExtension>::GENERATOR * PrimeField::<{ PlutoPrime::Base as usize }>::ZERO,
+      <PlutoBaseFieldExtension>::PRIMITIVE_ELEMENT
+        * PrimeField::<{ PlutoPrime::Base as usize }>::ZERO,
       <PlutoBaseFieldExtension>::ZERO
     );
   }
@@ -258,7 +259,7 @@ mod tests {
 
     let add1 = x + y;
     let sub1 = x - y;
-    let res: PlutoBaseFieldExtension = x * PrimeField::<{ PlutoPrime::Base as usize }>::TWO;
+    let res: PlutoBaseFieldExtension = x * PrimeField::<{ PlutoPrime::Base as usize }>::new(2);
     assert_eq!(add1 + sub1, res);
 
     let mul1 = x * y;
@@ -269,7 +270,7 @@ mod tests {
 
   #[test]
   fn generator_order() {
-    let generator = <PlutoBaseFieldExtension>::GENERATOR;
+    let generator = <PlutoBaseFieldExtension>::PRIMITIVE_ELEMENT;
 
     let mut val = generator;
     for _ in 0..<PlutoBaseFieldExtension>::ORDER - 1 {

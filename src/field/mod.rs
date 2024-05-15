@@ -1,15 +1,8 @@
 //! This module contains the definition of finite fields and their extension fields.
 
-use std::array;
-
-use rand::distributions::{Distribution, Standard};
-
 use super::*;
 
 pub mod extension;
-// pub mod gf_101;
-// pub mod gf_101_2;
-// pub mod gf_17;
 pub mod prime;
 
 /// A field is a set of elements on which addition, subtraction, multiplication, and division are
@@ -46,14 +39,8 @@ pub trait FiniteField:
   const ZERO: Self;
   /// The multiplicative identity element.
   const ONE: Self;
-  /// The number two in the field.
-  const TWO: Self;
-  /// The number negative one in the field (additive inverse of [`FiniteField::ONE`]).
-  const NEG_ONE: Self;
-  /// The number three in the field.
-  const THREE: Self;
   /// Returns a multiplicative generator of the field.
-  const GENERATOR: Self;
+  const PRIMITIVE_ELEMENT: Self;
 
   /// Gets the multiplicative inverse of the field element (if it exists).
   fn inverse(&self) -> Option<Self>;
@@ -77,6 +64,6 @@ pub trait FiniteField:
     let p_minus_one = Self::ORDER - 1;
     assert!(p_minus_one % n == 0, "n must divide p^q - 1");
     let pow = p_minus_one / n;
-    Self::GENERATOR.pow(pow)
+    Self::PRIMITIVE_ELEMENT.pow(pow)
   }
 }
