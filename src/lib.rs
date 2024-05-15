@@ -11,6 +11,7 @@
 //! operations such as addition, multiplication, and division.
 //! - Elliptic curves: Implementations of elliptic curves over finite fields, with support for
 //! operations such as point addition, scalar multiplication, and pairing operations.
+//! - Compiler: Simple DSL to write circuits which can be compiled to polynomials used in PLONK.
 
 #![feature(const_trait_impl)]
 #![allow(incomplete_features)]
