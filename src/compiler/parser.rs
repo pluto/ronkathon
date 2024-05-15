@@ -12,18 +12,16 @@
 //!   '$output_coeffs': 0}`
 //! - `b <== a * c` =>                 `(['a', 'c', 'b'], {'a*c': 1})`
 //! - `d <== a * c - 45 * a + 987` =>  `(['a', 'c', 'd'], {'a*c': 1, 'a': -45, '': 987})`
-// TODOs:
-// - incorrect use of &str and String
-// - use iterators more
-// - substitute panics with result and errors
-// - do proper trimming of string while evaluating into coeffs
 
 use std::{
   collections::{HashMap, HashSet},
   iter,
 };
 
-use super::utils::{get_product_key, is_valid_var_name};
+use super::{
+  errors::ParserError,
+  utils::{get_product_key, is_valid_var_name},
+};
 use crate::field::{gf_101::GF101, FiniteField};
 
 /// Fan-in 2 Gate representing a constraint in the computation.
@@ -111,53 +109,50 @@ impl<'a> WireCoeffs<'a> {
 ///
 /// Note that this is a recursive algo, so the input can be a mix of tokens and
 /// mapping expressions
-fn evaluate(exprs: &[&str], first_is_neg: bool) -> HashMap<String, i32> {
+fn evaluate<'a>(
+  exprs: &[&'a str],
+  first_is_neg: bool,
+) -> Result<HashMap<String, i32>, ParserError<'a>> {
   let index_plus = exprs.iter().position(|&r| r == "+");
   if let Some(index) = index_plus {
-    let l = evaluate(&exprs[..index], first_is_neg);
-    let r = evaluate(&exprs[index + 1..], false);
+    let l = evaluate(&exprs[..index], first_is_neg)?;
+    let r = evaluate(&exprs[index + 1..], false)?;
     let l_keys: Vec<String> = l.keys().cloned().collect();
     let r_keys: Vec<String> = r.keys().cloned().collect();
     let mut key_set: HashSet<String> = HashSet::from_iter(l_keys);
     key_set.extend(r_keys);
 
     let mut res = HashMap::new();
-    // let _ = key_set
-    //   .into_iter()
-    //   .map(|key| res.insert(key.clone(), l.get(&key).unwrap_or(&0) + r.get(&key).unwrap_or(&0)));
     for key in key_set.into_iter() {
       let l_val = l.get(&key).unwrap_or(&0);
       let r_val = r.get(&key).unwrap_or(&0);
       res.insert(key.clone(), l_val + r_val);
     }
-    return res;
+    return Ok(res);
   }
 
   let index_minus = exprs.iter().position(|&r| r == "-");
   if let Some(index) = index_minus {
-    let l = evaluate(&exprs[..index], first_is_neg);
-    let r = evaluate(&exprs[index + 1..], true);
+    let l = evaluate(&exprs[..index], first_is_neg)?;
+    let r = evaluate(&exprs[index + 1..], true)?;
     let l_keys: Vec<String> = l.keys().cloned().collect();
     let r_keys: Vec<String> = r.keys().cloned().collect();
     let mut key_set: HashSet<String> = HashSet::from_iter(l_keys);
     key_set.extend(r_keys);
 
     let mut res = HashMap::new();
-    // let _ = key_set
-    //   .into_iter()
-    //   .map(|key| res.insert(key.clone(), l.get(&key).unwrap_or(&0) - r.get(&key).unwrap_or(&0)));
     for key in key_set.into_iter() {
       let l_val = l.get(&key).unwrap_or(&0);
       let r_val = r.get(&key).unwrap_or(&0);
       res.insert(key.clone(), l_val + r_val);
     }
-    return res;
+    return Ok(res);
   }
 
   let index_mul = exprs.iter().position(|&r| r == "*");
   if let Some(index) = index_mul {
-    let l = evaluate(&exprs[..index], first_is_neg);
-    let r = evaluate(&exprs[index + 1..], false);
+    let l = evaluate(&exprs[..index], first_is_neg)?;
+    let r = evaluate(&exprs[index + 1..], false)?;
 
     let mut res = HashMap::new();
     for (k1, v1) in l.iter() {
@@ -165,22 +160,22 @@ fn evaluate(exprs: &[&str], first_is_neg: bool) -> HashMap<String, i32> {
         res.insert(get_product_key(k1, k2), v1 * v2);
       }
     }
-    return res;
+    return Ok(res);
   }
 
   if exprs.len() > 1 {
-    panic!("No ops: expected sub expr to be a unit");
+    return Err(ParserError::EvaluateMultipleSubExpression(exprs.join(" ").to_string()));
   } else if exprs[0].starts_with('-') {
     return evaluate(&[&exprs[0][1..]], !first_is_neg);
   } else if exprs[0].trim().parse::<i32>().is_ok() {
     let num = exprs[0].trim().parse::<i32>().unwrap_or(0);
     let sign = if first_is_neg { -1 } else { 1 };
-    return HashMap::from([("$constant".to_string(), num * sign)]);
+    return Ok(HashMap::from([("$constant".to_string(), num * sign)]));
   } else if is_valid_var_name(exprs[0]) {
     let sign = if first_is_neg { -1 } else { 1 };
-    return HashMap::from([(exprs[0].to_string(), sign)]);
+    return Ok(HashMap::from([(exprs[0].to_string(), sign)]));
   } else {
-    panic!("invalid expression: {}", exprs[0]);
+    return Err(ParserError::EvaluateInvalidExpression(exprs[0]));
   }
 }
 
@@ -199,14 +194,17 @@ fn evaluate(exprs: &[&str], first_is_neg: bool) -> HashMap<String, i32> {
 /// - `7 === 7`             =>         # Can't assign to non-variable
 /// - `a <== b * * c`       =>         # Two times signs in a row
 /// - `e <== a + b * c * d` =>         # Multiplicative degree > 2
-pub fn parse_constraints(constraint: &str) -> WireCoeffs {
+pub fn parse_constraints(constraint: &str) -> Result<WireCoeffs, ParserError> {
   let tokens: Vec<&str> = constraint.trim().trim_end_matches('\n').split(' ').collect();
   if tokens[1] == "<==" || tokens[1] == "===" {
     let mut out = tokens[0];
-    let mut coeffs = evaluate(&tokens[2..], false);
+    let mut coeffs = evaluate(&tokens[2..], false)?;
     if out.starts_with('-') {
       out = &out[1..];
       coeffs.insert("$output_coeffs".to_string(), -1);
+    }
+    if !is_valid_var_name(out) {
+      return Err(ParserError::ConstraintsInvalidVariableName(out));
     }
 
     let mut variables: Vec<&str> = tokens
@@ -232,13 +230,13 @@ pub fn parse_constraints(constraint: &str) -> WireCoeffs {
       2 => {
         allowed_coeffs_set.insert(get_product_key(variables[0], variables[1]));
       },
-      _ => panic!("max 2 variables allowed"),
+      _ => return Err(ParserError::ConstraintsMaxVariables(variables)),
     }
 
     // check if valid coeff values
     for key in coeffs.keys() {
-      if !allowed_coeffs_set.contains(key) {
-        panic!("disallowed value");
+      if !allowed_coeffs_set.contains::<String>(key) {
+        return Err(ParserError::ConstraintsInvalidCoefficientValues(key.clone()));
       }
     }
 
@@ -247,7 +245,7 @@ pub fn parse_constraints(constraint: &str) -> WireCoeffs {
       variables.into_iter().map(Some).chain(iter::repeat(None).take(2 - variables_len)).collect();
     wires.push(Some(out));
 
-    WireCoeffs { wires, coeffs }
+    Ok(WireCoeffs { wires, coeffs })
   } else if tokens[1] == "public" {
     let coeffs = HashMap::from([
       (tokens[0].to_string(), -1),
@@ -255,14 +253,17 @@ pub fn parse_constraints(constraint: &str) -> WireCoeffs {
       (String::from("$public"), 1),
     ]);
 
-    return WireCoeffs { wires: vec![Some(tokens[0]), None, None], coeffs };
+    return Ok(WireCoeffs { wires: vec![Some(tokens[0]), None, None], coeffs });
   } else {
-    panic!("unsupported value: {}", constraint);
+    return Err(ParserError::ConstraintsUnsupportedValue(constraint));
   }
 }
 
 #[cfg(test)]
 mod tests {
+
+  use rstest::rstest;
+
   use super::*;
 
   #[test]
@@ -309,78 +310,45 @@ mod tests {
     assert_eq!(gate.c, GF101::ZERO);
   }
 
-  #[test]
-  fn evaluate_expression() {
-    let expr = ["a", "+", "b", "*", "c", "*", "5"];
-    let res = evaluate(&expr, false);
-    assert_eq!(res, HashMap::from([("a".to_string(), 1), ("b*c".to_string(), 5)]));
-
-    let expr = ["a"];
-    let res = evaluate(&expr, false);
-    assert_eq!(res, HashMap::from([("a".to_string(), 1)]));
-
-    let expr = ["a"];
-    let res = evaluate(&expr, false);
-    assert_eq!(res, HashMap::from([("a".to_string(), 1)]));
-
-    let expr = ["a", "*", "b", "*", "c", "*", "d"];
-    let res = evaluate(&expr, false);
-    assert_eq!(res, HashMap::from([("a*b*c*d".to_string(), 1)]));
-
-    let expr = ["a", "+", "b", "-", "-c", "*", "-d"];
-    let res = evaluate(&expr, false);
-    assert_eq!(
-      res,
-      HashMap::from([("a".to_string(), 1), ("b".to_string(), 1), ("c*d".to_string(), -1)])
-    );
-
-    let expr = ["-10", "+", "c", "*", "-8", "-", "11"];
-    let res = evaluate(&expr, false);
-    assert_eq!(res, HashMap::from([("c".to_string(), -8), ("$constant".to_string(), -21)]));
-
-    let expr = ["-2", "*", "b", "-", "a", "*", "b"];
-    let res = evaluate(&expr, false);
-    assert_eq!(res, HashMap::from([("a*b".to_string(), -1), ("b".to_string(), -2)]));
+  #[rstest]
+  #[case(&["a", "+", "b", "*", "c", "*", "5"], HashMap::from([("a".to_string(), 1), ("b*c".to_string(), 5)]))]
+  #[case(&["a"], HashMap::from([("a".to_string(), 1)]))]
+  #[case(&["a", "*", "b", "*", "c", "*", "d"], HashMap::from([("a*b*c*d".to_string(), 1)]))]
+  #[case(&["a", "+", "b", "-", "-c", "*", "-d"], HashMap::from([("a".to_string(), 1), ("b".to_string(), 1), ("c*d".to_string(), -1)]))]
+  #[case(&["-10", "+", "c", "*", "-8", "-", "11"], HashMap::from([("c".to_string(), -8), ("$constant".to_string(), -21)]))]
+  #[case(&["-2", "*", "b", "-", "a", "*", "b"], HashMap::from([("a*b".to_string(), -1), ("b".to_string(), -2)]))]
+  #[should_panic]
+  #[case(&["a", "+", "b", "c"], HashMap::from([]))]
+  #[should_panic(expected = "assertion")]
+  #[case(&["b", "/", "+"], HashMap::from([]))]
+  fn evaluate_expression(#[case] expr: &[&str], #[case] expected: HashMap<String, i32>) {
+    let res = evaluate(expr, false);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), expected);
   }
 
-  #[test]
-  fn circuit_parse_constraints() {
-    let wire_values = parse_constraints("a <== b * c");
-    assert_eq!(wire_values, WireCoeffs {
-      wires:  vec![Some("b"), Some("c"), Some("a")],
-      coeffs: HashMap::from([(String::from("b*c"), 1)]),
-    });
-
-    let wire_values = parse_constraints("a public");
-    assert_eq!(wire_values, WireCoeffs {
-      wires:  vec![Some("a"), None, None],
-      coeffs: HashMap::from([
-        (String::from("$output_coeffs"), 0),
-        (String::from("$public"), 1),
-        (String::from("a"), -1)
-      ]),
-    });
-
-    let wire_values = parse_constraints("a === 9");
-    assert_eq!(wire_values, WireCoeffs {
-      wires:  vec![None, None, Some("a")],
-      coeffs: HashMap::from([(String::from("$constant"), 9)]),
-    });
-
-    let wire_values = parse_constraints("b <== a + 9 * 10");
-    assert_eq!(wire_values, WireCoeffs {
-      wires:  vec![Some("a"), Some("a"), Some("b")],
-      coeffs: HashMap::from([(String::from("a"), 1), (String::from("$constant"), 90)]),
-    });
-
-    let wire_values = parse_constraints("-a <== b * -c * -9 - 10");
-    assert_eq!(wire_values, WireCoeffs {
-      wires:  vec![Some("b"), Some("c"), Some("a")],
-      coeffs: HashMap::from([
-        (String::from("$output_coeffs"), -1),
-        (String::from("b*c"), 9),
-        (String::from("$constant"), -10)
-      ]),
+  #[rstest]
+  #[case("a <== b * c", vec![Some("b"), Some("c"), Some("a")], HashMap::from([(String::from("b*c"), 1)]))]
+  #[case("a public", vec![Some("a"), None, None], HashMap::from([(String::from("$output_coeffs"), 0), (String::from("$public"), 1), (String::from("a"), -1)]))]
+  #[case("a === 9", vec![None, None, Some("a")], HashMap::from([(String::from("$constant"), 9)]))]
+  #[case("b <== a + 9 * 10", vec![Some("a"), Some("a"), Some("b")], HashMap::from([(String::from("a"), 1), (String::from("$constant"), 90)]))]
+  #[case("-a <== b * -c * -9 - 10", vec![Some("b"), Some("c"), Some("a")], HashMap::from([(String::from("$output_coeffs"), -1), (String::from("b*c"), 9), (String::from("$constant"), -10)]))]
+  #[should_panic]
+  #[case("a <== b * c + d", vec![], HashMap::from([]))]
+  #[should_panic(expected = "assertion")]
+  #[case("8 === 9", vec![], HashMap::from([]))]
+  #[should_panic(expected = "index")]
+  #[case("a <== b * * c", vec![], HashMap::from([]))]
+  fn circuit_parse_constraints(
+    #[case] constraint: &str,
+    #[case] expected_wires: Vec<Option<&str>>,
+    #[case] expected_coeffs: HashMap<String, i32>,
+  ) {
+    let wire_values = parse_constraints(constraint);
+    assert!(wire_values.is_ok());
+    assert_eq!(wire_values.unwrap(), WireCoeffs {
+      wires:  expected_wires,
+      coeffs: expected_coeffs,
     });
   }
 }

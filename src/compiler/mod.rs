@@ -25,6 +25,7 @@
 //!     - permutation helpers: `[S1,S2,S3]`
 //! - public inputs
 //! - witness: `[a,b,c]`
+mod errors;
 pub mod parser;
 pub mod program;
 mod utils;

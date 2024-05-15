@@ -9,12 +9,17 @@
 
 use std::collections::{HashMap, HashSet};
 
-use super::utils::get_product_key;
+use super::{
+  errors::{ParserError, ProgramError},
+  utils::get_product_key,
+};
 use crate::{
   compiler::parser::{parse_constraints, WireCoeffs},
   field::{gf_101::GF101, FiniteField},
   polynomial::{Lagrange, Polynomial},
 };
+
+type Poly = Polynomial<Lagrange<GF101>, GF101>;
 
 /// Column represents all three columns in the execution trace which a variable
 /// can take.
@@ -74,21 +79,21 @@ pub struct CommonPreprocessedInput {
   /// multiplicative group order
   pub group_order: u32,
   /// Q_L(X): left wire selector polynomial
-  pub ql:          Polynomial<Lagrange<GF101>, GF101>,
+  pub ql:          Poly,
   /// Q_R(X): right wire selector polynomial
-  pub qr:          Polynomial<Lagrange<GF101>, GF101>,
+  pub qr:          Poly,
   /// Q_M(X): multiplication gate selector polynomial
-  pub qm:          Polynomial<Lagrange<GF101>, GF101>,
+  pub qm:          Poly,
   /// Q_O(X): output wire selector polynomial
-  pub qo:          Polynomial<Lagrange<GF101>, GF101>,
+  pub qo:          Poly,
   /// Q_C(X): constant selector polynomial
-  pub qc:          Polynomial<Lagrange<GF101>, GF101>,
+  pub qc:          Poly,
   /// S_σ1(X): first permutation polynomial
-  pub s1:          Polynomial<Lagrange<GF101>, GF101>,
+  pub s1:          Poly,
   /// S_σ2(X): second permutation polynomial
-  pub s2:          Polynomial<Lagrange<GF101>, GF101>,
+  pub s2:          Poly,
   /// S_σ3(X): third permutation polynomial
-  pub s3:          Polynomial<Lagrange<GF101>, GF101>,
+  pub s3:          Poly,
 }
 
 impl<'a> Program<'a> {
@@ -96,24 +101,28 @@ impl<'a> Program<'a> {
   /// variables and their corresponding activation coefficients
   ///
   /// Assumes: group_order >= constraints.len()
-  pub fn new(constraints: &[&'a str], group_order: u32) -> Self {
-    let assembly = constraints
+  pub fn new(constraints: &[&'a str], group_order: u32) -> Result<Self, ProgramError<'a>> {
+    let assembly: Result<Vec<WireCoeffs>, ParserError> = constraints
       .iter()
-      .map(|constraint| parse_constraints(constraint))
-      .collect::<Vec<WireCoeffs>>();
-    Self { constraints: assembly, group_order }
+      .map(|constraint| {
+        parse_constraints(constraint)
+        // match wire_coeffs {
+        //   Ok(coeff) => coeff,
+        //   Err(parser_error) => return Err(ProgramError::ParserError(i, parser_error)),
+        // }
+      })
+      .collect();
+
+    let assembly = match assembly {
+      Ok(wire_coeffs) => wire_coeffs,
+      Err(parser_error) => return Err(ProgramError::ParserError(parser_error)),
+    };
+
+    Ok(Self { constraints: assembly, group_order })
   }
 
   /// returns selector polynomial used in execution trace for a gate
-  fn selector_polynomials(
-    &self,
-  ) -> (
-    Polynomial<Lagrange<GF101>, GF101>,
-    Polynomial<Lagrange<GF101>, GF101>,
-    Polynomial<Lagrange<GF101>, GF101>,
-    Polynomial<Lagrange<GF101>, GF101>,
-    Polynomial<Lagrange<GF101>, GF101>,
-  ) {
+  fn selector_polynomials(&self) -> (Poly, Poly, Poly, Poly, Poly) {
     let mut l = vec![GF101::ZERO; self.group_order as usize];
     let mut r = vec![GF101::ZERO; self.group_order as usize];
     let mut m = vec![GF101::ZERO; self.group_order as usize];
@@ -135,13 +144,7 @@ impl<'a> Program<'a> {
   }
 
   /// Returns `S1,S2,S3` polynomials used for creating permutation argument in PLONK
-  fn s_polynomials(
-    &self,
-  ) -> (
-    Polynomial<Lagrange<GF101>, GF101>,
-    Polynomial<Lagrange<GF101>, GF101>,
-    Polynomial<Lagrange<GF101>, GF101>,
-  ) {
+  fn s_polynomials(&self) -> (Poly, Poly, Poly) {
     // captures uses of a variable in constraints where each new constraint defines a new row in
     // execution trace and columns represent left, right and output wires in a gate.
     // Map of variable and (row, column) tuples
@@ -213,13 +216,13 @@ impl<'a> Program<'a> {
   }
 
   /// returns public variables assigned in the circuit
-  pub fn public_assignments(&self) -> Vec<String> {
+  pub fn public_assignments(&self) -> Result<Vec<String>, ProgramError> {
     let mut variables = Vec::new();
     let mut flag = false;
     for wire_values in self.constraints.iter() {
       if wire_values.coeffs.get("$public") == Some(&1) {
         if flag {
-          panic!("public values should be at top");
+          return Err(ProgramError::PublicAssignmentInvalidStatement);
         }
         let var_name: Vec<&String> =
           wire_values.coeffs.keys().filter(|key| !key.contains('$')).collect();
@@ -235,14 +238,14 @@ impl<'a> Program<'a> {
       }
     }
 
-    variables
+    Ok(variables)
   }
 
   /// Evaluates the circuit and fill intermediate variable assignments
   pub fn evaluate_circuit(
     &'a self,
     starting_assignments: HashMap<Option<&'a str>, GF101>,
-  ) -> HashMap<Option<&'a str>, GF101> {
+  ) -> Result<HashMap<Option<&'a str>, GF101>, ProgramError> {
     let mut out = starting_assignments.clone();
     out.insert(None, GF101::ZERO);
 
@@ -269,7 +272,8 @@ impl<'a> Program<'a> {
         match out.get(&output) {
           Some(out_value) =>
             if *out_value != output_value {
-              panic!("output value doesn't match, {}, {}", out_value, output_value);
+              // panic!("output value doesn't match, {}, {}", out_value, output_value);
+              return Err(ProgramError::CircuitEvaluationOutputMismatch(*out_value, output_value));
             },
           None => {
             out.insert(output, output_value);
@@ -278,7 +282,7 @@ impl<'a> Program<'a> {
       }
     }
 
-    out
+    Ok(out)
   }
 }
 
@@ -310,7 +314,9 @@ mod tests {
   fn new_program() {
     let constraints = &["a public", "b <== a * a"];
     let program = Program::new(constraints, 5);
-    assert_eq!(program, Program {
+    assert!(program.is_ok());
+
+    assert_eq!(program.unwrap(), Program {
       constraints: Vec::from([
         WireCoeffs {
           wires:  vec![Some("a"), None, None],
@@ -331,52 +337,46 @@ mod tests {
 
   #[rstest]
   fn s_polys(constraint1: &[&str]) {
+    // TODO: make this more robust
     let program = Program::new(constraint1, 5);
+
+    assert!(program.is_ok());
+
+    let program = program.unwrap();
     let (s1, s2, s3) = program.s_polynomials();
-    // println!("{:?}", s1.coefficients);
-    // println!("{:?}", s2.coefficients);
-    // println!("{:?}", s3.coefficients);
-    let prou = GF101::primitive_root_of_unity(5);
-    let mut hmap: HashMap<GF101, Cell> = HashMap::new();
-    for i in 0..5 {
-      let prou = prou.pow(i);
-      let c1 = prou * GF101::new(Column::LEFT as u32);
-      hmap.insert(c1, Cell { row: i as u32, column: Column::LEFT });
-      let c2 = prou * GF101::new(Column::RIGHT as u32);
-      hmap.insert(c2, Cell { row: i as u32, column: Column::RIGHT });
-      let c3 = prou * GF101::new(Column::OUTPUT as u32);
-      hmap.insert(c3, Cell { row: i as u32, column: Column::OUTPUT });
-    }
-    // println!("{:?}", hmap);
+    assert_eq!(s1.coefficients, vec![
+      GF101::from(87),
+      GF101::from(3),
+      GF101::from(1),
+      GF101::from(72),
+      GF101::from(89),
+    ]);
 
-    let mut s1_cell =
-      s1.coefficients.iter().map(|coeff| *hmap.get(coeff).unwrap()).collect::<Vec<Cell>>();
-    let mut s2_cell =
-      s2.coefficients.iter().map(|coeff| *hmap.get(coeff).unwrap()).collect::<Vec<Cell>>();
-    let mut s3_cell =
-      s3.coefficients.iter().map(|coeff| *hmap.get(coeff).unwrap()).collect::<Vec<Cell>>();
-    println!("s1: {:?}\ns2: {:?}\ns3: {:?}", s1_cell, s2_cell, s3_cell);
+    assert_eq!(s2.coefficients, vec![
+      GF101::from(50),
+      GF101::from(95),
+      GF101::from(36),
+      GF101::from(7),
+      GF101::from(84),
+    ]);
 
-    let s1_cell_left = s1_cell.remove(0);
-    s1_cell.push(s1_cell_left);
-    let s2_cell_left = s2_cell.remove(0);
-    s2_cell.push(s2_cell_left);
-    let s3_cell_left = s3_cell.remove(0);
-    s3_cell.push(s3_cell_left);
-    println!("s1: {:?}\ns2: {:?}\ns3: {:?}", s1_cell, s2_cell, s3_cell);
-    // assert_eq!(s1.coefficients, vec![
-    //   GF101::from(0),
-    //   GF101::from(2),
-    //   GF101::from(0),
-    //   GF101::from(36),
-    //   GF101::from(95)
-    // ]);
+    assert_eq!(s3.coefficients, vec![
+      GF101::from(2),
+      GF101::from(83),
+      GF101::from(73),
+      GF101::from(59),
+      GF101::from(67),
+    ]);
   }
 
   #[test]
   fn selector_polys() {
     let constraint = &["a public", "d === 9", "b <== a * a + 5", "c <== -2 * b - a * b"];
     let program = Program::new(constraint, 5);
+
+    assert!(program.is_ok());
+    let program = program.unwrap();
+
     let (ql, qr, qm, qo, qc) = program.selector_polynomials();
     assert_eq!(ql.coefficients, vec![
       GF101::new(1),
@@ -423,8 +423,13 @@ mod tests {
   #[case(&["a public", "d === 9", "b <== a * a + 5", "b public", "c <== -2 * b - a * b"], vec![])]
   fn public_vars(#[case] constraint: &[&str], #[case] expected: Vec<String>) {
     let program = Program::new(constraint, 5);
+    assert!(program.is_ok());
+
+    let program = program.unwrap();
     let public_vars = program.public_assignments();
-    assert_eq!(public_vars, expected);
+
+    assert!(public_vars.is_ok());
+    assert_eq!(public_vars.unwrap(), expected);
   }
 
   #[rstest]
@@ -433,6 +438,8 @@ mod tests {
   (Some("c"), GF101::from(-36))]))]
   #[case(&["a public", "b public", "pq public", "b === pq", "c <== -a * b + 9", "e <== a + b * -3"],
   10, vec![GF101::from(2), GF101::from(1), GF101::from(1)], HashMap::from([(None, GF101::from(0)), (Some("a"), GF101::from(2)), (Some("b"), GF101::from(1)), (Some("c"), GF101::from(7)), (Some("pq"), GF101::from(1)), (Some("e"), GF101::from(100))]))]
+  #[should_panic]
+  #[case(&["a public", "b === 9", "b <== a * a"], 5, vec![GF101::from(2)], HashMap::from([(None, GF101::from(0)), (Some("a"), GF101::from(2)), (Some("b"), GF101::from(9))]))]
   fn evaluate_circuit_constraints(
     #[case] constraint1: &[&str],
     #[case] group_order: u32,
@@ -440,12 +447,21 @@ mod tests {
     #[case] expected: HashMap<Option<&str>, GF101>,
   ) {
     let program = Program::new(constraint1, group_order);
-    let public_vars = program.public_assignments();
+    assert!(program.is_ok());
 
+    let program = program.unwrap();
+    let public_vars = program.public_assignments();
+    assert!(public_vars.is_ok());
+
+    let public_vars = public_vars.unwrap();
     assert_eq!(public_vars.len(), public_var_values.len());
+
     let starting_assignments: HashMap<Option<&str>, GF101> =
       HashMap::from_iter(public_vars.iter().map(|var| Some(var.as_str())).zip(public_var_values));
     let evaluations = program.evaluate_circuit(starting_assignments);
-    assert_eq!(evaluations, expected);
+
+    assert!(evaluations.is_ok());
+
+    assert_eq!(evaluations.unwrap(), expected);
   }
 }
