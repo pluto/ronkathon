@@ -1,12 +1,12 @@
 use std::{error::Error, fmt::Display};
 
-use crate::field::gf_101::GF101;
+use crate::field::prime::PlutoScalarField;
 
 /// Errors from parsing the DSL
 #[derive(Debug)]
 pub enum ProgramError<'a> {
   PublicAssignmentInvalidStatement,
-  CircuitEvaluationOutputMismatch(GF101, GF101),
+  CircuitEvaluationOutputMismatch(PlutoScalarField, PlutoScalarField),
   ParserError(ParserError<'a>),
 }
 

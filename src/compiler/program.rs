@@ -15,11 +15,11 @@ use super::{
 };
 use crate::{
   compiler::parser::{parse_constraints, WireCoeffs},
-  field::{gf_101::GF101, FiniteField},
+  field::{prime::PlutoScalarField, FiniteField},
   polynomial::{Lagrange, Polynomial},
 };
 
-type Poly = Polynomial<Lagrange<GF101>, GF101>;
+type Poly = Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField>;
 
 /// Column represents all three columns in the execution trace which a variable
 /// can take.
@@ -57,9 +57,10 @@ pub struct Cell {
 impl Cell {
   /// Assign a domain value to a cell where `row` represents power of primtive root of unity and
   /// `column` represents coset value: $k*\omega^(row)$
-  fn label(&self, group_order: u32) -> GF101 {
+  fn label(&self, group_order: usize) -> PlutoScalarField {
     let col: u32 = self.column as u32;
-    GF101::from(col) * GF101::primitive_root_of_unity(group_order).pow(self.row as u64)
+    PlutoScalarField::from(col)
+      * PlutoScalarField::primitive_root_of_unity(group_order).pow(self.row as usize)
   }
 }
 
@@ -70,14 +71,14 @@ pub struct Program<'a> {
   /// `constraints` defined during arithmetic evaluation on inputs in the circuit
   constraints: Vec<WireCoeffs<'a>>,
   /// order of multiplicative group formed by primitive roots of unity in the scalar field
-  group_order: u32,
+  group_order: usize,
 }
 
 /// `CommonPreprocessedInput` represents circuit related input which is apriori known to `Prover`
 /// and `Verifier` involved in the process.
 pub struct CommonPreprocessedInput {
   /// multiplicative group order
-  pub group_order: u32,
+  pub group_order: usize,
   /// Q_L(X): left wire selector polynomial
   pub ql:          Poly,
   /// Q_R(X): right wire selector polynomial
@@ -101,7 +102,7 @@ impl<'a> Program<'a> {
   /// variables and their corresponding activation coefficients
   ///
   /// Assumes: group_order >= constraints.len()
-  pub fn new(constraints: &[&'a str], group_order: u32) -> Result<Self, ProgramError<'a>> {
+  pub fn new(constraints: &[&'a str], group_order: usize) -> Result<Self, ProgramError<'a>> {
     let assembly: Result<Vec<WireCoeffs>, ParserError> = constraints
       .iter()
       .map(|constraint| {
@@ -123,11 +124,11 @@ impl<'a> Program<'a> {
 
   /// returns selector polynomial used in execution trace for a gate
   fn selector_polynomials(&self) -> (Poly, Poly, Poly, Poly, Poly) {
-    let mut l = vec![GF101::ZERO; self.group_order as usize];
-    let mut r = vec![GF101::ZERO; self.group_order as usize];
-    let mut m = vec![GF101::ZERO; self.group_order as usize];
-    let mut o = vec![GF101::ZERO; self.group_order as usize];
-    let mut c = vec![GF101::ZERO; self.group_order as usize];
+    let mut l = vec![PlutoScalarField::ZERO; self.group_order];
+    let mut r = vec![PlutoScalarField::ZERO; self.group_order];
+    let mut m = vec![PlutoScalarField::ZERO; self.group_order];
+    let mut o = vec![PlutoScalarField::ZERO; self.group_order];
+    let mut c = vec![PlutoScalarField::ZERO; self.group_order];
 
     // iterate through the constraints and assign each selector value
     for (i, constraint) in self.constraints.iter().enumerate() {
@@ -135,11 +136,11 @@ impl<'a> Program<'a> {
       (l[i], r[i], m[i], o[i], c[i]) = (gate.l, gate.r, gate.m, gate.o, gate.c);
     }
 
-    let poly_l = Polynomial::<Lagrange<GF101>, GF101>::new(l);
-    let poly_r = Polynomial::<Lagrange<GF101>, GF101>::new(r);
-    let poly_m = Polynomial::<Lagrange<GF101>, GF101>::new(m);
-    let poly_o = Polynomial::<Lagrange<GF101>, GF101>::new(o);
-    let poly_c = Polynomial::<Lagrange<GF101>, GF101>::new(c);
+    let poly_l = Polynomial::<Lagrange<PlutoScalarField>, PlutoScalarField>::new(l);
+    let poly_r = Polynomial::<Lagrange<PlutoScalarField>, PlutoScalarField>::new(r);
+    let poly_m = Polynomial::<Lagrange<PlutoScalarField>, PlutoScalarField>::new(m);
+    let poly_o = Polynomial::<Lagrange<PlutoScalarField>, PlutoScalarField>::new(o);
+    let poly_c = Polynomial::<Lagrange<PlutoScalarField>, PlutoScalarField>::new(c);
     (poly_l, poly_r, poly_m, poly_o, poly_c)
   }
 
@@ -172,7 +173,7 @@ impl<'a> Program<'a> {
     }
 
     // add zero values for unfilled values
-    for row in self.constraints.len()..self.group_order as usize {
+    for row in self.constraints.len()..self.group_order {
       let val = variable_uses.get_mut(&None).unwrap();
       val.insert(Cell { row: row as u32, column: Column::LEFT });
       val.insert(Cell { row: row as u32, column: Column::RIGHT });
@@ -180,7 +181,7 @@ impl<'a> Program<'a> {
     }
 
     // $S_i$ polynomial in evaluation form
-    let mut s = vec![vec![GF101::ZERO; self.group_order as usize]; 3];
+    let mut s = vec![vec![PlutoScalarField::ZERO; self.group_order]; 3];
 
     // shift each polynomial value right by 1 and assign domain. for example:
     // let's say, usage of variable in execution trace looks like:
@@ -201,9 +202,9 @@ impl<'a> Program<'a> {
     }
 
     // create polynomials in lagrange basis from variable values as evaluations
-    let poly_s1 = Polynomial::<Lagrange<GF101>, GF101>::new(s[0].clone());
-    let poly_s2 = Polynomial::<Lagrange<GF101>, GF101>::new(s[1].clone());
-    let poly_s3 = Polynomial::<Lagrange<GF101>, GF101>::new(s[2].clone());
+    let poly_s1 = Polynomial::<Lagrange<PlutoScalarField>, PlutoScalarField>::new(s[0].clone());
+    let poly_s2 = Polynomial::<Lagrange<PlutoScalarField>, PlutoScalarField>::new(s[1].clone());
+    let poly_s3 = Polynomial::<Lagrange<PlutoScalarField>, PlutoScalarField>::new(s[2].clone());
     (poly_s1, poly_s2, poly_s3)
   }
 
@@ -244,10 +245,10 @@ impl<'a> Program<'a> {
   /// Evaluates the circuit and fill intermediate variable assignments
   pub fn evaluate_circuit(
     &'a self,
-    starting_assignments: HashMap<Option<&'a str>, GF101>,
-  ) -> Result<HashMap<Option<&'a str>, GF101>, ProgramError> {
+    starting_assignments: HashMap<Option<&'a str>, PlutoScalarField>,
+  ) -> Result<HashMap<Option<&'a str>, PlutoScalarField>, ProgramError> {
     let mut out = starting_assignments.clone();
-    out.insert(None, GF101::ZERO);
+    out.insert(None, PlutoScalarField::ZERO);
 
     for constraint in self.constraints.iter() {
       let in_l = constraint.wires[0];
@@ -258,16 +259,17 @@ impl<'a> Program<'a> {
       let product_key = get_product_key(in_l.unwrap_or(""), in_r.unwrap_or(""));
       if output.is_some() && (*out_coeff == 1 || *out_coeff == -1) {
         let l_value = *out.get(&in_l).unwrap()
-          * GF101::from(*constraint.coeffs.get(in_l.unwrap_or("")).unwrap_or(&0));
+          * PlutoScalarField::from(*constraint.coeffs.get(in_l.unwrap_or("")).unwrap_or(&0));
         let r_value = *out.get(&in_r).unwrap()
-          * GF101::from(*constraint.coeffs.get(in_r.unwrap_or("")).unwrap_or(&0))
-          * GF101::from((in_l != in_r) as u32);
-        let c_value = GF101::from(*constraint.coeffs.get("$constant").unwrap_or(&0));
+          * PlutoScalarField::from(*constraint.coeffs.get(in_r.unwrap_or("")).unwrap_or(&0))
+          * PlutoScalarField::from((in_l != in_r) as u32);
+        let c_value = PlutoScalarField::from(*constraint.coeffs.get("$constant").unwrap_or(&0));
         let m_value = *out.get(&in_l).unwrap()
           * *out.get(&in_r).unwrap()
-          * GF101::from(*constraint.coeffs.get(&product_key).unwrap_or(&0));
+          * PlutoScalarField::from(*constraint.coeffs.get(&product_key).unwrap_or(&0));
 
-        let output_value = (l_value + r_value + c_value + m_value) * GF101::from(*out_coeff);
+        let output_value =
+          (l_value + r_value + c_value + m_value) * PlutoScalarField::from(*out_coeff);
 
         match out.get(&output) {
           Some(out_value) =>
@@ -299,14 +301,15 @@ mod tests {
   }
 
   #[rstest]
-  #[case(2, Column::LEFT, 5)]
+  #[case(2, Column::LEFT, 2)]
   #[case(3, Column::RIGHT, 4)]
-  #[case(4, Column::OUTPUT, 10)]
-  fn cell_label(#[case] row: u32, #[case] column: Column, #[case] group_order: u32) {
+  #[case(4, Column::OUTPUT, 8)]
+  fn cell_label(#[case] row: u32, #[case] column: Column, #[case] group_order: usize) {
     let cell = Cell { row, column };
     assert_eq!(
       cell.label(group_order),
-      GF101::primitive_root_of_unity(group_order).pow(row as u64) * GF101::from(column as u32)
+      PlutoScalarField::primitive_root_of_unity(group_order).pow(row as usize)
+        * PlutoScalarField::from(column as u32)
     )
   }
 
@@ -338,80 +341,74 @@ mod tests {
   #[rstest]
   fn s_polys(constraint1: &[&str]) {
     // TODO: make this more robust
-    let program = Program::new(constraint1, 5);
+    let program = Program::new(constraint1, 4);
 
     assert!(program.is_ok());
 
     let program = program.unwrap();
     let (s1, s2, s3) = program.s_polynomials();
+    println!("{}\n{}\n{}", s1, s2, s3);
+
     assert_eq!(s1.coefficients, vec![
-      GF101::from(87),
-      GF101::from(3),
-      GF101::from(1),
-      GF101::from(72),
-      GF101::from(89),
+      PlutoScalarField::from(4),
+      PlutoScalarField::from(3),
+      PlutoScalarField::from(1),
+      PlutoScalarField::from(15),
     ]);
 
     assert_eq!(s2.coefficients, vec![
-      GF101::from(50),
-      GF101::from(95),
-      GF101::from(36),
-      GF101::from(7),
-      GF101::from(84),
+      PlutoScalarField::from(9),
+      PlutoScalarField::from(13),
+      PlutoScalarField::from(16),
+      PlutoScalarField::from(14),
     ]);
 
     assert_eq!(s3.coefficients, vec![
-      GF101::from(2),
-      GF101::from(83),
-      GF101::from(73),
-      GF101::from(59),
-      GF101::from(67),
+      PlutoScalarField::from(2),
+      PlutoScalarField::from(5),
+      PlutoScalarField::from(8),
+      PlutoScalarField::from(12),
     ]);
   }
 
   #[test]
   fn selector_polys() {
     let constraint = &["a public", "d === 9", "b <== a * a + 5", "c <== -2 * b - a * b"];
-    let program = Program::new(constraint, 5);
+    let program = Program::new(constraint, 4);
 
     assert!(program.is_ok());
     let program = program.unwrap();
 
     let (ql, qr, qm, qo, qc) = program.selector_polynomials();
     assert_eq!(ql.coefficients, vec![
-      GF101::new(1),
-      GF101::new(0),
-      GF101::new(0),
-      GF101::new(0),
-      GF101::new(0)
+      PlutoScalarField::new(1), // first constraint, left variable is equal to 1
+      PlutoScalarField::new(0), // second constraint, no left variable
+      PlutoScalarField::new(0),
+      PlutoScalarField::new(0),
     ]);
     assert_eq!(qr.coefficients, vec![
-      GF101::new(0),
-      GF101::new(0),
-      GF101::new(0),
-      GF101::new(2),
-      GF101::new(0)
+      PlutoScalarField::new(0),
+      PlutoScalarField::new(0),
+      PlutoScalarField::new(0),
+      PlutoScalarField::new(2), // 4th constraint, right variable `b`'s coeff = -(-2) = 2
     ]);
     assert_eq!(qm.coefficients, vec![
-      GF101::new(0),
-      GF101::new(0),
-      GF101::new(100),
-      GF101::new(1),
-      GF101::new(0),
+      PlutoScalarField::new(0),
+      PlutoScalarField::new(0),
+      PlutoScalarField::from(-1), // 3rd constraint, `mul` variable = `a*a`, coeff = -(1)
+      PlutoScalarField::new(1),   // 4th, `a*b` = -(-1)
     ]);
     assert_eq!(qo.coefficients, vec![
-      GF101::new(0),
-      GF101::new(1),
-      GF101::new(1),
-      GF101::new(1),
-      GF101::new(0)
+      PlutoScalarField::new(0),
+      PlutoScalarField::new(1), // `d`: 1
+      PlutoScalarField::new(1), // `b`: 1
+      PlutoScalarField::new(1), // `c`: 1
     ]);
     assert_eq!(qc.coefficients, vec![
-      GF101::new(0),
-      GF101::new(101 - 9),
-      GF101::new(101 - 5),
-      GF101::new(0),
-      GF101::new(0)
+      PlutoScalarField::new(0),
+      PlutoScalarField::new(17 - 9),
+      PlutoScalarField::new(17 - 5),
+      PlutoScalarField::new(0),
     ]);
   }
 
@@ -433,18 +430,18 @@ mod tests {
   }
 
   #[rstest]
-  #[case(&["a public", "d === 9", "b <== a * a + 5", "c <== -2 * b - a * b"], 5, vec![GF101::from(2)],
-  HashMap::from([(None, GF101::from(0)), (Some("d"), GF101::from(9)), (Some("a"), GF101::from(2)), (Some("b"), GF101::from(9)),
-  (Some("c"), GF101::from(-36))]))]
+  #[case(&["a public", "d === 9", "b <== a * a + 5", "c <== -2 * b - a * b"], 4, vec![PlutoScalarField::from(2)],
+  HashMap::from([(None, PlutoScalarField::from(0)), (Some("d"), PlutoScalarField::from(9)), (Some("a"), PlutoScalarField::from(2)), (Some("b"), PlutoScalarField::from(9)),
+  (Some("c"), PlutoScalarField::from(-36))]))]
   #[case(&["a public", "b public", "pq public", "b === pq", "c <== -a * b + 9", "e <== a + b * -3"],
-  10, vec![GF101::from(2), GF101::from(1), GF101::from(1)], HashMap::from([(None, GF101::from(0)), (Some("a"), GF101::from(2)), (Some("b"), GF101::from(1)), (Some("c"), GF101::from(7)), (Some("pq"), GF101::from(1)), (Some("e"), GF101::from(100))]))]
+  8, vec![PlutoScalarField::from(2), PlutoScalarField::from(1), PlutoScalarField::from(1)], HashMap::from([(None, PlutoScalarField::from(0)), (Some("a"), PlutoScalarField::from(2)), (Some("b"), PlutoScalarField::from(1)), (Some("c"), PlutoScalarField::from(7)), (Some("pq"), PlutoScalarField::from(1)), (Some("e"), PlutoScalarField::from(-1))]))]
   #[should_panic]
-  #[case(&["a public", "b === 9", "b <== a * a"], 5, vec![GF101::from(2)], HashMap::from([(None, GF101::from(0)), (Some("a"), GF101::from(2)), (Some("b"), GF101::from(9))]))]
+  #[case(&["a public", "b === 9", "b <== a * a"], 4, vec![PlutoScalarField::from(2)], HashMap::from([(None, PlutoScalarField::from(0)), (Some("a"), PlutoScalarField::from(2)), (Some("b"), PlutoScalarField::from(9))]))]
   fn evaluate_circuit_constraints(
     #[case] constraint1: &[&str],
-    #[case] group_order: u32,
-    #[case] public_var_values: Vec<GF101>,
-    #[case] expected: HashMap<Option<&str>, GF101>,
+    #[case] group_order: usize,
+    #[case] public_var_values: Vec<PlutoScalarField>,
+    #[case] expected: HashMap<Option<&str>, PlutoScalarField>,
   ) {
     let program = Program::new(constraint1, group_order);
     assert!(program.is_ok());
@@ -456,7 +453,7 @@ mod tests {
     let public_vars = public_vars.unwrap();
     assert_eq!(public_vars.len(), public_var_values.len());
 
-    let starting_assignments: HashMap<Option<&str>, GF101> =
+    let starting_assignments: HashMap<Option<&str>, PlutoScalarField> =
       HashMap::from_iter(public_vars.iter().map(|var| Some(var.as_str())).zip(public_var_values));
     let evaluations = program.evaluate_circuit(starting_assignments);
 

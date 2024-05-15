@@ -15,11 +15,15 @@
 
 #![feature(const_trait_impl)]
 #![allow(incomplete_features)]
+#![feature(effects)]
+#![feature(const_mut_refs)]
+#![feature(const_for)]
+#![feature(const_option)]
 #![feature(generic_const_exprs)]
 #![warn(missing_docs)]
 
 pub mod compiler;
-pub mod curves;
+pub mod curve;
 pub mod field;
 pub mod kzg;
 pub mod polynomial;
@@ -36,7 +40,14 @@ use rand::Rng;
 #[cfg(test)] use rstest::{fixture, rstest};
 
 use self::{
-  curves::{pluto_curve::PlutoCurve, AffinePoint},
-  field::{gf_101::GF101, Ext, FiniteField},
+  curve::{
+    pluto_curve::{PlutoBaseCurve, PlutoExtendedCurve},
+    AffinePoint,
+  },
+  field::{
+    extension::{GaloisField, PlutoBaseFieldExtension},
+    prime::{PlutoBaseField, PlutoPrime, PlutoScalarField, PrimeField},
+    FiniteField,
+  },
   polynomial::{Monomial, Polynomial},
 };

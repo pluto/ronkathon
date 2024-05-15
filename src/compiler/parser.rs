@@ -31,22 +31,22 @@ use super::{
   errors::ParserError,
   utils::{get_product_key, is_valid_var_name},
 };
-use crate::field::{gf_101::GF101, FiniteField};
+use crate::field::{prime::PlutoScalarField, FiniteField};
 
 /// Fan-in 2 Gate representing a constraint in the computation.
 /// Each constraint satisfies PLONK's arithmetic equation: `a(X)QL(X) + b(X)QR(X) + a(X)b(X)QM(X) +
 /// o(X)QO(X) + QC(X) = 0`.
 pub struct Gate {
   /// left wire value
-  pub l: GF101,
+  pub l: PlutoScalarField,
   /// right wire value
-  pub r: GF101,
+  pub r: PlutoScalarField,
   /// output wire, represented as `$output_coeffs` in wire coefficients
-  pub o: GF101,
+  pub o: PlutoScalarField,
   /// multiplication wire
-  pub m: GF101,
+  pub m: PlutoScalarField,
   /// constant wire, represented as `$constant` in coefficients
-  pub c: GF101,
+  pub c: PlutoScalarField,
 }
 
 /// Values of wires with coefficients of each wire name
@@ -59,48 +59,48 @@ pub struct WireCoeffs<'a> {
 }
 
 impl<'a> WireCoeffs<'a> {
-  fn l(&self) -> GF101 {
+  fn l(&self) -> PlutoScalarField {
     match self.wires[0] {
       Some(wire) => match self.coeffs.get(wire) {
-        Some(val) => -GF101::from(*val),
-        None => GF101::ZERO,
+        Some(val) => -PlutoScalarField::from(*val),
+        None => PlutoScalarField::ZERO,
       },
-      None => GF101::ZERO,
+      None => PlutoScalarField::ZERO,
     }
   }
 
-  fn r(&self) -> GF101 {
+  fn r(&self) -> PlutoScalarField {
     if self.wires[0].is_some() && self.wires[1].is_some() && self.wires[0] != self.wires[1] {
       match self.coeffs.get(self.wires[1].unwrap()) {
-        Some(val) => -GF101::from(*val),
-        None => GF101::ZERO,
+        Some(val) => -PlutoScalarField::from(*val),
+        None => PlutoScalarField::ZERO,
       }
     } else {
-      GF101::ZERO
+      PlutoScalarField::ZERO
     }
   }
 
-  fn o(&self) -> GF101 {
+  fn o(&self) -> PlutoScalarField {
     match self.coeffs.get("$output_coeffs") {
-      Some(val) => GF101::from(*val),
-      None => GF101::ONE,
+      Some(val) => PlutoScalarField::from(*val),
+      None => PlutoScalarField::ONE,
     }
   }
 
-  fn c(&self) -> GF101 {
+  fn c(&self) -> PlutoScalarField {
     match self.coeffs.get("$constant") {
-      Some(val) => -GF101::from(*val),
-      None => GF101::ZERO,
+      Some(val) => -PlutoScalarField::from(*val),
+      None => PlutoScalarField::ZERO,
     }
   }
 
-  fn m(&self) -> GF101 {
+  fn m(&self) -> PlutoScalarField {
     match (self.wires[0], self.wires[1]) {
       (Some(a), Some(b)) => match self.coeffs.get(&get_product_key(a, b)) {
-        Some(val) => -GF101::from(*val),
-        None => GF101::ZERO,
+        Some(val) => -PlutoScalarField::from(*val),
+        None => PlutoScalarField::ZERO,
       },
-      _ => GF101::ZERO,
+      _ => PlutoScalarField::ZERO,
     }
   }
 
@@ -286,22 +286,22 @@ mod tests {
       ]),
     };
     let gate = wire_values.gate();
-    assert_eq!(gate.l, -GF101::from(-1));
-    assert_eq!(gate.r, GF101::ZERO);
-    assert_eq!(gate.m, GF101::ZERO);
-    assert_eq!(gate.o, GF101::from(2));
-    assert_eq!(gate.c, -GF101::from(9));
+    assert_eq!(gate.l, -PlutoScalarField::from(-1));
+    assert_eq!(gate.r, PlutoScalarField::ZERO);
+    assert_eq!(gate.m, PlutoScalarField::ZERO);
+    assert_eq!(gate.o, PlutoScalarField::from(2));
+    assert_eq!(gate.c, -PlutoScalarField::from(9));
 
     let wire_values = WireCoeffs {
       wires:  vec![Some("a"), Some("b"), Some("c")],
       coeffs: HashMap::from([(String::from("b"), -1), (String::from("a*b"), -9)]),
     };
     let gate = wire_values.gate();
-    assert_eq!(gate.l, -GF101::ZERO);
-    assert_eq!(gate.r, -GF101::from(-1));
-    assert_eq!(gate.m, -GF101::from(-9));
-    assert_eq!(gate.o, GF101::ONE);
-    assert_eq!(gate.c, -GF101::ZERO);
+    assert_eq!(gate.l, -PlutoScalarField::ZERO);
+    assert_eq!(gate.r, -PlutoScalarField::from(-1));
+    assert_eq!(gate.m, -PlutoScalarField::from(-9));
+    assert_eq!(gate.o, PlutoScalarField::ONE);
+    assert_eq!(gate.c, -PlutoScalarField::ZERO);
 
     let wire_values = WireCoeffs {
       wires:  vec![Some("a"), None, None],
@@ -312,11 +312,11 @@ mod tests {
       ]),
     };
     let gate = wire_values.gate();
-    assert_eq!(gate.l, GF101::ONE);
-    assert_eq!(gate.r, GF101::ZERO);
-    assert_eq!(gate.m, GF101::ZERO);
-    assert_eq!(gate.o, GF101::ZERO);
-    assert_eq!(gate.c, GF101::ZERO);
+    assert_eq!(gate.l, PlutoScalarField::ONE);
+    assert_eq!(gate.r, PlutoScalarField::ZERO);
+    assert_eq!(gate.m, PlutoScalarField::ZERO);
+    assert_eq!(gate.o, PlutoScalarField::ZERO);
+    assert_eq!(gate.c, PlutoScalarField::ZERO);
   }
 
   #[rstest]
