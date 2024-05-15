@@ -4,8 +4,7 @@ use super::*;
 
 /// simple setup to get params.
 #[allow(dead_code, clippy::type_complexity)]
-pub fn setup() -> (Vec<AffinePoint<PlutoCurve<GF101>>>, Vec<AffinePoint<PlutoCurve<Ext<2, GF101>>>>)
-{
+fn setup() -> (Vec<AffinePoint<PlutoBaseCurve>>, Vec<AffinePoint<PlutoExtendedCurve>>) {
   // NOTE: For demonstration purposes only.
 
   // This is just tau from plonk by hand, it is not actually secure
@@ -15,19 +14,19 @@ pub fn setup() -> (Vec<AffinePoint<PlutoCurve<GF101>>>, Vec<AffinePoint<PlutoCur
   // - g1 and g2 SRS have variable sizes for diff kzg uses
   // - in eth blobs, g1 is 4096 elements, g2 is 16 elements
   // - in plonk, we need d+5 g1 elements and one g2 element
-  let mut srs_g1_points: Vec<AffinePoint<PlutoCurve<GF101>>> = vec![];
-  let mut srs_g2_points: Vec<AffinePoint<PlutoCurve<Ext<2, GF101>>>> = vec![];
+  let mut srs_g1_points: Vec<AffinePoint<PlutoBaseCurve>> = vec![];
+  let mut srs_g2_points: Vec<AffinePoint<PlutoExtendedCurve>> = vec![];
   for i in 0..7 {
     // G1 Group
 
     // degree seven commitment poly
-    let result = AffinePoint::<PlutoCurve<GF101>>::generator() * tau.pow(i);
+    let result = AffinePoint::<PlutoBaseCurve>::generator() * tau.pow(i);
     srs_g1_points.push(result);
     // G2 Group
 
     // degree two divisor poly
     if i < 2 {
-      let result = AffinePoint::<PlutoCurve<Ext<2, GF101>>>::generator() * tau.pow(i);
+      let result = AffinePoint::<PlutoExtendedCurve>::generator() * tau.pow(i);
       srs_g2_points.push(result);
     }
   }
@@ -39,8 +38,8 @@ pub fn setup() -> (Vec<AffinePoint<PlutoCurve<GF101>>>, Vec<AffinePoint<PlutoCur
 #[allow(dead_code)]
 fn commit(
   coefs: Vec<u32>,
-  g1_srs: Vec<AffinePoint<PlutoCurve<GF101>>>,
-) -> AffinePoint<PlutoCurve<GF101>> {
+  g1_srs: Vec<AffinePoint<PlutoBaseCurve>>,
+) -> AffinePoint<PlutoBaseCurve> {
   // commit to a polynomial
   // - given a polynomial, commit to it
   assert!(g1_srs.len() >= coefs.len());
@@ -67,24 +66,24 @@ mod tests {
     assert!(g1srs.len() == 7);
     assert!(g2srs.len() == 2);
     let expected_g1srs = vec![
-      AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(1), GF101::new(2)),
-      AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(68), GF101::new(74)),
-      AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(65), GF101::new(98)),
-      AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(18), GF101::new(49)),
-      AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(1), GF101::new(99)),
-      AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(68), GF101::new(27)),
-      AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(65), GF101::new(3)),
+      AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(1), PlutoBaseField::new(2)),
+      AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(68), PlutoBaseField::new(74)),
+      AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(65), PlutoBaseField::new(98)),
+      AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(18), PlutoBaseField::new(49)),
+      AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(1), PlutoBaseField::new(99)),
+      AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(68), PlutoBaseField::new(27)),
+      AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(65), PlutoBaseField::new(3)),
     ];
 
     assert_eq!(g1srs, expected_g1srs);
 
     println!("g2srs {:?}", g2srs);
-    let expected_2g = AffinePoint::<PlutoCurve<Ext<2, GF101>>>::new(
-      Ext::<2, GF101>::new([GF101::new(90), GF101::ZERO]),
-      Ext::<2, GF101>::new([GF101::ZERO, GF101::new(82)]),
+    let expected_2g = AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::new([PlutoBaseField::new(90), PlutoBaseField::ZERO]),
+      PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::new(82)]),
     );
 
-    let g2_gen = AffinePoint::<PlutoCurve<Ext<2, GF101>>>::generator();
+    let g2_gen = AffinePoint::<PlutoExtendedCurve>::generator();
     let expected_g2srs = vec![g2_gen, expected_2g];
 
     assert_eq!(g2srs, expected_g2srs);
@@ -99,7 +98,7 @@ mod tests {
     let coefficients = vec![11, 11, 11, 1];
     //  g1srs[0] * 11 + g1srs[1] * 11 + g1srs[2] * 11 + g1srs[3] * 1
     let commit_1 = commit(coefficients, g1srs.clone());
-    assert_eq!(commit_1, AffinePoint::<PlutoCurve<GF101>>::Infinity);
+    assert_eq!(commit_1, AffinePoint::<PlutoBaseCurve>::Infinity);
 
     // p(x) = (x-1)(x-2)(x-3)(x-4)
     // p(x) = x^4 - 10x^3 + 35x^2 - 50x + 24
@@ -110,12 +109,18 @@ mod tests {
     let coefficients = vec![7, 16, 1, 11, 1];
     //  g1srs[0] * 7 + g1srs[1] * 16 + g1srs[2] * 1 + g1srs[3] * 11 + g1srs[4] * 1
     let commit_2 = commit(coefficients, g1srs.clone());
-    assert_eq!(commit_2, AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(32), GF101::new(59)));
+    assert_eq!(
+      commit_2,
+      AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(32), PlutoBaseField::new(59))
+    );
 
     // p(x)  = x^2 + 2x + 3
     let coefficients = vec![3, 2, 1];
     // g1srs[0] * 3 + g1srs[1] * 2  + g1srs[2] * 1
     let commit_3 = commit(coefficients, g1srs);
-    assert_eq!(commit_3, AffinePoint::<PlutoCurve<GF101>>::new(GF101::new(32), GF101::new(59)));
+    assert_eq!(
+      commit_3,
+      AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(32), PlutoBaseField::new(59))
+    );
   }
 }

@@ -14,7 +14,10 @@ pub trait EllipticCurve: Copy {
   type BaseField: FiniteField;
 
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
-  const ORDER: u32;
+  type ScalarField: FiniteField;
+
+  /// Order of this elliptic curve, i.e. number of elements in the scalar field.
+  const ORDER: usize = Self::ScalarField::ORDER;
 
   /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
   const EQUATION_A: Self::Coefficient;
@@ -127,8 +130,8 @@ impl<C: EllipticCurve> Add for AffinePoint<C> {
     // compute new point using elliptic curve point group law
     // https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication
     let lambda = if x1 == x2 && y1 == y2 {
-      ((C::BaseField::TWO + C::BaseField::ONE) * x1 * x1 + C::EQUATION_A.into())
-        / (C::BaseField::TWO * y1)
+      ((C::BaseField::ONE + C::BaseField::ONE + C::BaseField::ONE) * x1 * x1 + C::EQUATION_A.into())
+        / ((C::BaseField::ONE + C::BaseField::ONE) * y1)
     } else {
       (y2 - y1) / (x2 - x1)
     };
@@ -146,12 +149,13 @@ impl<C: EllipticCurve> AffinePoint<C> {
       AffinePoint::PointOnCurve(x, y) => (x, y),
       AffinePoint::Infinity => panic!("Cannot double point at infinity"),
     };
-    // m = (3x^2) + a / (2y) (a = 0 on our curve)
-    let m = ((C::BaseField::TWO + C::BaseField::ONE) * x * x) / (C::BaseField::TWO * y);
+    // m = (3x^2) / (2y)
+    let m = (((C::BaseField::ONE + C::BaseField::ONE) + C::BaseField::ONE) * x * x)
+      / ((C::BaseField::ONE + C::BaseField::ONE) * y);
 
     // 2P = (m^2 - 2x, m(3x - m^2)- y)
-    let x_new = m * m - C::BaseField::TWO * x;
-    let y_new = m * ((C::BaseField::TWO + C::BaseField::ONE) * x - m * m) - y;
+    let x_new = m * m - (C::BaseField::ONE + C::BaseField::ONE) * x;
+    let y_new = m * ((C::BaseField::ONE + C::BaseField::ONE + C::BaseField::ONE) * x - m * m) - y;
     AffinePoint::new(x_new, y_new)
   }
 
