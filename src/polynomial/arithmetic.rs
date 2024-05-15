@@ -143,7 +143,10 @@ impl<F: FiniteField> Div for Polynomial<Monomial, F> {
 impl<F: FiniteField> Rem for Polynomial<Monomial, F> {
   type Output = Self;
 
-  fn rem(self, rhs: Self) -> Self { self.quotient_and_remainder(rhs).1 }
+  fn rem(self, rhs: Self) -> Self {
+        assert!(!rhs.is_zero(), "Division by zero polynomial is undefined");
+        self.quotient_and_remainder(rhs).1
+    }
 }
 
 #[cfg(test)]
