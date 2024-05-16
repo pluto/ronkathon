@@ -68,7 +68,7 @@ fn five_torsion() {
   // 3 * P = Point(PrimeField { value: 35 }, PrimeField { value: 28 })
   // 4 * P = Point(PrimeField { value: 25 }, PrimeField { value: 29 })
   // 5 * P = Infinity
-  println!("\n\n\n");
+  println!("\n\n");
 
   let torsion_generator =
     if let AffinePoint::<TestCurve>::Point(x, y) = AffinePoint::<TestCurve>::generator() {
@@ -84,7 +84,6 @@ fn five_torsion() {
 
   println!("Distortion map on generator: {:?}", torsion_generator);
   for i in 1..6 {
-    println!("i: {:?}", i);
     let point = torsion_generator * i as u32;
     println!("{:?} * P = {:?}", i, point);
     if i == 5 {

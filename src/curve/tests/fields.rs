@@ -29,7 +29,7 @@ impl FiniteField for TestExtension {
 
     let mut res = Self::default();
     let scalar =
-      (self.coeffs[0].pow(2) + TestField::from(2u32) * self.coeffs[1].pow(2)).inverse().unwrap();
+      (self.coeffs[0].pow(2) + TestField::from(1u32) * self.coeffs[1].pow(2)).inverse().unwrap();
     res.coeffs[0] = self.coeffs[0] * scalar;
     res.coeffs[1] = -self.coeffs[1] * scalar;
     Some(res)
@@ -131,8 +131,7 @@ mod tests {
   fn double_distorted_generator() {
     let x = TestExtension::new([-TestField::new(25), TestField::ZERO]);
     let y = TestExtension::new([TestField::ZERO, TestField::new(30)]);
-
     let point = AffinePoint::<TestCurveExtended>::new(x, y);
-    let doubled_point = point + point;
+    let _doubled_point = point + point;
   }
 }

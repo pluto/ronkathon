@@ -85,7 +85,6 @@ impl<C: EllipticCurve> Add for AffinePoint<C> {
     let x = lambda * lambda - x1 - x2;
     let y = lambda * (x1 - x) - y1;
 
-    println!("INSIDE OF ADD\nx: {:?}\ny: {:?}", x, y);
     AffinePoint::new(x, y)
   }
 }
@@ -134,7 +133,7 @@ impl<C: EllipticCurve> std::ops::Mul<AffinePoint<C>> for u32 {
 
     while exp > 0 {
       if exp % 2 == 1 {
-        result = result + base;
+        result += base;
       }
       base = base.point_doubling();
       exp /= 2;
