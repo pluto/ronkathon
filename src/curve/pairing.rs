@@ -74,3 +74,26 @@ fn line_function<const R: usize>(
     input_x - a_x
   }
 }
+
+// Stuff that will let us get generators of the scalar field on the base curve (which also generate
+// the torsion in the extension)
+impl PlutoBaseCurve {
+  fn get_random_point() -> AffinePoint<PlutoBaseCurve> {
+    todo!();
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn cube_root_of_unity() {
+    let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
+    assert_eq!(cube_root.pow(3), PlutoBaseFieldExtension::ONE);
+    println!("Cube root of unity: {:?}", cube_root);
+  }
+
+  #[test]
+  fn scalar_field_generator() {}
+}

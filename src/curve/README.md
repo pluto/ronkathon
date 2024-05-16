@@ -26,6 +26,6 @@ In particular, we can pick $G$ to be the [$r$-torsion subgroup](https://crypto.s
 Note that $r=17$ is valid since $17 \nmid 101-1$ and $17 \mid 101^2 -1$ ([Balasubramanian-Koblitz theorem](https://crypto.stanford.edu/pbc/notes/ep/bk.html)).
 
 In this case, we pick $G = \mathbb{Z}_{17}$ and define our pairing as:
-$$e(P, Q) = f(P, \Psi(Q))$$
+$$e(P, Q) = f(P, \Psi(Q))^{(p^2-1)/r}$$
 where $f$ is the Tate pairing and $\Psi$ is the map $\Psi(x,y) = (\zeta x, y)$ where $\zeta$ is a primitive cube root of unity.
 This is due to the fact that $\Psi$ maps a factor of $E(\mathbb{F}_{101^2})[17] \cong \mathbb{Z}_{17} \times \mathbb{Z}_{17}$ (which is the $17$-torsion group) to the other.
