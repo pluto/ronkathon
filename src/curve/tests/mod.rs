@@ -2,6 +2,7 @@ use std::array;
 
 use self::field::extension::ExtensionField;
 use super::*;
+use crate::curve::pairing::{line_function, vertical_line};
 
 mod fields;
 use fields::*;
@@ -94,4 +95,31 @@ fn five_torsion() {
       assert!(point != AffinePoint::Infinity);
     }
   }
+  // We should get:
+  // 1 * P = Point(GaloisField { coeffs: [PrimeField { value: 34 }, PrimeField { value: 0 }] },
+  // GaloisField { coeffs: [PrimeField { value: 0 }, PrimeField { value: 30 }] })
+  // 2 * P = Point(GaloisField { coeffs: [PrimeField { value: 24 }, PrimeField { value: 0 }] },
+  // GaloisField { coeffs: [PrimeField { value: 0 }, PrimeField { value: 31 }] })
+  // 3 * P = Point(GaloisField { coeffs: [PrimeField { value: 24 }, PrimeField { value: 0 }] },
+  // GaloisField { coeffs: [PrimeField { value: 0 }, PrimeField { value: 28 }] })
+  // 4 * P = Point(GaloisField { coeffs: [PrimeField { value: 34 }, PrimeField { value: 0 }] },
+  // GaloisField { coeffs: [PrimeField { value: 0 }, PrimeField { value: 29 }] }) 5 * P = Infinity
+}
+
+#[test]
+fn vertical_line_2p() {
+  let generator = AffinePoint::<TestCurve>::generator();
+  let two_p = generator + generator;
+  println!("2P: {:?}", two_p);
+  // We should get:
+  // 2P = Point(PrimeField { value: 35 }, PrimeField { value: 31 })
+  assert_eq!(two_p, AffinePoint::new(TestField::new(35), TestField::new(31)));
+
+  let v_2p = |x| vertical_line::<TestCurve, 5>(two_p, x);
+
+  let val = v_2p(two_p);
+  println!("Vertical line at 2P evaluated at 2p: {:?}", val);
+
+  let val = v_2p(-two_p);
+  println!("Vertical line at 2P evaluated at -2p: {:?}", val);
 }

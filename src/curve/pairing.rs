@@ -30,20 +30,20 @@ pub fn pairing<const R: usize>(
   todo!();
 }
 
-fn miller_loop<const R: usize>(
-  _p: AffinePoint<PlutoExtendedCurve>,
-  _q: AffinePoint<PlutoExtendedCurve>,
-) -> GaloisField<2, { PlutoPrime::Base as usize }> {
+fn miller_loop<C: EllipticCurve, const R: usize>(
+  _p: AffinePoint<C>,
+  _q: AffinePoint<C>,
+) -> C::BaseField {
   // Use the R to get a binary representation, then loop over the binary representation to do the
   // algorithm.
   todo!();
 }
 
-fn line_function<const R: usize>(
-  a: AffinePoint<PlutoExtendedCurve>,
-  b: AffinePoint<PlutoExtendedCurve>,
-  input: AffinePoint<PlutoExtendedCurve>,
-) -> GaloisField<2, { PlutoPrime::Base as usize }> {
+pub fn line_function<C: EllipticCurve, const R: usize>(
+  a: AffinePoint<C>,
+  b: AffinePoint<C>,
+  input: AffinePoint<C>,
+) -> C::BaseField {
   let (a_x, a_y) = match a {
     AffinePoint::Point(x, y) => (x, y),
     AffinePoint::Infinity => panic!("Cannot use point at infinity"),
@@ -58,21 +58,27 @@ fn line_function<const R: usize>(
   };
   // TODO: Add explanation for these equations.
   // The case for a general (secant) line
-  if a_x == b_x {
+  if a_x != b_x {
     let m = (b_y - a_y) / (b_x - a_x);
     m * (input_x - a_x) + a_y - input_y
   }
   // The case with a tangent line (I believe since if a_y == b_y then a_x == b_x, so this is true
   // just by checking the first condition)
   else if a_y == b_y {
-    let m = <GaloisField<2, { PlutoPrime::Base as usize }>>::from(3_usize) * a_x.pow(2)
-      / (<GaloisField<2, { PlutoPrime::Base as usize }>>::from(2_usize) * a_y);
+    let m = <C::BaseField>::from(3_usize) * a_x.pow(2) / (<C::BaseField>::from(2_usize) * a_y);
     m * (input_x - a_x) + a_y - input_y
   }
   // The case for a vertical line
   else {
     input_x - a_x
   }
+}
+
+pub fn vertical_line<C: EllipticCurve, const R: usize>(
+  a: AffinePoint<C>,
+  input: AffinePoint<C>,
+) -> C::BaseField {
+  line_function::<C, R>(a, -a, input)
 }
 
 // Stuff that will let us get generators of the scalar field on the base curve (which also generate
