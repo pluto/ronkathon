@@ -98,7 +98,6 @@ impl Rem for TestExtension {
 
 #[cfg(test)]
 mod tests {
-  use ark_ec::short_weierstrass::Affine;
 
   use super::*;
 
