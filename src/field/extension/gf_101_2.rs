@@ -9,7 +9,7 @@
 
 use super::*;
 
-impl ExtensionField<2, { PlutoPrime::Base as usize }> for PlutoBaseFieldExtension {
+impl ExtensionField<2, 101> for PlutoBaseFieldExtension {
   /// irreducible polynomial used to reduce field polynomials to second degree:
   /// F[X]/(X^2-2)
   const IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS: [PlutoBaseField; 3] =

@@ -17,7 +17,7 @@ pub mod gf_101_2;
 /// The [`PlutoBaseFieldExtension`] is a specific instance of the [`GaloisField`] struct with the
 /// order set to the prime number `101^2`. This is the quadratic extension field over the
 /// [`PlutoBaseField`] used in the Pluto `ronkathon` system.
-pub type PlutoBaseFieldExtension = GaloisField<2, { PlutoPrime::Base as usize }>;
+pub type PlutoBaseFieldExtension = GaloisField<2, 101>;
 
 /// The [`PlutoScalarFieldExtension`] is a specific instance of the [`GaloisField`] struct with the
 /// order set to the prime number `17^2`. This is the quadratic extension field over the

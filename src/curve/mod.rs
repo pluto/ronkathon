@@ -4,6 +4,7 @@ use super::*;
 
 pub mod pairing;
 pub mod pluto_curve;
+#[cfg(test)] mod tests;
 
 /// Elliptic curve parameters for a curve over a finite field in Weierstrass form
 /// `y^2 = x^3 + ax + b`
@@ -83,6 +84,8 @@ impl<C: EllipticCurve> Add for AffinePoint<C> {
     };
     let x = lambda * lambda - x1 - x2;
     let y = lambda * (x1 - x) - y1;
+
+    println!("INSIDE OF ADD\nx: {:?}\ny: {:?}", x, y);
     AffinePoint::new(x, y)
   }
 }
@@ -114,7 +117,7 @@ impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
   fn mul(mut self, scalar: u32) -> Self::Output {
     let val = self;
     for _ in 1..scalar {
-      self = self + val;
+      self += val;
     }
     self
   }
