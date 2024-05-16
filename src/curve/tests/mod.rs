@@ -143,3 +143,27 @@ fn tangent_line_p() {
   let val = t_p(3 * p);
   println!("Tangent line at P evaluated at 3P (same as -2P in theory): {:?}", val);
 }
+
+#[test]
+fn line_from_p_to_2p() {
+  let p = AffinePoint::<TestCurve>::generator();
+  let two_p = p + p;
+  println!("P: {:?}", p);
+  println!("2P: {:?}", two_p);
+  // We should get:
+  // P = Point(PrimeField { value: 25 }, PrimeField { value: 30 })
+  // 2P = Point(PrimeField { value: 35 }, PrimeField { value: 31 })
+  assert_eq!(p, AffinePoint::new(TestField::new(25), TestField::new(30)));
+  assert_eq!(two_p, AffinePoint::new(TestField::new(35), TestField::new(31)));
+
+  let l_p_2p = |x| line_function::<TestCurve, 5>(p, two_p, x);
+
+  let val = l_p_2p(p);
+  println!("Line from P to 2P evaluated at P: {:?}", val);
+
+  let val = l_p_2p(-two_p);
+  println!("Line from P to 2P evaluated at -2P: {:?}", val);
+
+  let val = l_p_2p(3 * p);
+  println!("Line from P to 2P evaluated at 3P: {:?}", val);
+}
