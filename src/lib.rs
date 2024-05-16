@@ -26,6 +26,7 @@ pub mod field;
 pub mod kzg;
 pub mod polynomial;
 pub mod setup;
+pub mod tinyrsa;
 
 use core::{
   fmt::{self, Display, Formatter},
