@@ -45,15 +45,15 @@ fn line_function<const R: usize>(
   input: AffinePoint<PlutoExtendedCurve>,
 ) -> GaloisField<2, { PlutoPrime::Base as usize }> {
   let (a_x, a_y) = match a {
-    AffinePoint::PointOnCurve(x, y) => (x, y),
+    AffinePoint::Point(x, y) => (x, y),
     AffinePoint::Infinity => panic!("Cannot use point at infinity"),
   };
   let (b_x, b_y) = match b {
-    AffinePoint::PointOnCurve(x, y) => (x, y),
+    AffinePoint::Point(x, y) => (x, y),
     AffinePoint::Infinity => panic!("Cannot use point at infinity"),
   };
   let (input_x, input_y) = match input {
-    AffinePoint::PointOnCurve(x, y) => (x, y),
+    AffinePoint::Point(x, y) => (x, y),
     AffinePoint::Infinity => panic!("Cannot use point at infinity"),
   };
   // TODO: Add explanation for these equations.
@@ -95,5 +95,42 @@ mod tests {
   }
 
   #[test]
-  fn scalar_field_generator() {}
+  fn torsion_generators() {
+    let generator = AffinePoint::<PlutoBaseCurve>::generator();
+    println!("Generator: {:?}", generator);
+    for i in 1..PlutoPrime::Scalar as usize + 1 {
+      let point = generator * i as u32;
+      println!("{:?} * P = {:?}", i, point);
+      if i == PlutoPrime::Scalar as usize {
+        assert_eq!(point, AffinePoint::Infinity);
+
+        continue;
+      } else {
+        assert!(point != AffinePoint::Infinity);
+      }
+    }
+
+    let cube_root_of_unity = PlutoBaseFieldExtension::primitive_root_of_unity(3);
+    let torsion_generator = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
+      AffinePoint::<PlutoBaseCurve>::generator()
+    {
+      AffinePoint::<PlutoExtendedCurve>::new(
+        cube_root_of_unity * PlutoBaseFieldExtension::from(x),
+        PlutoBaseFieldExtension::from(y),
+      )
+    } else {
+      panic!("Generator is not a point");
+    };
+    for i in 1..PlutoPrime::Scalar as usize + 1 {
+      let point = torsion_generator * i as u32;
+      println!("{:?} * P = {:?}", i, point);
+      if i == PlutoPrime::Scalar as usize {
+        assert_eq!(point, AffinePoint::Infinity);
+
+        continue;
+      } else {
+        assert!(point != AffinePoint::Infinity);
+      }
+    }
+  }
 }

@@ -15,10 +15,7 @@ pub trait EllipticCurve: Copy {
   type BaseField: FiniteField;
 
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
-  type ScalarField: FiniteField;
-
-  /// Order of this elliptic curve, i.e. number of elements in the scalar field.
-  const ORDER: usize = Self::ScalarField::ORDER;
+  const ORDER: usize;
 
   /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
   const EQUATION_A: Self::Coefficient;
@@ -26,7 +23,7 @@ pub trait EllipticCurve: Copy {
   /// Coefficient `b` in the Weierstrass equation of this elliptic curve.
   const EQUATION_B: Self::Coefficient;
 
-  /// Generator of this elliptic curve.
+  /// Generator of the scalar field to the elliptic curve.
   const GENERATOR: (Self::BaseField, Self::BaseField);
 }
 
@@ -36,7 +33,7 @@ pub trait EllipticCurve: Copy {
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub enum AffinePoint<C: EllipticCurve> {
   /// A point on the curve.
-  PointOnCurve(C::BaseField, C::BaseField),
+  Point(C::BaseField, C::BaseField),
 
   /// The point at infinity.
   Infinity,
@@ -50,7 +47,7 @@ impl<C: EllipticCurve> AffinePoint<C> {
       x * x * x + C::EQUATION_A.into() * x + C::EQUATION_B.into(),
       "Point is not on curve"
     );
-    Self::PointOnCurve(x, y)
+    Self::Point(x, y)
   }
 }
 
@@ -66,11 +63,11 @@ impl<C: EllipticCurve> Add for AffinePoint<C> {
       _ => (),
     }
     let (x1, y1) = match self {
-      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Point(x, y) => (x, y),
       AffinePoint::Infinity => unreachable!(),
     };
     let (x2, y2) = match rhs {
-      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Point(x, y) => (x, y),
       AffinePoint::Infinity => unreachable!(),
     };
     if x1 == x2 && y1 == -y2 {
@@ -99,7 +96,7 @@ impl<C: EllipticCurve> Neg for AffinePoint<C> {
 
   fn neg(self) -> Self::Output {
     let (x, y) = match self {
-      AffinePoint::PointOnCurve(x, y) => (x, -y),
+      AffinePoint::Point(x, y) => (x, -y),
       AffinePoint::Infinity => panic!("Cannot double point at infinity"),
     };
     AffinePoint::new(x, y)
@@ -148,7 +145,7 @@ impl<C: EllipticCurve> AffinePoint<C> {
   /// Compute the point doubling operation on this point.
   pub fn point_doubling(self) -> AffinePoint<C> {
     let (x, y) = match self {
-      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Point(x, y) => (x, y),
       AffinePoint::Infinity => panic!("Cannot double point at infinity"),
     };
     // m = (3x^2) / (2y)

@@ -329,7 +329,7 @@ mod tests {
     let _root = PlutoScalarField::primitive_root_of_unity(n);
   }
 
-  // The quadratic residues are:
+  // The quadratic residues over GF(101) are:
   // [1, 4, 5, 6, 9, 13, 14, 16, 17, 19, 20, 21, 22, 23, 24, 25, 30, 31, 33, 36, 37, 43, 45, 47, 49,
   // 52, 54, 56, 58, 64, 65, 68, 70, 71, 76, 77, 78, 79, 80, 81, 82, 84, 85, 87, 88, 92, 95, 96, 97,
   // 100]
@@ -342,8 +342,6 @@ mod tests {
   #[case(PlutoBaseField::new(5), (PlutoBaseField::new(45), PlutoBaseField::new(56)))]
   #[case(PlutoBaseField::new(6), (PlutoBaseField::new(39), PlutoBaseField::new(62)))]
   fn square_root(#[case] a: PlutoBaseField, #[case] expected: (PlutoBaseField, PlutoBaseField)) {
-    let sqrt = a.sqrt().unwrap();
-    println!("sqrt val: {:?}", sqrt);
-    assert_eq!(sqrt, expected);
+    assert_eq!(a.sqrt().unwrap(), expected);
   }
 }
