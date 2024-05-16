@@ -30,16 +30,30 @@ pub fn pairing<const R: usize>(
   todo!();
 }
 
-fn miller_loop<C: EllipticCurve, const R: usize>(
-  _p: AffinePoint<C>,
-  _q: AffinePoint<C>,
+pub fn miller_loop<C: EllipticCurve, const R: usize>(
+  p: AffinePoint<C>,
+  q: AffinePoint<C>,
 ) -> C::BaseField {
   // Use the R to get a binary representation, then loop over the binary representation to do the
   // algorithm.
-  todo!();
+  let mut x = C::BaseField::ONE;
+  let mut z = p;
+
+  let r = format!("{:b}", R);
+  for bit in r.chars() {
+    println!("Bit: {:?}", bit);
+    x = x.pow(2) * tangent_line::<C>(z, q) / vertical_line(2 * z, q);
+    z += z;
+    if bit == '1' {
+      println!("Bit is 1");
+      x = x * line_function::<C>(z, p, q) / vertical_line(z + p, q);
+      z += p;
+    }
+  }
+  x.pow((C::BaseField::ORDER - 1) / R)
 }
 
-pub fn line_function<C: EllipticCurve, const R: usize>(
+pub fn line_function<C: EllipticCurve>(
   a: AffinePoint<C>,
   b: AffinePoint<C>,
   input: AffinePoint<C>,
@@ -65,7 +79,6 @@ pub fn line_function<C: EllipticCurve, const R: usize>(
   // The case with a tangent line (I believe since if a_y == b_y then a_x == b_x, so this is true
   // just by checking the first condition)
   else if a_y == b_y {
-    println!("in here");
     let m = (<C::BaseField>::from(3_usize) * a_x.pow(2) + C::EQUATION_A.into())
       / (<C::BaseField>::from(2_usize) * a_y);
     m * (input_x - a_x) + a_y - input_y
@@ -76,18 +89,12 @@ pub fn line_function<C: EllipticCurve, const R: usize>(
   }
 }
 
-pub fn vertical_line<C: EllipticCurve, const R: usize>(
-  a: AffinePoint<C>,
-  input: AffinePoint<C>,
-) -> C::BaseField {
-  line_function::<C, R>(a, -a, input)
+pub fn vertical_line<C: EllipticCurve>(a: AffinePoint<C>, input: AffinePoint<C>) -> C::BaseField {
+  line_function::<C>(a, -a, input)
 }
 
-pub fn tangent_line<C: EllipticCurve, const R: usize>(
-  a: AffinePoint<C>,
-  input: AffinePoint<C>,
-) -> C::BaseField {
-  line_function::<C, R>(a, a, input)
+pub fn tangent_line<C: EllipticCurve>(a: AffinePoint<C>, input: AffinePoint<C>) -> C::BaseField {
+  line_function::<C>(a, a, input)
 }
 
 // Stuff that will let us get generators of the scalar field on the base curve (which also generate

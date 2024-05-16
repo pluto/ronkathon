@@ -1,10 +1,11 @@
 use std::array;
 
-use self::field::extension::ExtensionField;
+use self::{field::extension::ExtensionField, pairing::miller_loop};
 use super::*;
 use crate::curve::pairing::{line_function, tangent_line, vertical_line};
 
 mod fields;
+use ark_ec::short_weierstrass::Affine;
 use fields::*;
 
 // Let's work through the example in Lynn's thesis so that we can be sure we compute the Tate
@@ -115,7 +116,7 @@ fn vertical_line_2p() {
   // 2P = Point(PrimeField { value: 35 }, PrimeField { value: 31 })
   assert_eq!(two_p, AffinePoint::new(TestField::new(35), TestField::new(31)));
 
-  let v_2p = |x| vertical_line::<TestCurve, 5>(two_p, x);
+  let v_2p = |x| vertical_line::<TestCurve>(two_p, x);
 
   let val = v_2p(two_p);
   println!("Vertical line at 2P evaluated at 2p: {:?}", val);
@@ -132,7 +133,7 @@ fn tangent_line_p() {
   // P = Point(PrimeField { value: 25 }, PrimeField { value: 30 })
   assert_eq!(p, AffinePoint::new(TestField::new(25), TestField::new(30)));
 
-  let t_p = |x| tangent_line::<TestCurve, 5>(p, x);
+  let t_p = |x| tangent_line::<TestCurve>(p, x);
 
   let val = t_p(p);
   println!("Tangent line at P evaluated at P: {:?}", val);
@@ -156,7 +157,7 @@ fn line_from_p_to_2p() {
   assert_eq!(p, AffinePoint::new(TestField::new(25), TestField::new(30)));
   assert_eq!(two_p, AffinePoint::new(TestField::new(35), TestField::new(31)));
 
-  let l_p_2p = |x| line_function::<TestCurve, 5>(p, two_p, x);
+  let l_p_2p = |x| line_function::<TestCurve>(p, two_p, x);
 
   let val = l_p_2p(p);
   println!("Line from P to 2P evaluated at P: {:?}", val);
@@ -166,4 +167,31 @@ fn line_from_p_to_2p() {
 
   let val = l_p_2p(3 * p);
   println!("Line from P to 2P evaluated at 3P: {:?}", val);
+}
+
+#[test]
+fn miller_loop_check() {
+  let (p, q) = if let AffinePoint::<TestCurve>::Point(x, y) = AffinePoint::<TestCurve>::generator()
+  {
+    (
+      AffinePoint::<TestCurveExtended>::new(TestExtension::from(x), TestExtension::from(y)),
+      // Apply the distortion map
+      AffinePoint::<TestCurveExtended>::new(
+        -TestExtension::from(x),
+        TestExtension::new([TestField::from(0usize), TestField::from(1usize)])
+          * TestExtension::from(y),
+      ),
+    )
+  } else {
+    panic!("Generator is not a point");
+  };
+  println!("P: {:?}", p);
+  println!("Q: {:?}", q);
+
+  let f_p_q = miller_loop::<TestCurveExtended, 5>(p, q);
+  println!("f(P,Q) = {:?}", f_p_q);
+  assert_eq!(f_p_q, TestExtension::new([TestField::new(42), TestField::new(40)]));
+
+  println!("f(P,Q)^5 = {:?}", f_p_q.pow(5));
+  assert_eq!(f_p_q.pow(5), TestExtension::new([TestField::new(1), TestField::new(0)]));
 }
