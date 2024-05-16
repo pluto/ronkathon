@@ -109,7 +109,7 @@ impl<C: EllipticCurve> Neg for AffinePoint<C> {
 /// Scalar multiplication on the rhs: P*(u32)
 /// This is the niave implementation of scalar multiplication
 /// There is a faster way to do this but this is simpler to reason about for now
-#[allow(clippy::suspicious_arithmetic_impl)]
+
 impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
@@ -123,22 +123,16 @@ impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
 }
 
 /// Scalar multiplication on the Lhs (u32)*P
+#[allow(clippy::suspicious_arithmetic_impl)]
 impl<C: EllipticCurve> std::ops::Mul<AffinePoint<C>> for u32 {
   type Output = AffinePoint<C>;
 
-  fn mul(self, _rhs: AffinePoint<C>) -> Self::Output {
-    let mut result = AffinePoint::Infinity;
-    let mut base = AffinePoint::generator();
-    let mut exp = self;
-
-    while exp > 0 {
-      if exp % 2 == 1 {
-        result += base;
-      }
-      base = base.point_doubling();
-      exp /= 2;
+  fn mul(mut self, val: AffinePoint<C>) -> Self::Output {
+    let mut out = val;
+    for _ in 1..self {
+      out += val;
     }
-    result
+    out
   }
 }
 
