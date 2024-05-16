@@ -65,7 +65,9 @@ pub fn line_function<C: EllipticCurve, const R: usize>(
   // The case with a tangent line (I believe since if a_y == b_y then a_x == b_x, so this is true
   // just by checking the first condition)
   else if a_y == b_y {
-    let m = <C::BaseField>::from(3_usize) * a_x.pow(2) / (<C::BaseField>::from(2_usize) * a_y);
+    println!("in here");
+    let m = (<C::BaseField>::from(3_usize) * a_x.pow(2) + C::EQUATION_A.into())
+      / (<C::BaseField>::from(2_usize) * a_y);
     m * (input_x - a_x) + a_y - input_y
   }
   // The case for a vertical line
@@ -79,6 +81,13 @@ pub fn vertical_line<C: EllipticCurve, const R: usize>(
   input: AffinePoint<C>,
 ) -> C::BaseField {
   line_function::<C, R>(a, -a, input)
+}
+
+pub fn tangent_line<C: EllipticCurve, const R: usize>(
+  a: AffinePoint<C>,
+  input: AffinePoint<C>,
+) -> C::BaseField {
+  line_function::<C, R>(a, a, input)
 }
 
 // Stuff that will let us get generators of the scalar field on the base curve (which also generate

@@ -2,7 +2,7 @@ use std::array;
 
 use self::field::extension::ExtensionField;
 use super::*;
-use crate::curve::pairing::{line_function, vertical_line};
+use crate::curve::pairing::{line_function, tangent_line, vertical_line};
 
 mod fields;
 use fields::*;
@@ -122,4 +122,24 @@ fn vertical_line_2p() {
 
   let val = v_2p(-two_p);
   println!("Vertical line at 2P evaluated at -2p: {:?}", val);
+}
+
+#[test]
+fn tangent_line_p() {
+  let p = AffinePoint::<TestCurve>::generator();
+  println!("P: {:?}", p);
+  // We should get:
+  // P = Point(PrimeField { value: 25 }, PrimeField { value: 30 })
+  assert_eq!(p, AffinePoint::new(TestField::new(25), TestField::new(30)));
+
+  let t_p = |x| tangent_line::<TestCurve, 5>(p, x);
+
+  let val = t_p(p);
+  println!("Tangent line at P evaluated at P: {:?}", val);
+
+  let val = t_p(-(2 * p));
+  println!("Tangent line at P evaluated at -2P: {:?}", val);
+
+  let val = t_p(3 * p);
+  println!("Tangent line at P evaluated at 3P (same as -2P in theory): {:?}", val);
 }
