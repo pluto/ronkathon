@@ -99,7 +99,7 @@ impl<C: EllipticCurve> Neg for AffinePoint<C> {
   fn neg(self) -> Self::Output {
     let (x, y) = match self {
       AffinePoint::Point(x, y) => (x, -y),
-      AffinePoint::Infinity => panic!("Cannot double point at infinity"),
+      AffinePoint::Infinity => return AffinePoint::Infinity,
     };
     AffinePoint::new(x, y)
   }
@@ -142,7 +142,7 @@ impl<C: EllipticCurve> AffinePoint<C> {
   pub fn point_doubling(self) -> AffinePoint<C> {
     let (x, y) = match self {
       AffinePoint::Point(x, y) => (x, y),
-      AffinePoint::Infinity => panic!("Cannot double point at infinity"),
+      AffinePoint::Infinity => return AffinePoint::Infinity,
     };
     // m = (3x^2) / (2y)
     let m = (((C::BaseField::ONE + C::BaseField::ONE) + C::BaseField::ONE) * x * x
