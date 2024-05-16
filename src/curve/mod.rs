@@ -145,7 +145,8 @@ impl<C: EllipticCurve> AffinePoint<C> {
       AffinePoint::Infinity => panic!("Cannot double point at infinity"),
     };
     // m = (3x^2) / (2y)
-    let m = (((C::BaseField::ONE + C::BaseField::ONE) + C::BaseField::ONE) * x * x)
+    let m = (((C::BaseField::ONE + C::BaseField::ONE) + C::BaseField::ONE) * x * x
+      + C::EQUATION_A.into())
       / ((C::BaseField::ONE + C::BaseField::ONE) * y);
 
     // 2P = (m^2 - 2x, m(3x - m^2)- y)
