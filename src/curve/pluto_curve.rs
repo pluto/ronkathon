@@ -187,8 +187,8 @@ mod pluto_extended_curve_tests {
 
   fn generator() -> AffinePoint<PlutoExtendedCurve> {
     AffinePoint::<PlutoExtendedCurve>::new(
-      PlutoBaseFieldExtension::new([PlutoBaseField::new(36), PlutoBaseField::ZERO]),
-      PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::new(31)]),
+      PlutoBaseFieldExtension::new([PlutoBaseField::new(31), PlutoBaseField::ZERO]),
+      PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::new(36)]),
     )
   }
 

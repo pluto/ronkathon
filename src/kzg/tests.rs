@@ -7,23 +7,42 @@ fn test_setup() {
   assert!(g1srs.len() == 7);
   assert!(g2srs.len() == 2);
   let expected_g1srs = vec![
-    AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(1), PlutoBaseField::new(2)),
-    AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(68), PlutoBaseField::new(74)),
-    AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(65), PlutoBaseField::new(98)),
-    AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(18), PlutoBaseField::new(49)),
-    AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(1), PlutoBaseField::new(99)),
-    AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(68), PlutoBaseField::new(27)),
-    AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(65), PlutoBaseField::new(3)),
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::from(1usize),
+      PlutoBaseFieldExtension::from(2usize),
+    ),
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::from(68usize),
+      PlutoBaseFieldExtension::from(74usize),
+    ),
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::from(65usize),
+      PlutoBaseFieldExtension::from(98usize),
+    ),
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::from(18usize),
+      PlutoBaseFieldExtension::from(49usize),
+    ),
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::from(1usize),
+      PlutoBaseFieldExtension::from(99usize),
+    ),
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::from(68usize),
+      PlutoBaseFieldExtension::from(27usize),
+    ),
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::from(65usize),
+      PlutoBaseFieldExtension::from(3usize),
+    ),
   ];
 
   assert_eq!(g1srs, expected_g1srs);
 
-  println!("g2srs {:?}", g2srs);
   let expected_2g = AffinePoint::<PlutoExtendedCurve>::new(
     PlutoBaseFieldExtension::new([PlutoBaseField::new(90), PlutoBaseField::ZERO]),
     PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::new(82)]),
   );
-
   let g2_gen = AffinePoint::<PlutoExtendedCurve>::generator();
   let expected_g2srs = vec![g2_gen, expected_2g];
 
@@ -50,7 +69,7 @@ fn test_commit() {
   ];
   //  g1srs[0] * 11 + g1srs[1] * 11 + g1srs[2] * 11 + g1srs[3] * 1
   let commit_1 = commit(coefficients, g1srs.clone());
-  assert_eq!(commit_1, AffinePoint::<PlutoBaseCurve>::Infinity);
+  assert_eq!(commit_1, AffinePoint::<PlutoExtendedCurve>::Infinity);
 
   // p(x) = (x-1)(x-2)(x-3)(x-4)
   // p(x) = 24 - 50x + 35x^2 - 10x^3
@@ -67,9 +86,14 @@ fn test_commit() {
   ];
   //  g1srs[0] * 7 + g1srs[1] * 16 + g1srs[2] * 1 + g1srs[3] * 11 + g1srs[4] * 1
   let commit_2 = commit(coefficients, g1srs.clone());
+
+  /// point not on curve
   assert_eq!(
     commit_2,
-    AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(32), PlutoBaseField::new(59))
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::new([PlutoBaseField::new(32), PlutoBaseField::new(59)]),
+      PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::ZERO]),
+    )
   );
 
   // p(x)  = 3 + 2x + x^2
@@ -77,15 +101,37 @@ fn test_commit() {
     vec![PlutoScalarField::new(3), PlutoScalarField::new(2), PlutoScalarField::new(1)];
   // g1srs[0] * 3 + g1srs[1] * 2  + g1srs[2] * 1
   let commit_3 = commit(coefficients, g1srs);
+  /// point not on curve
+
   assert_eq!(
     commit_3,
-    AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(32), PlutoBaseField::new(59))
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::new([PlutoBaseField::new(32), PlutoBaseField::new(59)]),
+      PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::ZERO]),
+    )
+  );
+}
+
+#[test]
+fn srs_open() {
+  let (g1srs, _) = setup();
+  let result = g1srs[0] * PlutoScalarField::new(3);
+  let result_2 = g1srs[1] * PlutoScalarField::new(15);
+  let result_3 = g1srs[2] * PlutoScalarField::new(1);
+  let sum = result + result_2 + result_3;
+  assert_eq!(
+    sum,
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::new([PlutoBaseField::new(26), PlutoBaseField::new(45)]),
+      PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::ZERO]),
+    )
   );
 }
 
 #[test]
 fn opening() {
   let (g1srs, _) = setup();
+  println!("g1srs[0]:{:?}, g1srs[1]:{:?}, g1srs[2]:{:?}", g1srs[0], g1srs[1], g1srs[2]);
   let poly = Polynomial::<Monomial, PlutoScalarField>::new(vec![
     PlutoScalarField::new(11),
     PlutoScalarField::new(11),
@@ -95,15 +141,21 @@ fn opening() {
   let eval_point = PlutoScalarField::new(4);
   //   let eval_result = poly.evaluate(eval_point);
   let commit = commit(poly.coefficients.clone(), g1srs.clone());
-  assert_eq!(commit, AffinePoint::<PlutoBaseCurve>::Infinity);
+  assert_eq!(commit, AffinePoint::<PlutoExtendedCurve>::Infinity);
   // p(x) = (x-1)(x-2)(x-3)
   // p(x) = - 6 + 11x -6x^2 + x^3
 
   // divisor poly q(x) = x - 4
   // result = p(x) / q(x) = x^2 - 2x + 3
+  // multiplying (1,2) * 3 + (68, 74) * 15 + (65, 98) * 1
   let open_commit = open(poly.coefficients, eval_point, g1srs.clone());
-  println!("open_commit {:?}", open_commit);
-  //   assert_eq!(open, commit);
+  assert_eq!(
+    open_commit,
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::new([PlutoBaseField::new(26), PlutoBaseField::new(45)]),
+      PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::ZERO]),
+    )
+  );
 }
 
 #[test]
@@ -120,10 +172,11 @@ fn end_to_end() {
   let poly = Polynomial::<Monomial, PlutoScalarField>::new(coefficients.clone());
   let eval_point = PlutoScalarField::new(4);
   let eval_result = poly.evaluate(eval_point);
+  println!("eval_result {:?}", eval_result);
 
   let p_commit = commit(poly.coefficients.clone(), g1srs.clone());
   // p_commit = inf
-  assert_eq!(p_commit, AffinePoint::<PlutoBaseCurve>::Infinity);
+  assert_eq!(p_commit, AffinePoint::<PlutoExtendedCurve>::Infinity);
   let q_commit = open(poly.coefficients, eval_point, g1srs.clone());
   // q_commit = (26, 50)
   println!("q_commit {:?}", q_commit);

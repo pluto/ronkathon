@@ -130,6 +130,8 @@ mod tests {
     let (g1_srs, g2_srs) = setup(10);
     let p_commit = commit::<false>(p.clone(), g1_srs.clone());
     let q_commit = open(p.clone(), x, g1_srs.clone());
+
+    
     let valid = check(p_commit, q_commit, x, y, g1_srs.clone(), g2_srs.clone());
 
     println!("p_commit={}", p_commit);
