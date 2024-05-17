@@ -10,10 +10,10 @@ use super::*;
 // not generic as making them generic could be quite hard.
 
 /// Compute the Tate pairing of two points on the curve.
-pub fn pairing<const R: usize>(
-  p: AffinePoint<PlutoExtendedCurve>,
-  q: AffinePoint<PlutoExtendedCurve>,
-) -> GaloisField<2, { PlutoPrime::Base as usize }> {
+pub fn pairing<C: EllipticCurve + fmt::Debug + PartialEq, const R: usize>(
+  p: AffinePoint<C>,
+  q: AffinePoint<C>,
+) -> C::BaseField {
   // Check that both inputs are r torsion points on the curve
   let mut result = p;
   for _ in 0..R {
@@ -27,10 +27,13 @@ pub fn pairing<const R: usize>(
   assert_eq!(result, q);
 
   // Compute the Miller loop
-  todo!();
+  let val = miller_loop::<C, R>(p, q);
+
+  // Do the final exponentiation
+  val.pow((C::BaseField::ORDER - 1) / R)
 }
 
-pub fn miller_loop<C: EllipticCurve, const R: usize>(
+pub fn miller_loop<C: EllipticCurve + fmt::Debug + PartialEq, const R: usize>(
   p: AffinePoint<C>,
   q: AffinePoint<C>,
 ) -> C::BaseField {
@@ -40,17 +43,25 @@ pub fn miller_loop<C: EllipticCurve, const R: usize>(
   let mut z = p;
 
   let r = format!("{:b}", R);
-  for bit in r.chars() {
-    println!("Bit: {:?}", bit);
+  for bit in r.chars().skip(1) {
+    dbg!(bit);
+    dbg!(z);
+    dbg!(2 * z);
     x = x.pow(2) * tangent_line::<C>(z, q) / vertical_line(2 * z, q);
     z += z;
+    dbg!(z);
     if bit == '1' {
-      println!("Bit is 1");
-      x = x * line_function::<C>(z, p, q) / vertical_line(z + p, q);
+      println!("inside conditional");
+      if z + p == AffinePoint::Infinity {
+        x *= line_function::<C>(z, p, q);
+      } else {
+        x = x * line_function::<C>(z, p, q) / vertical_line(z + p, q);
+      }
       z += p;
     }
+    dbg!(x);
   }
-  x.pow((C::BaseField::ORDER - 1) / R)
+  -x
 }
 
 pub fn line_function<C: EllipticCurve>(

@@ -2,10 +2,9 @@ use std::array;
 
 use self::{field::extension::ExtensionField, pairing::miller_loop};
 use super::*;
-use crate::curve::pairing::{line_function, tangent_line, vertical_line};
+use crate::curve::pairing::{line_function, pairing, tangent_line, vertical_line};
 
 mod fields;
-use ark_ec::short_weierstrass::Affine;
 use fields::*;
 
 // Let's work through the example in Lynn's thesis so that we can be sure we compute the Tate
@@ -190,8 +189,12 @@ fn miller_loop_check() {
 
   let f_p_q = miller_loop::<TestCurveExtended, 5>(p, q);
   println!("f(P,Q) = {:?}", f_p_q);
-  assert_eq!(f_p_q, TestExtension::new([TestField::new(42), TestField::new(40)]));
+  assert_eq!(f_p_q, TestExtension::new([TestField::new(43), TestField::new(52)]));
 
-  println!("f(P,Q)^5 = {:?}", f_p_q.pow(5));
-  assert_eq!(f_p_q.pow(5), TestExtension::new([TestField::new(1), TestField::new(0)]));
+  // final exponentiation
+  let exped = f_p_q.pow((TestExtension::ORDER - 1) / 5);
+  println!("f(P,Q)^(59^2 - 1) = {:?}", exped);
+
+  println!("f(P,Q)^(59^2 - 1)^5 = {:?}", exped.pow(5));
+  assert_eq!(exped.pow(5), TestExtension::new([TestField::new(1), TestField::new(0)]));
 }
