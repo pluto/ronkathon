@@ -88,6 +88,7 @@ pub fn check(
   let g1 = *g1_srs.first().expect("has g1 srs");
   let g2 = *g2_srs.first().expect("has g2 srs");
 
+  // e(G_1, G_2) = GF(P^k) where k is the embedding degree
   let lhs = Bn254::pairing(q, g2.into_group() - G2Affine::generator() * point);
   let rhs = Bn254::pairing(p.into_group() - g1 * value, G2Affine::generator());
 

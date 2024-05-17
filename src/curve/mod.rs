@@ -1,5 +1,8 @@
 //! Elliptic curve operations and types.
 
+use ark_ec::ScalarMul;
+
+use self::field::prime::PlutoScalarField;
 use super::*;
 
 pub mod pairing;
@@ -120,6 +123,19 @@ impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
     }
     self
   }
+}
+
+impl<C: EllipticCurve> Sub for AffinePoint<C> {
+  type Output = AffinePoint<C>;
+
+  fn sub(self, rhs: Self) -> Self::Output { self + -rhs }
+}
+
+#[allow(clippy::suspicious_arithmetic_impl)]
+impl<C: EllipticCurve> Mul<PlutoScalarField> for AffinePoint<C> {
+  type Output = AffinePoint<C>;
+
+  fn mul(self, scalar: PlutoScalarField) -> Self::Output { scalar.value as u32 * self }
 }
 
 /// Scalar multiplication on the Lhs (u32)*P

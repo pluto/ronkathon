@@ -29,7 +29,7 @@ pub type PlutoScalarField = PrimeField<{ PlutoPrime::Scalar as usize }>;
 /// by a prime number `P`, and the elements are integers modulo `P`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default, PartialOrd)]
 pub struct PrimeField<const P: usize> {
-  value: usize,
+  pub(crate) value: usize,
 }
 
 impl<const P: usize> PrimeField<P> {

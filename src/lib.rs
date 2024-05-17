@@ -24,8 +24,8 @@
 pub mod curve;
 pub mod field;
 pub mod kzg;
+pub mod kzg_old;
 pub mod polynomial;
-pub mod setup;
 
 use core::{
   fmt::{self, Display, Formatter},
