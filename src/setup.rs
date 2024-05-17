@@ -51,7 +51,7 @@ fn commit(
     let res = point * *coef;
     // println!("res {:?}, of multiplying point {:?}, and coef {:?}", res, point, coef);
     println!("commitment {:?} before addition with {:?}", commitment, res);
-    commitment = commitment + res;
+    commitment += res;
   }
   commitment
 }

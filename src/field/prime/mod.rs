@@ -3,8 +3,6 @@
 //! [`FiniteField`] trait is implemented. This module asserts at compile time that the order of the
 //! field is a prime number and allows for creation of generic prime order fields.
 
-use rand::distributions::{Distribution, Standard};
-
 use super::*;
 
 mod arithmetic;
@@ -42,6 +40,64 @@ impl<const P: usize> PrimeField<P> {
     is_prime(P);
     Self { value: value % P }
   }
+
+  /// Computes the square root of a field element using the [Tonelli-Shanks algorithm](https://en.wikipedia.org/wiki/Tonelli–Shanks_algorithm).
+  pub fn sqrt(&self) -> Option<(Self, Self)> {
+    assert!(self.euler_criterion(), "Element is not a quadratic residue");
+    if *self == Self::ZERO {
+      return Some((Self::ZERO, Self::ZERO));
+    }
+
+    // First define the Q and S values for the prime number P.
+    let q: usize;
+    let mut s = 1;
+    loop {
+      let lhs = P - 1;
+      let rhs = 2_usize.pow(s);
+      let check_value = lhs % rhs;
+      if check_value == 0 {
+        s += 1;
+      } else {
+        s -= 1;
+        q = (P - 1) / 2_usize.pow(s);
+        break;
+      }
+    }
+
+    // Find a z that is not a quadratic residue
+    let mut z = Self::new(2);
+    while z.euler_criterion() {
+      z += Self::ONE;
+    }
+    let mut m = s;
+    let mut c = z.pow(q);
+    let mut t = self.pow(q);
+    let mut r = self.pow((q + 1) / 2);
+    loop {
+      if t == Self::ONE {
+        if -r < r {
+          return Some((-r, r));
+        } else {
+          return Some((r, -r));
+        }
+      }
+      // Repeatedly square to find a t^2^i = 1
+      let mut i = 1;
+      let mut t_pow = t.pow(2);
+      while t_pow != Self::ONE {
+        t_pow = t_pow.pow(2);
+        i += 1;
+      }
+      let b = c.pow(2_usize.pow(m - i - 1));
+      m = i;
+      c = b.pow(2);
+      t *= c;
+      r *= b;
+    }
+  }
+
+  /// Returns true if the element is a quadratic residue (a square number) in the field.
+  pub const fn euler_criterion(&self) -> bool { self.pow((P - 1) / 2).value == 1 }
 }
 
 impl<const P: usize> const FiniteField for PrimeField<P> {
@@ -270,5 +326,21 @@ mod tests {
   fn not_primitive_root_of_unity() {
     let n = 3;
     let _root = PlutoScalarField::primitive_root_of_unity(n);
+  }
+
+  // The quadratic residues over GF(101) are:
+  // [1, 4, 5, 6, 9, 13, 14, 16, 17, 19, 20, 21, 22, 23, 24, 25, 30, 31, 33, 36, 37, 43, 45, 47, 49,
+  // 52, 54, 56, 58, 64, 65, 68, 70, 71, 76, 77, 78, 79, 80, 81, 82, 84, 85, 87, 88, 92, 95, 96, 97,
+  // 100]
+  #[rstest]
+  // This first test case will panic because 2 is not a primitive root of unity for the scalar
+  // field, so the expected value is irrelevant.
+  #[should_panic]
+  #[case(PlutoBaseField::new(2), (PlutoBaseField::new(69420), PlutoBaseField::new(69420)))]
+  #[case(PlutoBaseField::new(4), (PlutoBaseField::new(2), PlutoBaseField::new(99)))]
+  #[case(PlutoBaseField::new(5), (PlutoBaseField::new(45), PlutoBaseField::new(56)))]
+  #[case(PlutoBaseField::new(6), (PlutoBaseField::new(39), PlutoBaseField::new(62)))]
+  fn square_root(#[case] a: PlutoBaseField, #[case] expected: (PlutoBaseField, PlutoBaseField)) {
+    assert_eq!(a.sqrt().unwrap(), expected);
   }
 }
