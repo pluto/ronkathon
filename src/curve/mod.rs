@@ -1,7 +1,5 @@
 //! Elliptic curve operations and types.
 
-use ark_ec::ScalarMul;
-
 use self::field::prime::PlutoScalarField;
 use super::*;
 
