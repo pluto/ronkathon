@@ -47,18 +47,9 @@ pub fn commit(
   coefs: Vec<PlutoScalarField>,
   g1_srs: Vec<AffinePoint<PlutoExtendedCurve>>,
 ) -> AffinePoint<PlutoExtendedCurve> {
-  // commit to a polynomial
-  // - given a polynomial, commit to it
   assert!(g1_srs.len() >= coefs.len());
-  // Todo implement multiplication with field elements as scalar mult.
-  // Maybe having the scalar mult be around the base field like colin suggested is better
 
-  let mut commitment = AffinePoint::Infinity;
-  for (coef, point) in coefs.iter().zip(g1_srs) {
-    let res = point * *coef;
-    commitment += res;
-  }
-  commitment
+  g1_srs.into_iter().zip(coefs).map(|(g1, coef)| g1 * coef).sum::<AffinePoint<PlutoExtendedCurve>>()
 }
 
 /// Open the commitment

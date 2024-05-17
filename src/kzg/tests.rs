@@ -49,16 +49,13 @@ fn test_setup() {
   assert_eq!(g2srs, expected_g2srs);
 }
 
-/// always right polynomial with degree 0 term first
 #[test]
 fn test_commit() {
+  println!("FIRST COMMIT");
   let (g1srs, _) = setup();
   // p(x) = (x-1)(x-2)(x-3)
   // p(x) = - 6 + 11x -6x^2 + x^3
-
-  // (X^2 - 3x +2)(x-3)
-  // x^3 -3x^2 - 3x^2 + 9x + 2x - 6
-  // x^3 - 6x^2 + 11x - 6
+  // p(x) = 11 + 11x + 11x^2 + x^3 mod 17
 
   // -> -6 mod 17 is 11 so this is [11, 11, 11, 1]
   let coefficients = vec![
@@ -71,6 +68,7 @@ fn test_commit() {
   let commit_1 = commit(coefficients, g1srs.clone());
   assert_eq!(commit_1, AffinePoint::<PlutoExtendedCurve>::Infinity);
 
+  println!("\n\nSECOND COMMIT");
   // p(x) = (x-1)(x-2)(x-3)(x-4)
   // p(x) = 24 - 50x + 35x^2 - 10x^3
   // -> 24 mod 17 is 7
@@ -87,27 +85,26 @@ fn test_commit() {
   //  g1srs[0] * 7 + g1srs[1] * 16 + g1srs[2] * 1 + g1srs[3] * 11 + g1srs[4] * 1
   let commit_2 = commit(coefficients, g1srs.clone());
 
-  /// point not on curve
   assert_eq!(
     commit_2,
     AffinePoint::<PlutoExtendedCurve>::new(
-      PlutoBaseFieldExtension::new([PlutoBaseField::new(32), PlutoBaseField::new(59)]),
-      PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::ZERO]),
+      PlutoBaseFieldExtension::from(32usize),
+      PlutoBaseFieldExtension::from(59usize),
     )
   );
 
+  println!("\n\nTHIRD COMMIT");
   // p(x)  = 3 + 2x + x^2
   let coefficients =
     vec![PlutoScalarField::new(3), PlutoScalarField::new(2), PlutoScalarField::new(1)];
   // g1srs[0] * 3 + g1srs[1] * 2  + g1srs[2] * 1
   let commit_3 = commit(coefficients, g1srs);
-  /// point not on curve
 
   assert_eq!(
     commit_3,
     AffinePoint::<PlutoExtendedCurve>::new(
-      PlutoBaseFieldExtension::new([PlutoBaseField::new(32), PlutoBaseField::new(59)]),
-      PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::ZERO]),
+      PlutoBaseFieldExtension::from(32usize),
+      PlutoBaseFieldExtension::from(59usize),
     )
   );
 }

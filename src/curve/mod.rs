@@ -94,6 +94,12 @@ impl<C: EllipticCurve> AddAssign for AffinePoint<C> {
   fn add_assign(&mut self, rhs: Self) { *self = *self + rhs; }
 }
 
+impl<C: EllipticCurve> Sum for AffinePoint<C> {
+  fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+    iter.reduce(|x, y| x + y).unwrap_or(AffinePoint::Infinity)
+  }
+}
+
 impl<C: EllipticCurve> Neg for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
@@ -115,6 +121,9 @@ impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
   type Output = AffinePoint<C>;
 
   fn mul(mut self, scalar: u32) -> Self::Output {
+    if scalar == 0 {
+      return AffinePoint::Infinity;
+    }
     let val = self;
     for _ in 1..scalar {
       self += val;
