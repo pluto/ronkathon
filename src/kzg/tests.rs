@@ -157,6 +157,9 @@ fn opening() {
   );
 }
 
+// lhs GaloisField { coeffs: [PrimeField { value: 2 }, PrimeField { value: 94 }] }
+// rhs GaloisField { coeffs: [PrimeField { value: 59 }, PrimeField { value: 49 }] }
+
 #[test]
 fn end_to_end() {
   let (g1srs, g2srs) = setup();
@@ -170,15 +173,37 @@ fn end_to_end() {
   ];
   let poly = Polynomial::<Monomial, PlutoScalarField>::new(coefficients.clone());
   let eval_point = PlutoScalarField::new(4);
+  dbg!(eval_point);
   let eval_result = poly.evaluate(eval_point);
-  println!("eval_result {:?}", eval_result);
+  dbg!(eval_result);
 
-  let p_commit = commit(poly.coefficients.clone(), g1srs.clone());
   // p_commit = inf
+  let p_commit = commit(poly.coefficients.clone(), g1srs.clone());
   assert_eq!(p_commit, AffinePoint::<PlutoExtendedCurve>::Infinity);
-  let q_commit = open(poly.coefficients, eval_point, g1srs.clone());
+
   // q_commit = (26, 50)
-  println!("q_commit {:?}", q_commit);
+  let q_commit = open(poly.coefficients, eval_point, g1srs.clone());
+  assert_eq!(
+    q_commit,
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::from(26usize),
+      PlutoBaseFieldExtension::from(45usize),
+    )
+  );
+
+  // Both `p_commit` and `q_commit` are in the same group so this is good.
+
+  // We can look at `g1srs` and see it is in `G1` and `g2srs` is in `G2`
+  dbg!(g1srs.first().unwrap());
+  for i in 0..17 {
+    println!("{}: {:?}", i, *g1srs.first().unwrap() * i);
+  }
+  assert_eq!(*g1srs.first().unwrap() * 17u32, AffinePoint::<PlutoExtendedCurve>::Infinity);
+  dbg!(g2srs.first().unwrap());
+  for i in 0..17 {
+    println!("{}: {:?}", i, *g2srs.first().unwrap() * i);
+  }
+  assert_eq!(*g2srs.first().unwrap() * 17u32, AffinePoint::<PlutoExtendedCurve>::Infinity);
 
   let valid = check(p_commit, q_commit, eval_point, eval_result, g1srs.clone(), g2srs.clone());
 

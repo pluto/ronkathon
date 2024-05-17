@@ -77,30 +77,16 @@ pub fn check(
   g1_srs: Vec<AffinePoint<PlutoExtendedCurve>>,
   g2_srs: Vec<AffinePoint<PlutoExtendedCurve>>,
 ) -> bool {
-  // let p_gen =
-  // AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::generator());
-  // let cube_root_of_unity = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-  // let q_gen = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
-  //   AffinePoint::<PlutoBaseCurve>::generator()
-  // {
-  //   AffinePoint::<PlutoExtendedCurve>::new(
-  //     cube_root_of_unity * PlutoBaseFieldExtension::from(x),
-  //     PlutoBaseFieldExtension::from(y),
-  //   )
-  // } else {
-  //   panic!("Generator is not a point");
-  // };
-
   let g1 = *g1_srs.first().expect("has g1 srs");
   let g2 = *g2_srs.first().expect("has g2 srs");
 
   let lhs = pairing::<PlutoExtendedCurve, 17>(
-    q.into(),
+    q,
     g2 - AffinePoint::<PlutoExtendedCurve>::generator() * point,
   );
 
   let rhs = pairing::<PlutoExtendedCurve, 17>(
-    (p - g1 * value).into(),
+    p - g1 * value,
     AffinePoint::<PlutoExtendedCurve>::generator(),
   );
   println!("lhs {:?}", lhs);
