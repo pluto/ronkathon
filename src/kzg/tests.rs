@@ -116,11 +116,12 @@ fn srs_open() {
   let result_2 = g1srs[1] * PlutoScalarField::new(15);
   let result_3 = g1srs[2] * PlutoScalarField::new(1);
   let sum = result + result_2 + result_3;
+  dbg!(sum);
   assert_eq!(
     sum,
     AffinePoint::<PlutoExtendedCurve>::new(
-      PlutoBaseFieldExtension::new([PlutoBaseField::new(26), PlutoBaseField::new(45)]),
-      PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::ZERO]),
+      PlutoBaseFieldExtension::from(26usize),
+      PlutoBaseFieldExtension::from(45usize),
     )
   );
 }
