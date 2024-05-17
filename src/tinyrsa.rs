@@ -25,14 +25,17 @@ impl<const P: usize, const Q: usize> RSAField<P, Q> {
 
   #[allow(dead_code)]
   /// Encrypts a message using the RSA algorithm
+  /// TODO: Migrate to being implemented on an RSA key struct, not on the field element
   const fn encrypt(message: u32, e: u32) -> u32 { message.pow(e) % (P * Q) as u32 }
 
   #[allow(dead_code)]
   /// Decrypts a cipher using the RSA algorithm
+  /// TODO: Migrate to being implemented on an RSA key struct, not on the field element
   const fn decrypt(cipher: u32, d: u32) -> u32 { cipher.pow(d) % (P * Q) as u32 }
 
   #[allow(dead_code)]
   /// Generates e value for the RSA algorithm
+  /// TODO: Migrate to being implemented on an RSA key struct, not on the field element
   const fn generate_e() -> u32 {
     let totient = euler_totient(P as u32, Q as u32);
     let mut e = 2;
