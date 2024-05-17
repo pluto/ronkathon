@@ -6,16 +6,7 @@ pub type TestExtension = GaloisField<2, 59>;
 impl FiniteField for TestExtension {
   const ONE: Self = Self::new([TestField::ONE, TestField::ZERO]);
   const ORDER: usize = TestField::ORDER * TestField::ORDER;
-  /// Retrieves a multiplicative generator for GF(101) inside of [`Ext<2, GF101>`].
-  /// This can be verified using sage script
-  /// ```sage
-  /// F = GF(101)
-  /// Ft.<t> = F[]
-  /// P = Ft(t ^ 2 - 2)
-  /// F_2 = GF(101 ^ 2, name="t", modulus=P)
-  /// f_2_primitive_element = F_2([2, 1])
-  /// assert f_2_primitive_element.multiplicative_order() == 101^2-1
-  /// ```
+  // TODO: This is not correct for this field!!! Fix!
   const PRIMITIVE_ELEMENT: Self = Self::new([TestField::new(14), TestField::new(9)]);
   const ZERO: Self = Self::new([TestField::ZERO, TestField::ZERO]);
 
