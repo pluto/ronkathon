@@ -147,11 +147,12 @@ fn opening() {
   // result = p(x) / q(x) = x^2 - 2x + 3
   // multiplying (1,2) * 3 + (68, 74) * 15 + (65, 98) * 1
   let open_commit = open(poly.coefficients, eval_point, g1srs.clone());
+
   assert_eq!(
     open_commit,
     AffinePoint::<PlutoExtendedCurve>::new(
-      PlutoBaseFieldExtension::new([PlutoBaseField::new(26), PlutoBaseField::new(45)]),
-      PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::ZERO]),
+      PlutoBaseFieldExtension::from(26usize),
+      PlutoBaseFieldExtension::from(45usize),
     )
   );
 }
