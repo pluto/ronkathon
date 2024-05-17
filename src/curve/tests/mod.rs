@@ -44,7 +44,7 @@ impl EllipticCurve for TestCurveExtended {
   const EQUATION_A: Self::Coefficient = TestField::ONE;
   const EQUATION_B: Self::Coefficient = TestField::ZERO;
   const GENERATOR: (Self::BaseField, Self::BaseField) =
-    (TestExtension::from(25_usize), TestExtension::from(30_usize));
+    (TestExtension::from(34_usize), TestExtension::from(30_usize));
   const ORDER: usize = 5;
 }
 
