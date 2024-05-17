@@ -3,8 +3,6 @@
 //! [`FiniteField`] trait is implemented. This module asserts at compile time that the order of the
 //! field is a prime number and allows for creation of generic prime order fields.
 
-use rand::distributions::{Distribution, Standard};
-
 use super::*;
 
 mod arithmetic;
@@ -43,7 +41,7 @@ impl<const P: usize> PrimeField<P> {
     Self { value: value % P }
   }
 
-  // Use tonelli-shanks https://en.wikipedia.org/wiki/Tonelli–Shanks_algorithm
+  /// Computes the square root of a field element using the [Tonelli-Shanks algorithm](https://en.wikipedia.org/wiki/Tonelli–Shanks_algorithm).
   pub fn sqrt(&self) -> Option<(Self, Self)> {
     assert!(self.euler_criterion(), "Element is not a quadratic residue");
     if *self == Self::ZERO {
@@ -98,6 +96,7 @@ impl<const P: usize> PrimeField<P> {
     }
   }
 
+  /// Returns true if the element is a quadratic residue (a square number) in the field.
   pub const fn euler_criterion(&self) -> bool { self.pow((P - 1) / 2).value == 1 }
 }
 

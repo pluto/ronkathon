@@ -48,6 +48,19 @@ impl EllipticCurve for PlutoExtendedCurve {
   const ORDER: usize = PlutoExtensions::QuadraticScalar as usize;
 }
 
+impl From<AffinePoint<PlutoBaseCurve>> for AffinePoint<PlutoExtendedCurve> {
+  fn from(point: AffinePoint<PlutoBaseCurve>) -> Self {
+    match point {
+      AffinePoint::Point(x, y) => {
+        let x = PlutoBaseFieldExtension::from(x);
+        let y = PlutoBaseFieldExtension::from(y);
+        AffinePoint::new(x, y)
+      },
+      AffinePoint::Infinity => AffinePoint::Infinity,
+    }
+  }
+}
+
 #[cfg(test)]
 mod pluto_base_curve_tests {
   use super::*;

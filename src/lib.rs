@@ -35,7 +35,10 @@ use core::{
   ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
 };
 
-use rand::Rng;
+use rand::{
+  distributions::{Distribution, Standard},
+  Rng,
+};
 #[cfg(test)] use rstest::{fixture, rstest};
 
 use self::{
@@ -45,7 +48,7 @@ use self::{
   },
   field::{
     extension::{GaloisField, PlutoBaseFieldExtension},
-    prime::{PlutoBaseField, PlutoPrime, PlutoScalarField, PrimeField},
+    prime::{PlutoBaseField, PlutoPrime, PrimeField},
     FiniteField,
   },
   polynomial::{Monomial, Polynomial},

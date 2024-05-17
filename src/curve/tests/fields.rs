@@ -5,7 +5,7 @@ pub type TestExtension = GaloisField<2, 59>;
 
 impl FiniteField for TestExtension {
   const ONE: Self = Self::new([TestField::ONE, TestField::ZERO]);
-  const ORDER: usize = TestField::ORDER;
+  const ORDER: usize = TestField::ORDER * TestField::ORDER;
   /// Retrieves a multiplicative generator for GF(101) inside of [`Ext<2, GF101>`].
   /// This can be verified using sage script
   /// ```sage
@@ -98,7 +98,6 @@ impl Rem for TestExtension {
 
 #[cfg(test)]
 mod tests {
-  use ark_ec::short_weierstrass::Affine;
 
   use super::*;
 
@@ -133,5 +132,12 @@ mod tests {
     let y = TestExtension::new([TestField::ZERO, TestField::new(30)]);
     let point = AffinePoint::<TestCurveExtended>::new(x, y);
     let _doubled_point = point + point;
+  }
+
+  #[test]
+  fn test_pow() {
+    let x = TestExtension::new([TestField::new(43), TestField::new(52)]);
+    let y = x.pow((59 * 59 - 1) / 5);
+    assert_eq!(y, TestExtension::new([TestField::new(42), TestField::new(40)]));
   }
 }
