@@ -44,12 +44,8 @@ pub fn miller_loop<C: EllipticCurve + fmt::Debug + PartialEq, const R: usize>(
 
   let r = format!("{:b}", R);
   for bit in r.chars().skip(1) {
-    dbg!(bit);
-    dbg!(z);
-    dbg!(2 * z);
     x = x.pow(2) * tangent_line::<C>(z, q) / vertical_line(2 * z, q);
     z += z;
-    dbg!(z);
     if bit == '1' {
       println!("inside conditional");
       if z + p == AffinePoint::Infinity {
@@ -59,9 +55,8 @@ pub fn miller_loop<C: EllipticCurve + fmt::Debug + PartialEq, const R: usize>(
       }
       z += p;
     }
-    dbg!(x);
   }
-  -x
+  x
 }
 
 pub fn line_function<C: EllipticCurve>(

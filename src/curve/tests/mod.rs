@@ -187,7 +187,9 @@ fn miller_loop_check() {
   println!("P: {:?}", p);
   println!("Q: {:?}", q);
 
-  let f_p_q = miller_loop::<TestCurveExtended, 5>(p, q);
+  // THE MINUS SIGN HERE IS ONLY AN INNEFECTUAL IMPLEMENTATION DETAIL BETWEEN OURS AND LYNN'S, THE
+  // `pairing_check()` TEST VERIFIES THIS
+  let f_p_q = -miller_loop::<TestCurveExtended, 5>(p, q);
   println!("f(P,Q) = {:?}", f_p_q);
   assert_eq!(f_p_q, TestExtension::new([TestField::new(43), TestField::new(52)]));
 
@@ -197,4 +199,31 @@ fn miller_loop_check() {
 
   println!("f(P,Q)^(59^2 - 1)^5 = {:?}", exped.pow(5));
   assert_eq!(exped.pow(5), TestExtension::new([TestField::new(1), TestField::new(0)]));
+}
+
+#[test]
+fn pairing_check() {
+  let (p, q) = if let AffinePoint::<TestCurve>::Point(x, y) = AffinePoint::<TestCurve>::generator()
+  {
+    (
+      AffinePoint::<TestCurveExtended>::new(TestExtension::from(x), TestExtension::from(y)),
+      // Apply the distortion map
+      AffinePoint::<TestCurveExtended>::new(
+        -TestExtension::from(x),
+        TestExtension::new([TestField::from(0usize), TestField::from(1usize)])
+          * TestExtension::from(y),
+      ),
+    )
+  } else {
+    panic!("Generator is not a point");
+  };
+  println!("P: {:?}", p);
+  println!("Q: {:?}", q);
+
+  let f_p_q = pairing::<TestCurveExtended, 5>(p, q);
+  println!("f(P,Q) = {:?}", f_p_q);
+  assert_eq!(f_p_q, TestExtension::new([TestField::new(42), TestField::new(40)]));
+
+  println!("f(P,Q)^(59^2 - 1)^5 = {:?}", f_p_q.pow(5));
+  assert_eq!(f_p_q.pow(5), TestExtension::new([TestField::new(1), TestField::new(0)]));
 }
