@@ -1,5 +1,5 @@
 use super::*;
-use crate::field::prime::PlutoScalarField;
+use crate::{curve::pairing::pairing, field::prime::PlutoScalarField};
 
 #[test]
 fn test_setup() {
@@ -47,6 +47,44 @@ fn test_setup() {
   let expected_g2srs = vec![g2_gen, expected_2g];
 
   assert_eq!(g2srs, expected_g2srs);
+}
+
+#[fixture]
+fn poly_1() -> Polynomial<Monomial, PlutoScalarField> {
+  // p(x) = (x-1)(x-2)(x-3)
+  // p(x) = - 6 + 11x -6x^2 + x^3
+  // p(x) = 11 + 11x + 11x^2 + x^3 mod 17
+  // -> -6 mod 17 is 11 so this is [11, 11, 11, 1]
+  let a = PlutoScalarField::from(11usize);
+  let b = PlutoScalarField::from(11usize);
+  let c = PlutoScalarField::from(11usize);
+  let d = PlutoScalarField::from(1usize);
+  Polynomial::<Monomial, PlutoScalarField>::new(vec![a, b, c, d])
+}
+
+#[fixture]
+fn poly_2() -> Polynomial<Monomial, PlutoScalarField> {
+  // p(x) = (x-1)(x-2)(x-3)(x-4)
+  // p(x) = 24 - 50x + 35x^2 - 10x^3
+  // -> 24 mod 17 is 7
+  // -> 50 mod 17 is 16
+  // -> 35 mod 17 is 1
+  // coefficients = [7, 16, 1, 11, 1]
+  let a = PlutoScalarField::from(7usize);
+  let b = PlutoScalarField::from(16usize);
+  let c = PlutoScalarField::from(1usize);
+  let d = PlutoScalarField::from(11usize);
+  let e = PlutoScalarField::from(1usize);
+  Polynomial::<Monomial, PlutoScalarField>::new(vec![a, b, c, d, e])
+}
+
+#[fixture]
+fn poly_3() -> Polynomial<Monomial, PlutoScalarField> {
+  // p(x)  = 3 + 2x + x^2
+  let a = PlutoScalarField::from(3usize);
+  let b = PlutoScalarField::from(2usize);
+  let c = PlutoScalarField::from(1usize);
+  Polynomial::<Monomial, PlutoScalarField>::new(vec![a, b, c])
 }
 
 #[test]
@@ -157,6 +195,44 @@ fn opening() {
   );
 }
 
+#[test]
+fn all_srs_combinations() {
+  let paring_params = commit_and_open(poly_1(), PlutoScalarField::new(4));
+
+  let mut g1_index = 0;
+  let mut g2_index = 0;
+  let mut pairings: Vec<(GaloisField<2, 101>, GaloisField<2, 101>)> = vec![];
+  #[allow(clippy::explicit_counter_loop)]
+  for g1 in paring_params.g1srs {
+    println!("Loop for g1 {:?}", g1);
+    for g2 in &paring_params.g2srs {
+      println!("Loop for g2 {:?}", g2);
+      let lhs = pairing::<PlutoExtendedCurve, 17>(
+        paring_params.q,
+        *g2 - AffinePoint::<PlutoExtendedCurve>::generator() * paring_params.point,
+      );
+
+      let rhs = pairing::<PlutoExtendedCurve, 17>(
+        paring_params.p - g1 * paring_params.value,
+        AffinePoint::<PlutoExtendedCurve>::generator(),
+      );
+      if lhs == rhs {
+        println!(
+          "Pairing match! for g1: {:?} and g2: {:?} with g1 index {:?} and g2 index {:?}",
+          g1, g2, g1_index, g2_index
+        );
+        println!("LHS {:?}", lhs);
+        println!("RHS {:?}", rhs);
+        pairings.push((lhs, rhs));
+        assert_eq!(lhs, rhs);
+      }
+      g2_index += 1;
+    }
+    g1_index += 1;
+  }
+  assert!(pairings.is_empty());
+}
+
 // lhs GaloisField { coeffs: [PrimeField { value: 2 }, PrimeField { value: 94 }] }
 // rhs GaloisField { coeffs: [PrimeField { value: 59 }, PrimeField { value: 49 }] }
 
@@ -172,16 +248,19 @@ fn end_to_end() {
     PlutoScalarField::new(1),
   ];
   let poly = Polynomial::<Monomial, PlutoScalarField>::new(coefficients.clone());
+
   let eval_point = PlutoScalarField::new(4);
   dbg!(eval_point);
   let eval_result = poly.evaluate(eval_point);
   dbg!(eval_result);
 
   // p_commit = inf
+  // other idea: maybe try a p commit that isn't infinity
   let p_commit = commit(poly.coefficients.clone(), g1srs.clone());
   assert_eq!(p_commit, AffinePoint::<PlutoExtendedCurve>::Infinity);
 
   // q_commit = (26, 50)
+  // this is the proof pi in the litterature
   let q_commit = open(poly.coefficients, eval_point, g1srs.clone());
   assert_eq!(
     q_commit,
@@ -192,7 +271,6 @@ fn end_to_end() {
   );
 
   // Both `p_commit` and `q_commit` are in the same group so this is good.
-
   // We can look at `g1srs` and see it is in `G1` and `g2srs` is in `G2`
   dbg!(g1srs.first().unwrap());
   for i in 0..17 {
@@ -208,4 +286,39 @@ fn end_to_end() {
   let valid = check(p_commit, q_commit, eval_point, eval_result, g1srs.clone(), g2srs.clone());
 
   assert!(valid);
+}
+
+/// Pairing params for testing pairing
+pub struct PairingParams {
+  pub p:     AffinePoint<PlutoExtendedCurve>,
+  pub q:     AffinePoint<PlutoExtendedCurve>,
+  pub point: PlutoScalarField,
+  pub value: PlutoScalarField,
+  pub g1srs: Vec<AffinePoint<PlutoExtendedCurve>>,
+  pub g2srs: Vec<AffinePoint<PlutoExtendedCurve>>,
+}
+
+/// given a polynomial and eval point return the pairing params
+pub fn commit_and_open(
+  poly: Polynomial<Monomial, PlutoScalarField>,
+  eval_point: PlutoScalarField,
+) -> PairingParams {
+  let (g1srs, g2srs) = setup();
+  let eval_result = poly.evaluate(eval_point);
+  let p_commit = commit(poly.coefficients.clone(), g1srs.clone());
+  let q_commit = open(poly.coefficients, eval_point, g1srs.clone());
+  PairingParams { p: p_commit, q: q_commit, point: eval_point, value: eval_result, g1srs, g2srs }
+}
+
+#[test]
+fn pairing_params() {
+  let params = commit_and_open(poly_1(), PlutoScalarField::new(4));
+  assert_eq!(params.p, AffinePoint::<PlutoExtendedCurve>::Infinity);
+  assert_eq!(
+    params.q,
+    AffinePoint::<PlutoExtendedCurve>::new(
+      PlutoBaseFieldExtension::from(26usize),
+      PlutoBaseFieldExtension::from(45usize)
+    )
+  );
 }

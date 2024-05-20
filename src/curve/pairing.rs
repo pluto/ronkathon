@@ -249,4 +249,7 @@ mod tests {
 
     assert_eq!(result.pow(17), PlutoBaseFieldExtension::ONE);
   }
+
+  // test the bilinearity of the pairing
+  // test this e(aP, bQ) = e(P, Q)^(ab)
 }

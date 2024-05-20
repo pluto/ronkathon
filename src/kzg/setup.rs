@@ -47,8 +47,9 @@ pub fn commit(
   coefs: Vec<PlutoScalarField>,
   g1_srs: Vec<AffinePoint<PlutoExtendedCurve>>,
 ) -> AffinePoint<PlutoExtendedCurve> {
+  // check srs is longer than coefs
   assert!(g1_srs.len() >= coefs.len());
-
+  // SUM_{i=0}^{n} (g1^tau^i * coef_i)
   g1_srs.into_iter().zip(coefs).map(|(g1, coef)| g1 * coef).sum::<AffinePoint<PlutoExtendedCurve>>()
 }
 
@@ -77,20 +78,71 @@ pub fn check(
   g1_srs: Vec<AffinePoint<PlutoExtendedCurve>>,
   g2_srs: Vec<AffinePoint<PlutoExtendedCurve>>,
 ) -> bool {
-  let g1 = *g1_srs.first().expect("has g1 srs");
-  let g2 = *g2_srs.first().expect("has g2 srs");
+  // let g1 = *g1_srs.first().expect("has g1 srs");
+  // let g2 = *g2_srs.first().expect("has g2 srs");
+  let mut g1_index = 0;
+  let mut g2_index = 0;
+  for g1 in g1_srs {
+    println!("Loop for g1 {:?}", g1);
+    for g2 in &g2_srs {
+      println!("Loop for g2 {:?}", g2);
+      let lhs = pairing::<PlutoExtendedCurve, 17>(
+        q,
+        *g2 - AffinePoint::<PlutoExtendedCurve>::generator() * point,
+      );
 
-  let lhs = pairing::<PlutoExtendedCurve, 17>(
-    q,
-    g2 - AffinePoint::<PlutoExtendedCurve>::generator() * point,
-  );
+      let rhs = pairing::<PlutoExtendedCurve, 17>(
+        p - g1 * value,
+        AffinePoint::<PlutoExtendedCurve>::generator(),
+      );
+      if lhs == rhs {
+        println!(
+          "Pairing match! for g1: {:?} and g2: {:?} with g1 index {:?} and g2 index {:?}",
+          g1, g2, g1_index, g2_index
+        );
+        println!("LHS {:?}", lhs);
+        println!("RHS {:?}", rhs);
+        return true;
+      }
+      g2_index += 1;
+    }
+    g1_index += 1;
+  }
 
-  let rhs = pairing::<PlutoExtendedCurve, 17>(
-    p - g1 * value,
-    AffinePoint::<PlutoExtendedCurve>::generator(),
-  );
-  println!("lhs {:?}", lhs);
-  println!("rhs {:?}", rhs);
+  return false;
+  // e(pi, g2 - gen * point)
+  // let lhs = pairing::<PlutoExtendedCurve, 17>(
+  //   q,
+  //   g2 - AffinePoint::<PlutoExtendedCurve>::generator() * point,
+  // );
 
-  lhs == rhs
+  // // e(p - g1 * value, gen)
+  // let rhs = pairing::<PlutoExtendedCurve, 17>(
+  //   p - g1 * value,
+  //   AffinePoint::<PlutoExtendedCurve>::generator(),
+  // );
+  // println!("lhs {:?}", lhs);
+  // println!("rhs {:?}", rhs);
+
+  // lhs == rhs
+
+  // idea: loop through all combinations of g1 and g2 and check if the pairing is equal
 }
+
+// for g1 last, g2 first
+// lhs GaloisField { coeffs: [PrimeField { value: 2 }, PrimeField { value: 94 }] }
+// rhs GaloisField { coeffs: [PrimeField { value: 26 }, PrimeField { value: 97 }] }
+
+// for g1 first, g2 first
+// lhs GaloisField { coeffs: [PrimeField { value: 2 }, PrimeField { value: 94 }] }
+// rhs GaloisField { coeffs: [PrimeField { value: 59 }, PrimeField { value: 49 }] }
+
+// p = 101
+// k = 2 (embedding degree, determines your extension field)
+// base field = GF_101
+// base scaler is 17 (number of points in the group)
+// pairing output is in Extension field = GF_101^2?
+// (all petals are in this base extension field: has two cyclic groups of order 17)
+
+// Asymmetric  means G1 and G2 are different subgroups
+// Symmetric means G1 and G2 are the same subgroup
