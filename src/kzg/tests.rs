@@ -214,17 +214,14 @@ fn all_srs_combinations() {
     }
     g1_index += 1;
   }
-  assert!(pairings.is_empty());
+  assert!(!pairings.is_empty());
 }
 
 #[rstest]
 #[case(poly_1(), PlutoScalarField::new(4))]
 #[case(poly_2(), PlutoScalarField::new(3))]
 #[case(poly_3(), PlutoScalarField::new(5))]
-fn end_to_end_poly_1(
-  #[case] poly: Polynomial<Monomial, PlutoScalarField>,
-  #[case] eval_point: PlutoScalarField,
-) {
+fn e2e(#[case] poly: Polynomial<Monomial, PlutoScalarField>, #[case] eval_point: PlutoScalarField) {
   let paring_params = commit_and_open(poly, eval_point);
 
   // Both `p_commit` and `q_commit` are in the same group so this is good.

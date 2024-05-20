@@ -79,6 +79,8 @@ pub fn check(
   g2_srs: Vec<AffinePoint<PlutoExtendedCurve>>,
 ) -> bool {
   let g1 = *g1_srs.first().expect("has g1 srs");
+
+  // This was the seeming bug, It now works for all polynomials, but am not sure why yet.
   let g2 = g2_srs[1];
 
   // e(pi, g2 - gen * point)
