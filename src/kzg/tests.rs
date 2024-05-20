@@ -96,12 +96,7 @@ fn test_commit() {
   // p(x) = 11 + 11x + 11x^2 + x^3 mod 17
 
   // -> -6 mod 17 is 11 so this is [11, 11, 11, 1]
-  let coefficients = vec![
-    PlutoScalarField::new(11),
-    PlutoScalarField::new(11),
-    PlutoScalarField::new(11),
-    PlutoScalarField::new(1),
-  ];
+  let coefficients = poly_1().coefficients.clone();
   //  g1srs[0] * 11 + g1srs[1] * 11 + g1srs[2] * 11 + g1srs[3] * 1
   let commit_1 = commit(coefficients, g1srs.clone());
   assert_eq!(commit_1, AffinePoint::<PlutoExtendedCurve>::Infinity);
@@ -113,13 +108,7 @@ fn test_commit() {
   // -> 50 mod 17 is 16
   // -> 35 mod 17 is 1
   // coefficients = [7, 16, 1, 11, 1]
-  let coefficients = vec![
-    PlutoScalarField::new(7),
-    PlutoScalarField::new(16),
-    PlutoScalarField::new(1),
-    PlutoScalarField::new(11),
-    PlutoScalarField::new(1),
-  ];
+  let coefficients = poly_2().coefficients.clone();
   //  g1srs[0] * 7 + g1srs[1] * 16 + g1srs[2] * 1 + g1srs[3] * 11 + g1srs[4] * 1
   let commit_2 = commit(coefficients, g1srs.clone());
 
@@ -133,8 +122,7 @@ fn test_commit() {
 
   println!("\n\nTHIRD COMMIT");
   // p(x)  = 3 + 2x + x^2
-  let coefficients =
-    vec![PlutoScalarField::new(3), PlutoScalarField::new(2), PlutoScalarField::new(1)];
+  let coefficients = poly_3().coefficients.clone();
   // g1srs[0] * 3 + g1srs[1] * 2  + g1srs[2] * 1
   let commit_3 = commit(coefficients, g1srs);
 
@@ -168,12 +156,7 @@ fn srs_open() {
 fn opening() {
   let (g1srs, _) = setup();
   println!("g1srs[0]:{:?}, g1srs[1]:{:?}, g1srs[2]:{:?}", g1srs[0], g1srs[1], g1srs[2]);
-  let poly = Polynomial::<Monomial, PlutoScalarField>::new(vec![
-    PlutoScalarField::new(11),
-    PlutoScalarField::new(11),
-    PlutoScalarField::new(11),
-    PlutoScalarField::new(1),
-  ]);
+  let poly = poly_1();
   let eval_point = PlutoScalarField::new(4);
   //   let eval_result = poly.evaluate(eval_point);
   let commit = commit(poly.coefficients.clone(), g1srs.clone());
@@ -195,6 +178,7 @@ fn opening() {
   );
 }
 
+// this test was for debugging purposes
 #[test]
 fn all_srs_combinations() {
   let paring_params = commit_and_open(poly_1(), PlutoScalarField::new(4));
@@ -233,57 +217,43 @@ fn all_srs_combinations() {
   assert!(pairings.is_empty());
 }
 
-// lhs GaloisField { coeffs: [PrimeField { value: 2 }, PrimeField { value: 94 }] }
-// rhs GaloisField { coeffs: [PrimeField { value: 59 }, PrimeField { value: 49 }] }
-
-#[test]
-fn end_to_end() {
-  let (g1srs, g2srs) = setup();
-  // p(x) = (x-1)(x-2)(x-3)
-  // p(x) = - 6 + 11x -6x^2 + x^3
-  let coefficients = vec![
-    PlutoScalarField::new(11),
-    PlutoScalarField::new(11),
-    PlutoScalarField::new(11),
-    PlutoScalarField::new(1),
-  ];
-  let poly = Polynomial::<Monomial, PlutoScalarField>::new(coefficients.clone());
-
-  let eval_point = PlutoScalarField::new(4);
-  dbg!(eval_point);
-  let eval_result = poly.evaluate(eval_point);
-  dbg!(eval_result);
-
-  // p_commit = inf
-  // other idea: maybe try a p commit that isn't infinity
-  let p_commit = commit(poly.coefficients.clone(), g1srs.clone());
-  assert_eq!(p_commit, AffinePoint::<PlutoExtendedCurve>::Infinity);
-
-  // q_commit = (26, 50)
-  // this is the proof pi in the litterature
-  let q_commit = open(poly.coefficients, eval_point, g1srs.clone());
-  assert_eq!(
-    q_commit,
-    AffinePoint::<PlutoExtendedCurve>::new(
-      PlutoBaseFieldExtension::from(26usize),
-      PlutoBaseFieldExtension::from(45usize),
-    )
-  );
+#[rstest]
+#[case(poly_1(), PlutoScalarField::new(4))]
+#[case(poly_2(), PlutoScalarField::new(3))]
+#[case(poly_3(), PlutoScalarField::new(5))]
+fn end_to_end_poly_1(
+  #[case] poly: Polynomial<Monomial, PlutoScalarField>,
+  #[case] eval_point: PlutoScalarField,
+) {
+  let paring_params = commit_and_open(poly, eval_point);
 
   // Both `p_commit` and `q_commit` are in the same group so this is good.
   // We can look at `g1srs` and see it is in `G1` and `g2srs` is in `G2`
-  dbg!(g1srs.first().unwrap());
+  dbg!(paring_params.g1srs.first().unwrap());
   for i in 0..17 {
-    println!("{}: {:?}", i, *g1srs.first().unwrap() * i);
+    println!("{}: {:?}", i, *paring_params.g1srs.first().unwrap() * i);
   }
-  assert_eq!(*g1srs.first().unwrap() * 17u32, AffinePoint::<PlutoExtendedCurve>::Infinity);
-  dbg!(g2srs.first().unwrap());
+  assert_eq!(
+    *paring_params.g1srs.first().unwrap() * 17u32,
+    AffinePoint::<PlutoExtendedCurve>::Infinity
+  );
+  dbg!(paring_params.g2srs.first().unwrap());
   for i in 0..17 {
-    println!("{}: {:?}", i, *g2srs.first().unwrap() * i);
+    println!("{}: {:?}", i, *paring_params.g2srs.first().unwrap() * i);
   }
-  assert_eq!(*g2srs.first().unwrap() * 17u32, AffinePoint::<PlutoExtendedCurve>::Infinity);
+  assert_eq!(
+    *paring_params.g2srs.first().unwrap() * 17u32,
+    AffinePoint::<PlutoExtendedCurve>::Infinity
+  );
 
-  let valid = check(p_commit, q_commit, eval_point, eval_result, g1srs.clone(), g2srs.clone());
+  let valid = check(
+    paring_params.p,
+    paring_params.q,
+    paring_params.point,
+    paring_params.value,
+    paring_params.g1srs.clone(),
+    paring_params.g2srs.clone(),
+  );
 
   assert!(valid);
 }
