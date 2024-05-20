@@ -100,14 +100,6 @@ pub fn check(
   lhs == rhs
 }
 
-// for g1 last, g2 first
-// lhs GaloisField { coeffs: [PrimeField { value: 2 }, PrimeField { value: 94 }] }
-// rhs GaloisField { coeffs: [PrimeField { value: 26 }, PrimeField { value: 97 }] }
-
-// for g1 first, g2 first
-// lhs GaloisField { coeffs: [PrimeField { value: 2 }, PrimeField { value: 94 }] }
-// rhs GaloisField { coeffs: [PrimeField { value: 59 }, PrimeField { value: 49 }] }
-
 // p = 101
 // k = 2 (embedding degree, determines your extension field)
 // base field = GF_101
@@ -116,4 +108,5 @@ pub fn check(
 // (all petals are in this base extension field: has two cyclic groups of order 17)
 
 // Asymmetric  means G1 and G2 are different subgroups
+// This is a little confusing teminology because all pairing friendly subgroups are isomorphic
 // Symmetric means G1 and G2 are the same subgroup

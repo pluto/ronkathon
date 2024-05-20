@@ -251,7 +251,48 @@ fn e2e(#[case] poly: Polynomial<Monomial, PlutoScalarField>, #[case] eval_point:
     paring_params.g1srs.clone(),
     paring_params.g2srs.clone(),
   );
+  assert!(valid);
+}
 
+#[rstest]
+#[case(poly_1(), PlutoScalarField::new(4))]
+#[case(poly_2(), PlutoScalarField::new(3))]
+#[case(poly_3(), PlutoScalarField::new(5))]
+#[should_panic]
+fn invalid_check(
+  #[case] poly: Polynomial<Monomial, PlutoScalarField>,
+  #[case] eval_point: PlutoScalarField,
+) {
+  let paring_params = commit_and_open(poly, eval_point);
+  let valid = check(
+    paring_params.p,
+    paring_params.q,
+    paring_params.point,
+    PlutoScalarField::new(10), // fake evaluation point
+    paring_params.g1srs.clone(),
+    paring_params.g2srs.clone(),
+  );
+  assert!(valid);
+}
+
+#[rstest]
+#[case(poly_1(), PlutoScalarField::new(4))]
+#[case(poly_2(), PlutoScalarField::new(3))]
+#[case(poly_3(), PlutoScalarField::new(5))]
+#[should_panic]
+fn fake_proof(
+  #[case] poly: Polynomial<Monomial, PlutoScalarField>,
+  #[case] eval_point: PlutoScalarField,
+) {
+  let paring_params = commit_and_open(poly, eval_point);
+  let valid = check(
+    paring_params.p,
+    AffinePoint::<PlutoExtendedCurve>::Infinity, // fake proof
+    paring_params.point,
+    paring_params.point,
+    paring_params.g1srs.clone(),
+    paring_params.g2srs.clone(),
+  );
   assert!(valid);
 }
 
