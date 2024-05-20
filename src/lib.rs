@@ -21,6 +21,7 @@
 #![feature(generic_const_exprs)]
 #![warn(missing_docs)]
 
+pub mod compiler;
 pub mod curve;
 pub mod field;
 pub mod kzg;
