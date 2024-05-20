@@ -115,14 +115,17 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   ///
   /// ## Returns:
   /// - The degree of the polynomial as a `usize`.
-  // pub const fn degree(&self) -> usize {
-  //   let mut i = D - 1;
-  //   while i > 0 && self.coefficients[i] == F::ZERO {
-  //     i -= 1;
-  //   }
-  //   i
-  //   // self.coefficients.len() - 1 }
-  // }
+  pub const fn degree(&self) -> usize {
+    let mut i = D - 1;
+    // TODO: this doesn't work due to const PartialEq impl only added to structs and not for traits
+    // See [issue](https://github.com/rust-lang/rust/issues/92391)
+    // and [issue](https://github.com/rust-lang/rust/issues/77695)
+    while i > 0 && self.coefficients[i] == F::ZERO {
+      i -= 1;
+    }
+    i
+    // self.coefficients.len() - 1 }
+  }
 
   /// Retrieves the coefficient on the highest degree monomial term of a polynomial in the
   /// [`Monomial`] [`Basis`].
