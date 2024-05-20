@@ -269,10 +269,10 @@ mod tests {
       panic!("Generator is not a point");
     };
 
-    let aP = p * a;
-    let bQ = q * b;
+    let a_p = p * a;
+    let b_q = q * b;
 
-    let lhs = pairing::<PlutoExtendedCurve, 17>(aP, bQ);
+    let lhs = pairing::<PlutoExtendedCurve, 17>(a_p, b_q);
     let ab = a * b;
     let rhs = pairing::<PlutoExtendedCurve, 17>(p, q).pow(ab.value);
 

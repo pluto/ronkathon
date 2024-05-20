@@ -78,55 +78,24 @@ pub fn check(
   g1_srs: Vec<AffinePoint<PlutoExtendedCurve>>,
   g2_srs: Vec<AffinePoint<PlutoExtendedCurve>>,
 ) -> bool {
-  // let g1 = *g1_srs.first().expect("has g1 srs");
-  // let g2 = *g2_srs.first().expect("has g2 srs");
-  let mut g1_index = 0;
-  let mut g2_index = 0;
-  for g1 in g1_srs {
-    println!("Loop for g1 {:?}", g1);
-    for g2 in &g2_srs {
-      println!("Loop for g2 {:?}", g2);
-      let lhs = pairing::<PlutoExtendedCurve, 17>(
-        q,
-        *g2 - AffinePoint::<PlutoExtendedCurve>::generator() * point,
-      );
+  let g1 = *g1_srs.first().expect("has g1 srs");
+  let g2 = g2_srs[1];
 
-      let rhs = pairing::<PlutoExtendedCurve, 17>(
-        p - g1 * value,
-        AffinePoint::<PlutoExtendedCurve>::generator(),
-      );
-      if lhs == rhs {
-        println!(
-          "Pairing match! for g1: {:?} and g2: {:?} with g1 index {:?} and g2 index {:?}",
-          g1, g2, g1_index, g2_index
-        );
-        println!("LHS {:?}", lhs);
-        println!("RHS {:?}", rhs);
-        return true;
-      }
-      g2_index += 1;
-    }
-    g1_index += 1;
-  }
-
-  return false;
   // e(pi, g2 - gen * point)
-  // let lhs = pairing::<PlutoExtendedCurve, 17>(
-  //   q,
-  //   g2 - AffinePoint::<PlutoExtendedCurve>::generator() * point,
-  // );
+  let lhs = pairing::<PlutoExtendedCurve, 17>(
+    q,
+    g2 - AffinePoint::<PlutoExtendedCurve>::generator() * point,
+  );
 
-  // // e(p - g1 * value, gen)
-  // let rhs = pairing::<PlutoExtendedCurve, 17>(
-  //   p - g1 * value,
-  //   AffinePoint::<PlutoExtendedCurve>::generator(),
-  // );
-  // println!("lhs {:?}", lhs);
-  // println!("rhs {:?}", rhs);
+  // e(p - g1 * value, gen)
+  let rhs = pairing::<PlutoExtendedCurve, 17>(
+    p - g1 * value,
+    AffinePoint::<PlutoExtendedCurve>::generator(),
+  );
+  println!("lhs {:?}", lhs);
+  println!("rhs {:?}", rhs);
 
-  // lhs == rhs
-
-  // idea: loop through all combinations of g1 and g2 and check if the pairing is equal
+  lhs == rhs
 }
 
 // for g1 last, g2 first
