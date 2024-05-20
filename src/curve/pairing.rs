@@ -251,5 +251,34 @@ mod tests {
   }
 
   // test the bilinearity of the pairing
-  // test this e(aP, bQ) = e(P, Q)^(ab)
+  #[test]
+  fn bilinearity() {
+    let a = PlutoScalarField::new(3);
+    let b = PlutoScalarField::new(5);
+
+    let p = AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::generator());
+    let cube_root_of_unity = PlutoBaseFieldExtension::primitive_root_of_unity(3);
+    let q = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
+      AffinePoint::<PlutoBaseCurve>::generator()
+    {
+      AffinePoint::<PlutoExtendedCurve>::new(
+        cube_root_of_unity * PlutoBaseFieldExtension::from(x),
+        PlutoBaseFieldExtension::from(y),
+      )
+    } else {
+      panic!("Generator is not a point");
+    };
+
+    let aP = p * a;
+    let bQ = q * b;
+
+    let lhs = pairing::<PlutoExtendedCurve, 17>(aP, bQ);
+    let ab = a * b;
+    let rhs = pairing::<PlutoExtendedCurve, 17>(p, q).pow(ab.value);
+
+    println!("LHS: {:?}", lhs);
+    println!("RHS: {:?}", rhs);
+
+    assert_eq!(lhs, rhs);
+  }
 }
