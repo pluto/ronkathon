@@ -1,9 +1,15 @@
 use super::*;
 
 #[derive(Clone, Copy, Debug)]
-pub enum Variable {
-  Public(u32),
-  Private(u32),
+pub enum Input {
+  Variable(Variable),
+  Public(usize),
+  Private(usize),
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Variable {
+  pub label: usize,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -12,64 +18,65 @@ pub enum Expression<ExpL, ExpR> {
   Mul(ExpL, ExpR),
 }
 
-impl Add for Variable {
-  type Output = Expression<Variable, Variable>;
+impl Add for Input {
+  type Output = Expression<Input, Input>;
 
   fn add(self, rhs: Self) -> Self::Output { Expression::Add(self, rhs) }
 }
 
-impl<ExpL, ExpR> Add<Expression<ExpL, ExpR>> for Variable {
-  type Output = Expression<Variable, Expression<ExpL, ExpR>>;
+impl<ExpL, ExpR> Add<Expression<ExpL, ExpR>> for Input {
+  type Output = Expression<Input, Expression<ExpL, ExpR>>;
 
   fn add(self, rhs: Expression<ExpL, ExpR>) -> Self::Output { Expression::Add(self, rhs) }
 }
 
-impl<ExpL, ExpR> Add<Variable> for Expression<ExpL, ExpR> {
-  type Output = Expression<Expression<ExpL, ExpR>, Variable>;
+impl<ExpL, ExpR> Add<Input> for Expression<ExpL, ExpR> {
+  type Output = Expression<Expression<ExpL, ExpR>, Input>;
 
-  fn add(self, rhs: Variable) -> Self::Output { Expression::Add(self, rhs) }
+  fn add(self, rhs: Input) -> Self::Output { Expression::Add(self, rhs) }
 }
 
-impl<EXP1, EXP2, EXP3, EXP4> Add<Expression<EXP3, EXP4>> for Expression<EXP1, EXP2> {
-  type Output = Expression<Expression<EXP1, EXP2>, Expression<EXP3, EXP4>>;
+impl<ExpL1, ExpR1, ExpL2, ExpR2> Add<Expression<ExpL2, ExpR2>> for Expression<ExpL1, ExpR1> {
+  type Output = Expression<Expression<ExpL1, ExpR1>, Expression<ExpL2, ExpR2>>;
 
-  fn add(self, rhs: Expression<EXP3, EXP4>) -> Self::Output { Expression::Add(self, rhs) }
+  fn add(self, rhs: Expression<ExpL2, ExpR2>) -> Self::Output { Expression::Add(self, rhs) }
 }
 
-impl Mul for Variable {
-  type Output = Expression<Variable, Variable>;
+impl Mul for Input {
+  type Output = Expression<Input, Input>;
 
   fn mul(self, rhs: Self) -> Self::Output { Expression::Mul(self, rhs) }
 }
 
-impl<ExpL, ExpR> Mul<Expression<ExpL, ExpR>> for Variable {
-  type Output = Expression<Variable, Expression<ExpL, ExpR>>;
+impl<ExpL, ExpR> Mul<Expression<ExpL, ExpR>> for Input {
+  type Output = Expression<Input, Expression<ExpL, ExpR>>;
 
   fn mul(self, rhs: Expression<ExpL, ExpR>) -> Self::Output { Expression::Mul(self, rhs) }
 }
 
-impl<ExpL, ExpR> Mul<Variable> for Expression<ExpL, ExpR> {
-  type Output = Expression<Expression<ExpL, ExpR>, Variable>;
+impl<ExpL, ExpR> Mul<Input> for Expression<ExpL, ExpR> {
+  type Output = Expression<Expression<ExpL, ExpR>, Input>;
 
-  fn mul(self, rhs: Variable) -> Self::Output { Expression::Mul(self, rhs) }
+  fn mul(self, rhs: Input) -> Self::Output { Expression::Mul(self, rhs) }
 }
 
-impl<EXP1, EXP2, EXP3, EXP4> Mul<Expression<EXP3, EXP4>> for Expression<EXP1, EXP2> {
-  type Output = Expression<Expression<EXP1, EXP2>, Expression<EXP3, EXP4>>;
+impl<ExpL1, ExpR1, ExpL2, ExpR2> Mul<Expression<ExpL2, ExpR2>> for Expression<ExpL1, ExpR1> {
+  type Output = Expression<Expression<ExpL1, ExpR1>, Expression<ExpL2, ExpR2>>;
 
-  fn mul(self, rhs: Expression<EXP3, EXP4>) -> Self::Output { Expression::Mul(self, rhs) }
+  fn mul(self, rhs: Expression<ExpL2, ExpR2>) -> Self::Output { Expression::Mul(self, rhs) }
 }
 
-impl Display for Variable {
+impl Display for Input {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     match self {
-      Variable::Public(val) => write!(f, "{}", val),
-      Variable::Private(val) => write!(f, "{}", val),
+      Input::Variable(val) => write!(f, "x_{}", val.label),
+      Input::Public(val) => write!(f, "{}", val),
+      Input::Private(val) => write!(f, "{}", val),
     }
   }
 }
 
-impl<EXPL: Display, EXPR: Display> Display for Expression<EXPL, EXPR> {
+impl<ExpL: Display, ExpR: Display> Display for Expression<ExpL, ExpR> {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     match self {
       Expression::Add(left, right) => write!(f, "({} + {})", left, right),
@@ -85,8 +92,9 @@ mod tests {
   #[test]
   fn writing_a_program() {
     // Create two variables
-    let a = Variable::Public(7);
-    let b = Variable::Private(3);
+    let a = Input::Public(7);
+    let b = Input::Private(3);
+    let x = Input::Variable(Variable { label: 0 });
 
     // Create basic expressions with these variables
     let add_ab = a + b;
@@ -108,5 +116,9 @@ mod tests {
     // Check that we can add two expressions together
     println!("{}", add_ab + mul_ab);
     assert_eq!(format!("{}", add_ab + mul_ab), "((7 + 3) + (7 * 3))");
+
+    // Check that we can multiply an expression by a variable
+    println!("{}", mul_ab * x);
+    assert_eq!(format!("{}", mul_ab * x), "((7 * 3) * x_0)");
   }
 }

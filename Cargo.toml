@@ -8,7 +8,6 @@ repository ="https://github.com/thor314/ronkathon"
 version    ="0.1.0"
 
 [dependencies]
-petgraph  ="0.6.5"
 rand      ="0.8.5"
 num-bigint={ version="0.4.3", default-features=false }
 ark-std   ={ version="0.4.0", default-features=false }
