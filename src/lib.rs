@@ -25,7 +25,6 @@ pub mod curve;
 pub mod field;
 pub mod kzg;
 pub mod polynomial;
-pub mod setup;
 pub mod tiny_rsa;
 
 use core::{
