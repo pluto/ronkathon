@@ -5,9 +5,12 @@
 //! understand, with a focus on clarity and correctness rather than performance.
 //!
 //! ## Features
-//! - Finite fields: Implementations of finite fields and extension fields, including arithmetic operations and field elements.
-//! - Polynomials: Implementations of polynomials in various bases, with support for arithmetic operations such as addition, multiplication, and division.
-//! - Elliptic curves: Implementations of elliptic curves over finite fields, with support for operations such as point addition, scalar multiplication, and pairing operations.
+//! - Finite fields: Implementations of finite fields and extension fields, including arithmetic
+//!   operations and field elements.
+//! - Polynomials: Implementations of polynomials in various bases, with support for arithmetic
+//!   operations such as addition, multiplication, and division.
+//! - Elliptic curves: Implementations of elliptic curves over finite fields, with support for
+//!   operations such as point addition, scalar multiplication, and pairing operations.
 
 #![feature(const_trait_impl)]
 #![allow(incomplete_features)]

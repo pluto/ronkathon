@@ -60,7 +60,7 @@ pub fn sign(message: &[u8], private_key: PlutoScalarField) -> (PlutoScalarField,
 /// 1. Check that Q_A != O.
 /// 2. Check that x_Q_A and y_Q_A are integers in the interval [0, p-1].
 /// 3. Check that n × Q_A = O.
-/// 
+///
 /// Verify that the signature is valid.
 /// 1. Verify that r and s are integers in the interval [1, n-1].
 /// 2. Compute e = HASH(m).
