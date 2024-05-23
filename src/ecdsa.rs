@@ -22,7 +22,7 @@ use super::*;
 /// 5. Compute r = x_1 mod n. If r = 0, go back to step 3.
 /// 6. Compute s = k^(-1) (z + r * d_A) mod n. If s = 0, go back to step 3.
 /// 7. The signature is the pair (r, s). the pair (r, -s mod n) is also a valid signature.
-pub fn sign(m: &[u8], d_a: PlutoScalarField) -> AffinePoint<PlutoBaseCurve> {
+pub fn sign(m: &[u8], d_a: PlutoScalarField) -> (PlutoScalarField, PlutoScalarField) {
   let mut hasher = DefaultHasher::new();
   m.hash(&mut hasher);
   // 1. Compute e = HASH(m)
@@ -31,13 +31,18 @@ pub fn sign(m: &[u8], d_a: PlutoScalarField) -> AffinePoint<PlutoBaseCurve> {
   let e_4_bytes = [e[0], e[1], e[2], e[3]];
   // 2. take the leftmost 17 bits of e,
   let z = PlutoScalarField::from(u32::from_be_bytes(e_4_bytes) >> (32 - 17));
-  let rng: usize = rand::random();
+  // TODO: use a real random number generator
+  let mut rng = rand::rngs::OsRng::default();
+  let k = rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER);
+  // let rng = rand::rngs::OsRng::default();
+  // let k = rand::Rng::gen_range(&rng, 1..=PlutoScalarField::ORDER);
   // 3. Select a cryptographically secure random integer k from [1, n-1].
-  let k = PlutoScalarField::new(1);
-  println!("k = {}", k.value);
+  // doesn't work for values 2, 15 which result in r = 0
+  let k = PlutoScalarField::new(5);
+  // println!("k = {}", k.value);
   // 4. Compute the curve point (x_1, y_1) = k × G.
   let point = AffinePoint::<PlutoBaseCurve>::generator() * k;
-  println!("point = {:?}", point);
+  // println!("point = {:?}", point);
   let x_1 = match point {
     AffinePoint::Point(x, _) => x,
     _ => PlutoBaseField::ZERO,
@@ -46,22 +51,21 @@ pub fn sign(m: &[u8], d_a: PlutoScalarField) -> AffinePoint<PlutoBaseCurve> {
   let r = PlutoScalarField::from(x_1.value);
   if r == PlutoScalarField::ZERO {
     // bug here might need to pick fake random number since field is small
-    println!("r is zero, going back to step 3");
-    panic!("r is zero");
+    // println!("r is zero, going back to step 3");
+    panic!("r is zero with k = {}", k.value);
   }
   // 6. Compute s = k^(-1) (z + r * d_A) mod n. If s = 0, go back to step 3.
-  let k_inv = PlutoScalarField::from(1 / k.value);
+  let k_inv = k.inverse().unwrap();
+  // println!("k_inv = {}, z = {}, r = {}, d_a = {}", k_inv, z.value, r.value, d_a.value);
   let s = k_inv * (z + r * d_a);
   if s == PlutoScalarField::ZERO {
     // bug here might need to pick fake random number since field is small
     println!("s is zero, going back to step 3, k = {}", k.value);
-    panic!("s is zero");
   }
-  // 7. The signature is the pair (r, s). the pair (r, -s mod n) is also a valid signature.
-  let r = PlutoBaseField::from(r.value);
-  let s = PlutoBaseField::from(s.value);
-  println!("r = {}, s = {}", r.value, s.value);
-  AffinePoint::<PlutoBaseCurve>::new(r, s)
+  // 7. The signature is the pair (Notable not nessisarily a point on the curve) (r, s). the pair (r, -s mod n) is also a valid signature.
+  let r = PlutoScalarField::from(r.value);
+  let s = PlutoScalarField::from(s.value);
+  (r,s)
 }
 
 /// SIGNATURE VERIFICATION ALGORITHM
@@ -81,7 +85,7 @@ pub fn sign(m: &[u8], d_a: PlutoScalarField) -> AffinePoint<PlutoBaseCurve> {
 pub fn verify(
   m: &[u8],
   q_a: AffinePoint<PlutoBaseCurve>,
-  signature: AffinePoint<PlutoBaseCurve>,
+  signature: (PlutoScalarField, PlutoScalarField),
 ) -> bool {
   // Check that n × Q_A = O.
   if (q_a * 17) != AffinePoint::Infinity {
@@ -89,10 +93,7 @@ pub fn verify(
   }
 
   // Verify that the signature is valid.
-  let (r, s): (PlutoScalarField, PlutoScalarField) = match signature {
-    AffinePoint::Point(x, y) => (PlutoScalarField::from(x.value), PlutoScalarField::from(y.value)),
-    _ => (PlutoScalarField::ZERO, PlutoScalarField::ZERO),
-  };
+  let (r, s): (PlutoScalarField, PlutoScalarField) = signature;
   // 1. Verify that r and s are integers in the interval [1, n-1].
   if r == PlutoScalarField::ZERO || s == PlutoScalarField::ZERO {
     return false;
@@ -106,7 +107,7 @@ pub fn verify(
   // 3. Let z be the L_n leftmost bits of e.
   let z = PlutoScalarField::from(u32::from_be_bytes(e_4_bytes) >> (32 - 17));
   // 4. Compute u_1 = zs^(-1) mod n.
-  let s_inv = PlutoScalarField::from(1 / s.value);
+  let s_inv = s.inverse().unwrap();
   let u_1 = z * s_inv;
   // 5. Compute u_2 = rs^(-1) mod n.
   let u_2 = r * s_inv;
@@ -133,6 +134,7 @@ mod tests {
     let m = b"Hello, world!";
     // sign the message
     let signature = sign(m, d_a);
+    println!("signature = {:?}", signature);
     assert!(verify(m, q_a, signature));
   }
 }
