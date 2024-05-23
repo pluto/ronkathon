@@ -31,11 +31,13 @@ pub fn sign(m: &[u8], d_a: PlutoScalarField) -> AffinePoint<PlutoBaseCurve> {
   let e_4_bytes = [e[0], e[1], e[2], e[3]];
   // 2. take the leftmost 17 bits of e,
   let z = PlutoScalarField::from(u32::from_be_bytes(e_4_bytes) >> (32 - 17));
-  let rng: usize = rand::thread_rng().gen();
+  let rng: usize = rand::random();
   // 3. Select a cryptographically secure random integer k from [1, n-1].
-  let k = PlutoScalarField::from(rng);
+  let k = PlutoScalarField::new(1);
+  println!("k = {}", k.value);
   // 4. Compute the curve point (x_1, y_1) = k × G.
   let point = AffinePoint::<PlutoBaseCurve>::generator() * k;
+  println!("point = {:?}", point);
   let x_1 = match point {
     AffinePoint::Point(x, _) => x,
     _ => PlutoBaseField::ZERO,
@@ -43,17 +45,22 @@ pub fn sign(m: &[u8], d_a: PlutoScalarField) -> AffinePoint<PlutoBaseCurve> {
   // 5. Compute r = x_1 mod n. If r = 0, go back to step 3.
   let r = PlutoScalarField::from(x_1.value);
   if r == PlutoScalarField::ZERO {
-    return sign(m, d_a);
+    // bug here might need to pick fake random number since field is small
+    println!("r is zero, going back to step 3");
+    panic!("r is zero");
   }
   // 6. Compute s = k^(-1) (z + r * d_A) mod n. If s = 0, go back to step 3.
   let k_inv = PlutoScalarField::from(1 / k.value);
   let s = k_inv * (z + r * d_a);
   if s == PlutoScalarField::ZERO {
-    return sign(m, d_a);
+    // bug here might need to pick fake random number since field is small
+    println!("s is zero, going back to step 3, k = {}", k.value);
+    panic!("s is zero");
   }
   // 7. The signature is the pair (r, s). the pair (r, -s mod n) is also a valid signature.
   let r = PlutoBaseField::from(r.value);
   let s = PlutoBaseField::from(s.value);
+  println!("r = {}, s = {}", r.value, s.value);
   AffinePoint::<PlutoBaseCurve>::new(r, s)
 }
 
@@ -120,7 +127,7 @@ mod tests {
   #[test]
   fn test_sign_verify() {
     // secret key
-    let d_a = PlutoScalarField::new(123);
+    let d_a = PlutoScalarField::new(11);
     // public key
     let q_a = AffinePoint::<PlutoBaseCurve>::generator() * d_a;
     let m = b"Hello, world!";
