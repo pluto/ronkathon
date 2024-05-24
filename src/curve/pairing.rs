@@ -3,25 +3,28 @@
 use super::*;
 
 /// Compute the Tate pairing of two points on the curve.
-/// The pairing is a bilinear map from G x G -> F_{p^k} where G is the group of R-torsion points on
-/// the curve and F_{p^k} is an extension with embedding degree k. In particular, the second copy of
-/// G is acted on by a map to assure that it is a distinct set of R-torsion points.
+///
+/// The pairing is a bilinear map from \mathbb{G}_1 x \mathbb{G}_2 -> \mu_{r} where
+/// \mathbb{G}_{1} and \mathbb{G}_{2} are the subgroups of R-torsion group E(\mathbb{F}_{q^k})[r] on
+/// the curve and \mu_{r} are rth roots of unity. In particular, the \mathbb{G}_{2} is acted on by a
+/// map to assure that it is a distinct set of R-torsion points.
 ///
 /// ## Arguments
 /// * `const R` - The order of the R-torsion group.
-/// * `p` - The first point in the pairing which must be a point in the R-torsion group.
+/// * `p` - The first point in the pairing which must be a point in the base field subgroup of
+///   R-torsion group.
 /// * `q` - The second point in the pairing which must be a point in the R-torsion group that
 ///   generates a distinct "petal" of the R-torsion group.
 ///
 /// ## Returns
-/// The result of the pairing.
+/// The result of the pairing, an element of rth root of unity.
 ///
 /// ## Panics
 /// Panics if either input is not in the R-torsion group via an exhaustive check that the point
 /// added to itself R times is the point itself for both inputs.
 ///
 /// ## Notes
-/// This uses the [Miller loop](https://crypto.stanford.edu/pbc/notes/ep/miller.html) algorithm to compute the pairing.
+/// This uses the [Miller loop](https://crypto.stanford.edu/pbc/notes/ep/miller.html) algorithm to compute the rational map required for pairing.
 pub fn pairing<C: EllipticCurve + fmt::Debug + PartialEq, const R: usize>(
   p: AffinePoint<C>,
   q: AffinePoint<C>,
@@ -43,6 +46,39 @@ pub fn pairing<C: EllipticCurve + fmt::Debug + PartialEq, const R: usize>(
 
   // Do the final exponentiation
   val.pow((C::BaseField::ORDER - 1) / R)
+}
+
+/// Compute weil pairing for points P, Q
+pub fn weil_pairing<const R: usize>(
+  p: AffinePoint<PlutoExtendedCurve>,
+  q: AffinePoint<PlutoExtendedCurve>,
+) -> <PlutoExtendedCurve as EllipticCurve>::BaseField {
+  // Check that both inputs are r torsion points on the curve
+  let mut result = p;
+  for _ in 0..R {
+    result += p;
+  }
+  assert_eq!(result, p);
+  let mut result = q;
+  for _ in 0..R {
+    result += q;
+  }
+  assert_eq!(result, q);
+
+  let mut rng = rand::thread_rng();
+  let mut s = rng.gen::<AffinePoint<PlutoExtendedCurve>>();
+  while s == p || s == -q || s == p - q {
+    s = rng.gen::<AffinePoint<PlutoExtendedCurve>>();
+  }
+
+  // Compute the Miller loop
+  let num =
+    miller_loop::<PlutoExtendedCurve, R>(p, q + s) * miller_loop::<PlutoExtendedCurve, R>(q, -s);
+
+  let den =
+    miller_loop::<PlutoExtendedCurve, R>(q, p - s) * miller_loop::<PlutoExtendedCurve, R>(p, s);
+
+  num / den
 }
 
 pub(crate) fn miller_loop<C: EllipticCurve + fmt::Debug + PartialEq, const R: usize>(
@@ -171,6 +207,25 @@ impl Distribution<AffinePoint<PlutoBaseCurve>> for Standard {
   }
 }
 
+impl Distribution<AffinePoint<PlutoExtendedCurve>> for Standard {
+  #[inline]
+  fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> AffinePoint<PlutoExtendedCurve> {
+    loop {
+      let x =
+        PlutoBaseFieldExtension::new([rng.gen::<PlutoBaseField>(), rng.gen::<PlutoBaseField>()]);
+      let rhs: PlutoBaseFieldExtension =
+        x.pow(3) + x * PlutoExtendedCurve::EQUATION_A + PlutoExtendedCurve::EQUATION_B;
+      if rhs.euler_criterion() {
+        if rand::random::<bool>() {
+          return AffinePoint::new(x, rhs.sqrt().unwrap().0);
+        } else {
+          return AffinePoint::new(x, rhs.sqrt().unwrap().1);
+        }
+      }
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -180,6 +235,9 @@ mod tests {
     let mut rng = rand::thread_rng();
     let point = rng.gen::<AffinePoint<PlutoBaseCurve>>();
     println!("Random point: {:?}", point);
+
+    let ext_point = rng.gen::<AffinePoint<PlutoExtendedCurve>>();
+    println!("Random extended point: {:?}", ext_point);
   }
 
   #[test]
@@ -247,7 +305,34 @@ mod tests {
     let result = pairing::<PlutoExtendedCurve, 17>(p, q);
     println!("Pairing result: {:?}", result);
 
+    let result2 = pairing::<PlutoExtendedCurve, 17>(q, p);
+    println!("pairing result2: {:?}", result2);
+
+    let weil_from_tate_pairing = result / result2;
+    println!("weil from tate pairing result: {:?}", weil_from_tate_pairing);
+
+    // let weil_pair = weil_pairing::<PlutoExtendedCurve, 17>(p, q);
+    // println!("weil pairing result: {:?}", weil_pair);
+
     assert_eq!(result.pow(17), PlutoBaseFieldExtension::ONE);
+  }
+
+  #[test]
+  fn random_test() {
+    // (37*X + 9 : 93*X + 19 : 1) (63 : 35*X : 1)
+    let a_x = PlutoBaseFieldExtension::new([PlutoBaseField::new(9), PlutoBaseField::new(37)]);
+    let a_y = PlutoBaseFieldExtension::new([PlutoBaseField::new(19), PlutoBaseField::new(93)]);
+    let a = AffinePoint::<PlutoExtendedCurve>::new(a_x, a_y);
+
+    let b_x = PlutoBaseFieldExtension::new([PlutoBaseField::new(63), PlutoBaseField::new(0)]);
+    let b_y = PlutoBaseFieldExtension::new([PlutoBaseField::new(0), PlutoBaseField::new(35)]);
+    let b = AffinePoint::<PlutoExtendedCurve>::new(b_x, b_y);
+
+    let result = weil_pairing::<17>(a, b);
+    assert_eq!(
+      result,
+      PlutoBaseFieldExtension::new([PlutoBaseField::new(31), PlutoBaseField::new(5)])
+    );
   }
 
   // test the bilinearity of the pairing
