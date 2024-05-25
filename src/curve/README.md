@@ -22,6 +22,7 @@ Investigating our curve and choice of field, we find that the curve is Type B si
 - $p = 101 \equiv 2 \mod 3$;
 It follows that $E(\mathbb{F}_{101})$ is [supersingular](https://en.wikipedia.org/wiki/Supersingular_elliptic_curve) which implies that the `PlutoCurve` has order (number of points) $n = 101 + 1 = 102$ and `PlutoExtendedCurve` has order $n^2 = 102^2 = 10404$.
 Finally, the embedding degree of the curve is $k=2$.
+- This curve has a 17-torsion subgroup calculated as largest prime factor of order of curve `102 = 17.2.3`.
 
 Since, the curve is supersingular, this allows us to define the type-1 Tate pairing $e \colon \mathbb{G}_{1} \times \mathbb{G}_{2} \to \mathbb{F}_{p^2}^{*}$ in a convenient manner, where both $\mathbb{G}_{1},\mathbb{G}_{2}\in\mathcal{G}_{1}$, i.e. the base field subgroup of r-torsion subgroup.
 
@@ -32,3 +33,33 @@ In this case, we pick $G = \mathbb{Z}_{17}$ and define our pairing as:
 $$e(P, Q) = f(P, \Psi(Q))^{(p^2-1)/r}$$
 where $f$ is the Tate pairing and $\Psi$ is the map $\Psi(x,y) = (\zeta x, y)$ where $\zeta$ is a primitive cube root of unity.
 This is due to the fact that $\Psi$ is the distortion map that maps a factor of $E(\mathbb{F}_{101^2})[17] \cong \mathbb{Z}_{17} \times \mathbb{Z}_{17}$ (which is the $17$-torsion group) to the other.
+
+## Pairing and Miller's algorithm
+
+Let's dive a little bit deeper into divisors, and miller's algorithm.
+
+Divisors  essentially are just a way to represent [zeroes and poles](https://crypto.stanford.edu/pbc/notes/elliptic/divisor.html) of a [rational function](https://crypto.stanford.edu/pbc/notes/elliptic/map.html). We are interested in divisors of functions evaluated on Elliptic curves, i.e. $\text{div}f=\sum_{P\in E} n_P(P)$.
+
+For example: let's take a function $f=x^3-8$ with $x\in\mathbb{C}$, it's divisor is written as $(f)$ and it has a zero of order 3 at $x=2$ and a pole of order 3 at $x=\infty$, thus, $(f) = 3(2) - 3(\infty)$.
+
+For an elliptic curve, a line usually intersects the curve at 3 points $P,Q,R=(P+Q)$, then the divisor is written as $(l)=(P)+(Q)+(R)-3(O)$. Note all of these divisors are degree-zero divisors as sum of their multiplicities is 0. There's another concept called **support of divisor** = $\text{supp}(D)=\{P\in E:n_P \neq 0\}$.
+
+Now, we have most of the things we need to represent tate pairing:
+
+$$
+e(P,Q)=f_P(D_Q)
+$$
+
+where $f_P$ is a rational function with $(f_P) = r(P) - r(O)$ and $D_Q$ is the divisor equivalent to $(D_Q)\sim (Q)-(O)$.
+
+### Miller's algorithm
+
+$f_{r,P}$ can be calculated as $f_{r-1,P}\cdot\frac{l_{[r-1]P,P}}{v_{rP}}$ where $l_{[m]P,P}$ is the line from $[m]P$ and $P$, and $v[m]P$ is the vertical line going from $m[P], -[m]P$. Both of these lines are used in chord-and-tangent rule in Elliptic curve group addition law.
+
+Usual naive way is impractical on where $r\sim 2^{160}$, and thus, for practical pairings, Miller's algorithm is used that has $O(\log r)$ time complexity, and uses an algorithm similar to double-and-add algorithm.
+
+## References
+Note that most of these are gross over-simplification of actual concepts and we advise you to refer to these references for further clarifications.
+
+- [Ben Lynn's Thesis](https://crypto.stanford.edu/pbc/thesis.pdf)
+- [Craig Costello's PairingsForBeginners](https://static1.squarespace.com/static/5fdbb09f31d71c1227082339/t/5ff394720493bd28278889c6/1609798774687/PairingsForBeginners.pdf)

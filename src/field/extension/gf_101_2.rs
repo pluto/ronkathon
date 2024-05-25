@@ -27,32 +27,47 @@ impl PlutoBaseFieldExtension {
   /// residue (a square number) in the field.
   pub fn euler_criterion(&self) -> bool { self.norm().euler_criterion() }
 
-  /// Computes square root of the field element (if it exists) and return a tuple of `(r, -r)` where
-  /// `r` is lower
+  /// Computes square root of the quadratic field element `(x_0 + x_1*u)` (if it exists) and return
+  /// a tuple of `(r, -r)` where `r` is lower.
+  ///
+  /// - `(a_0 + a_1*u)^2 = a_0^2+2*a_0*a_1*u+βa_1^2 = (x_0 + x_1*u)`. Equating x_0 and x_1 with LHS:
+  /// - `x_0 = a_0^2 + βa_1^2`
+  /// - `x_1 = 2a_0*a_1`
   pub fn sqrt(&self) -> Option<(Self, Self)> {
-    let (c0, c1) = (self.coeffs[0], self.coeffs[1]);
-    if c1 == PlutoBaseField::ZERO {
-      if c0.euler_criterion() {
-        return c0.sqrt().map(|(res0, res1)| (Self::from(res0), Self::from(res1)));
+    let (a0, a1) = (self.coeffs[0], self.coeffs[1]);
+
+    // irreducible poly: F[X]/(X^2+2)
+    let residue = -PlutoBaseFieldExtension::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS[0];
+
+    // x_0 = a_0^2 + βa_1^2
+    if a1 == PlutoBaseField::ZERO {
+      // if a_1 = 0, then straight away compute sqrt of a_0 as base field element
+      if a0.euler_criterion() {
+        return a0.sqrt().map(|(res0, res1)| (Self::from(res0), Self::from(res1)));
       } else {
-        return c0.div(-PlutoBaseField::new(2)).sqrt().map(|(res0, res1)| {
+        // if a_0 is not a square, then compute a_1 = sqrt(x_0 / β)
+        return a0.div(residue).sqrt().map(|(res0, res1)| {
           (Self::new([PlutoBaseField::ZERO, res0]), Self::new([PlutoBaseField::ZERO, res1]))
         });
       }
     }
 
-    let two_inv = PlutoBaseField::new(2).inverse().expect("2 should have an inverse");
+    // x_0 = ((a_0 ± (a_0² − βa_1²)^½)/2)^½
+    // x_1 = a_1/(2x_0)
+
+    // α = (a_0² − βa_1²)
     let alpha = self.norm();
+    let two_inv = PlutoBaseField::new(2).inverse().expect("2 should have an inverse");
 
     alpha.sqrt().map(|(alpha, _)| {
-      let mut delta = (alpha + c0) * two_inv;
+      let mut delta = (alpha + a0) * two_inv;
       if !delta.euler_criterion() {
         delta -= alpha;
       }
 
       let x0 = delta.sqrt().expect("delta must have an square root").0;
       let x0_inv = x0.inverse().expect("x0 must have an inverse");
-      let x1 = c1 * two_inv * x0_inv;
+      let x1 = a1 * two_inv * x0_inv;
       let x = Self::new([x0, x1]);
       if -x < x {
         (-x, x)
