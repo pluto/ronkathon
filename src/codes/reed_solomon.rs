@@ -178,14 +178,39 @@ mod tests {
     arr[1] = PrimeField::<P>::new(2);
     arr[2] = PrimeField::<P>::new(3);
     let message = Message::new(arr);
-    dbg!(message.clone());
 
     // Build the codeword from the message.
     let codeword = message.encode::<N>();
-    dbg!(codeword.clone());
 
     // Decode the codeword back into a message.
     let decoded = Message::decode::<N>(codeword);
-    dbg!(decoded);
+
+    assert_eq!(decoded.data[0], PrimeField::<P>::new(1));
+    assert_eq!(decoded.data[1], PrimeField::<P>::new(2));
+    assert_eq!(decoded.data[2], PrimeField::<P>::new(3));
+  }
+
+  #[test]
+  fn decoding_longer_message() {
+    // Creat the message from an array using our constants above.
+    let mut arr = [PrimeField::<P>::ZERO; 5];
+    arr[0] = PrimeField::<P>::new(1);
+    arr[1] = PrimeField::<P>::new(2);
+    arr[2] = PrimeField::<P>::new(3);
+    arr[3] = PrimeField::<P>::new(4);
+    arr[4] = PrimeField::<P>::new(5);
+    let message = Message::new(arr);
+
+    // Build the codeword from the message.
+    let codeword = message.encode::<N>();
+
+    // Decode the codeword back into a message.
+    let decoded = Message::decode::<N>(codeword);
+
+    assert_eq!(decoded.data[0], PrimeField::<P>::new(1));
+    assert_eq!(decoded.data[1], PrimeField::<P>::new(2));
+    assert_eq!(decoded.data[2], PrimeField::<P>::new(3));
+    assert_eq!(decoded.data[3], PrimeField::<P>::new(4));
+    assert_eq!(decoded.data[4], PrimeField::<P>::new(5));
   }
 }
