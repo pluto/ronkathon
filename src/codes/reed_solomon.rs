@@ -4,7 +4,6 @@ use std::array;
 
 use itertools::Itertools;
 
-use self::polynomial::Lagrange;
 use super::*;
 
 // TODO: We should allow for arbitrary data in the message so long as it can be
@@ -24,9 +23,13 @@ pub struct Codeword<const N: usize, const K: usize, const P: usize> {
   pub data: [Coordinate<N, P>; N],
 }
 
+/// A [`Coordinate`] represents a point on a polynomial curve with both the x and y coordinates.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Coordinate<const N: usize, const P: usize> {
+  /// The x-coordinate of the point.
   pub x: PrimeField<P>,
+
+  /// The y-coordinate of the point.
   pub y: PrimeField<P>,
 }
 
@@ -47,6 +50,7 @@ impl<const K: usize, const P: usize> Message<K, P> {
     }
   }
 
+  /// Decodes the message from a [`Codeword`].
   pub fn decode<const M: usize>(codeword: Codeword<M, K, P>) -> Self {
     assert_ge::<M, K>();
     let x_values: [PrimeField<P>; K] = {
@@ -66,11 +70,11 @@ impl<const K: usize, const P: usize> Message<K, P> {
     };
 
     let mut data = [PrimeField::<P>::ZERO; K];
+
+    #[allow(clippy::needless_range_loop)]
     // i is the degree of the monomial.
     for i in 0..K {
-      dbg!(i);
       for j in 0..K {
-        dbg!(j);
         let x_combinations: PrimeField<P> = if i % 2 == 1 {
           PrimeField::<P>::ZERO - PrimeField::<P>::ONE
         } else {
@@ -85,7 +89,7 @@ impl<const K: usize, const P: usize> Message<K, P> {
           .sum();
         let y_combinations = y_values[j];
         let numerator = x_combinations * y_combinations;
-        dbg!(numerator);
+
         // this could be put into the x_combinations iter above.
         let mut denominator = PrimeField::ONE; // x_values[i];
         for k in 0..K {
@@ -94,7 +98,7 @@ impl<const K: usize, const P: usize> Message<K, P> {
           }
           denominator *= x_values[k] - x_values[j];
         }
-        dbg!(denominator);
+
         data[i] += numerator / denominator;
       }
     }
