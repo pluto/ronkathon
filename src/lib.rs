@@ -21,6 +21,7 @@
 #![feature(generic_const_exprs)]
 #![warn(missing_docs)]
 
+pub mod codes;
 pub mod curve;
 pub mod ecdsa;
 pub mod field;
