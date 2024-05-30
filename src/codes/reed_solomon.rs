@@ -86,7 +86,7 @@ impl<const K: usize, const P: usize> Message<K, P> {
           .map(|(_, x)| x)
           .combinations(K - 1 - i)
           .map(|comb| comb.into_iter().copied().product::<PrimeField<P>>())
-          .sum();
+          .sum::<PrimeField<P>>();
         let y_combinations = y_values[j];
         let numerator = x_combinations * y_combinations;
 
