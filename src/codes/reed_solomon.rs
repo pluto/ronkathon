@@ -66,34 +66,36 @@ impl<const K: usize, const P: usize> Message<K, P> {
     };
 
     let mut data = [PrimeField::<P>::ZERO; K];
+    // i is the degree of the monomial.
     for i in 0..K {
       dbg!(i);
       for j in 0..K {
         dbg!(j);
-        let mut numerator = PrimeField::<P>::ZERO;
-        for k in 0..j {
-          numerator += if j % 2 == 0 {
-            PrimeField::<P>::ZERO - PrimeField::<P>::ONE
-          } else {
-            PrimeField::<P>::ONE
-          } * x_values
-            .iter()
-            .enumerate()
-            .filter(|&(index, _)| index != i)
-            .map(|(_, x)| x)
-            .combinations(K - 1 - k)
-            .map(|comb| comb.into_iter().copied().product::<PrimeField<P>>())
-            .sum();
-          dbg!(numerator);
-        }
-        let mut denominator = x_values[i];
+        let x_combinations: PrimeField<P> = if i % 2 == 1 {
+          PrimeField::<P>::ZERO - PrimeField::<P>::ONE
+        } else {
+          PrimeField::<P>::ONE
+        } * x_values
+          .iter()
+          .enumerate()
+          .filter(|&(index, _)| index != j)
+          .map(|(_, x)| x)
+          .combinations(K - 1 - i)
+          .map(|comb| comb.into_iter().copied().product::<PrimeField<P>>())
+          .sum();
+        let y_combinations = y_values[j];
+        let numerator = x_combinations * y_combinations;
+        dbg!(numerator);
+        // this could be put into the x_combinations iter above.
+        let mut denominator = PrimeField::ONE; // x_values[i];
         for k in 0..K {
-          if k == i {
+          if k == j {
             continue;
           }
-          denominator *= x_values[k] - x_values[i];
+          denominator *= x_values[k] - x_values[j];
         }
-        data[i] += (numerator / denominator) * y_values[j];
+        dbg!(denominator);
+        data[i] += numerator / denominator;
       }
     }
     Message { data }
