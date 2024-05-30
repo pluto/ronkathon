@@ -11,9 +11,71 @@ use super::*;
 
 impl ExtensionField<2, 101> for PlutoBaseFieldExtension {
   /// irreducible polynomial used to reduce field polynomials to second degree:
-  /// F[X]/(X^2-2)
+  /// F[X]/(X^2+2)
   const IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS: [PlutoBaseField; 3] =
     [PlutoBaseField::new(2), PlutoBaseField::ZERO, PlutoBaseField::ONE];
+}
+
+impl PlutoBaseFieldExtension {
+  fn norm(&self) -> PlutoBaseField {
+    let mut result = self.coeffs[0].pow(2);
+    result -= -PlutoBaseField::new(2) * self.coeffs[1].pow(2);
+    result
+  }
+
+  /// Computes euler criterion of the field element, i.e. Returns true if the element is a quadratic
+  /// residue (a square number) in the field.
+  pub fn euler_criterion(&self) -> bool { self.norm().euler_criterion() }
+
+  /// Computes square root of the quadratic field element `(x_0 + x_1*u)` (if it exists) and return
+  /// a tuple of `(r, -r)` where `r` is lower.
+  ///
+  /// - `(a_0 + a_1*u)^2 = a_0^2+2*a_0*a_1*u+βa_1^2 = (x_0 + x_1*u)`. Equating x_0 and x_1 with LHS:
+  /// - `x_0 = a_0^2 + βa_1^2`
+  /// - `x_1 = 2a_0*a_1`
+  pub fn sqrt(&self) -> Option<(Self, Self)> {
+    let (a0, a1) = (self.coeffs[0], self.coeffs[1]);
+
+    // irreducible poly: F[X]/(X^2+2)
+    let residue = -PlutoBaseFieldExtension::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS[0];
+
+    // x_0 = a_0^2 + βa_1^2
+    if a1 == PlutoBaseField::ZERO {
+      // if a_1 = 0, then straight away compute sqrt of a_0 as base field element
+      if a0.euler_criterion() {
+        return a0.sqrt().map(|(res0, res1)| (Self::from(res0), Self::from(res1)));
+      } else {
+        // if a_0 is not a square, then compute a_1 = sqrt(x_0 / β)
+        return a0.div(residue).sqrt().map(|(res0, res1)| {
+          (Self::new([PlutoBaseField::ZERO, res0]), Self::new([PlutoBaseField::ZERO, res1]))
+        });
+      }
+    }
+
+    // x_0 = ((a_0 ± (a_0² − βa_1²)^½)/2)^½
+    // x_1 = a_1/(2x_0)
+
+    // α = (a_0² − βa_1²)
+    let alpha = self.norm();
+    let two_inv = PlutoBaseField::new(2).inverse().expect("2 should have an inverse");
+
+    alpha.sqrt().map(|(alpha, _)| {
+      let mut delta = (alpha + a0) * two_inv;
+      if !delta.euler_criterion() {
+        delta -= alpha;
+      }
+
+      let x0 = delta.sqrt().expect("delta must have an square root").0;
+      let x0_inv = x0.inverse().expect("x0 must have an inverse");
+      let x1 = a1 * two_inv * x0_inv;
+      let x = Self::new([x0, x1]);
+      if -x < x {
+        (-x, x)
+      } else {
+        (x, -x)
+      }
+    })
+  }
 }
 
 impl FiniteField for PlutoBaseFieldExtension {
@@ -24,9 +86,9 @@ impl FiniteField for PlutoBaseFieldExtension {
   /// ```sage
   /// F = GF(101)
   /// Ft.<t> = F[]
-  /// P = Ft(t ^ 2 - 2)
+  /// P = Ft(t ^ 2 + 2)
   /// F_2 = GF(101 ^ 2, name="t", modulus=P)
-  /// f_2_primitive_element = F_2([2, 1])
+  /// f_2_primitive_element = F_2([14, 9])
   /// assert f_2_primitive_element.multiplicative_order() == 101^2-1
   /// ```
   const PRIMITIVE_ELEMENT: Self = Self::new([PlutoBaseField::new(14), PlutoBaseField::new(9)]);
@@ -59,6 +121,14 @@ impl FiniteField for PlutoBaseFieldExtension {
     } else {
       self.pow(power / 2) * self.pow(power / 2) * self
     }
+  }
+}
+
+impl<const N: usize, const P: usize> Distribution<GaloisField<N, P>> for Standard {
+  #[inline]
+  fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GaloisField<N, P> {
+    let coeffs = (0..N).map(|_| rng.gen::<PrimeField<P>>()).collect::<Vec<_>>().try_into().unwrap();
+    GaloisField::<N, P>::new(coeffs)
   }
 }
 
@@ -282,5 +352,28 @@ mod tests {
       val *= generator;
     }
     assert_eq!(val, generator);
+  }
+
+  #[test]
+  fn sqrt() {
+    let mut rng = rand::thread_rng();
+    let x = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
+    let x_sq = x.pow(2);
+
+    let res = x_sq.sqrt();
+    assert!(res.is_some());
+
+    assert_eq!(res.unwrap().0 * res.unwrap().0, x * x);
+
+    let x_0 = rng.gen::<PlutoBaseField>();
+    let x_1 = rng.gen::<PlutoBaseField>();
+    let x = <PlutoBaseFieldExtension>::new([x_0, x_1]);
+
+    let x_sq = x.pow(2);
+
+    let res = x_sq.sqrt();
+
+    assert!(res.is_some());
+    assert_eq!(res.unwrap().0 * res.unwrap().0, x * x);
   }
 }

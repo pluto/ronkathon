@@ -41,12 +41,17 @@ impl<const P: usize> PrimeField<P> {
     Self { value: value % P }
   }
 
+  /// Computes euler criterion of the field element, i.e. Returns true if the element is a quadratic
+  /// residue (a square number) in the field.
+  pub fn euler_criterion(&self) -> bool { self.pow((P - 1) / 2).value == 1 }
+
   /// Computes the square root of a field element using the [Tonelli-Shanks algorithm](https://en.wikipedia.org/wiki/Tonelli–Shanks_algorithm).
   pub fn sqrt(&self) -> Option<(Self, Self)> {
-    assert!(self.euler_criterion(), "Element is not a quadratic residue");
     if *self == Self::ZERO {
       return Some((Self::ZERO, Self::ZERO));
     }
+
+    assert!(self.euler_criterion(), "Element is not a quadratic residue");
 
     // First define the Q and S values for the prime number P.
     let q: usize;
@@ -95,9 +100,6 @@ impl<const P: usize> PrimeField<P> {
       r *= b;
     }
   }
-
-  /// Returns true if the element is a quadratic residue (a square number) in the field.
-  pub const fn euler_criterion(&self) -> bool { self.pow((P - 1) / 2).value == 1 }
 }
 
 impl<const P: usize> const FiniteField for PrimeField<P> {
@@ -340,6 +342,7 @@ mod tests {
   #[case(PlutoBaseField::new(4), (PlutoBaseField::new(2), PlutoBaseField::new(99)))]
   #[case(PlutoBaseField::new(5), (PlutoBaseField::new(45), PlutoBaseField::new(56)))]
   #[case(PlutoBaseField::new(6), (PlutoBaseField::new(39), PlutoBaseField::new(62)))]
+  #[case(PlutoBaseField::new(0), (PlutoBaseField::new(0), PlutoBaseField::new(0)))]
   fn square_root(#[case] a: PlutoBaseField, #[case] expected: (PlutoBaseField, PlutoBaseField)) {
     assert_eq!(a.sqrt().unwrap(), expected);
   }
