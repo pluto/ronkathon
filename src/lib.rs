@@ -27,6 +27,7 @@ pub mod ecdsa;
 pub mod field;
 pub mod kzg;
 pub mod polynomial;
+pub mod tiny_rsa;
 
 use core::{
   fmt::{self, Display, Formatter},
