@@ -54,7 +54,7 @@ where [PrimeField<P>; N + 1]: {
 /// A struct that represents an element of an extension field. The element is represented as
 /// [`Monomial`] coefficients of a [`Polynomial`] of degree `N - 1` over the base [`FiniteField`]
 /// `F`.
-#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Hash, Debug)]
 pub struct GaloisField<const N: usize, const P: usize> {
   pub(crate) coeffs: [PrimeField<P>; N],
 }

@@ -61,6 +61,25 @@ impl From<AffinePoint<PlutoBaseCurve>> for AffinePoint<PlutoExtendedCurve> {
   }
 }
 
+// TODO: have to remove const trait from finite field for this. Ask Colin or Waylon if that's
+// alright
+// impl<C: EllipticCurve> Distribution<AffinePoint<C>> for Standard {
+//   #[inline]
+//   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> AffinePoint<C> {
+//     loop {
+//       let x = C::BaseField::rand(rng);
+//       let rhs = x.pow(3) + x * C::EQUATION_A.into() + C::EQUATION_B.into();
+//       if rhs.euler_criterion() {
+//         if rand::random::<bool>() {
+//           return AffinePoint::new(x, rhs.sqrt().unwrap().0);
+//         } else {
+//           return AffinePoint::new(x, rhs.sqrt().unwrap().1);
+//         }
+//       }
+//     }
+//   }
+// }
+
 #[cfg(test)]
 mod pluto_base_curve_tests {
   use super::*;
