@@ -455,7 +455,6 @@ def print_rust(state_size, rc, mds, f, alpha, num_f, num_p):
   assert(len(rc) % state_size == 0)
   assert(mds.nrows() == state_size)
   assert(mds.ncols() == state_size)
-  f.write("use super::*;\n")
   f.write("pub const ALPHA: usize = {};\n".format(int(alpha)))
   f.write("pub const WIDTH: usize = {};\n".format(int(state_size)))
   f.write("pub const NUM_F: usize = {};\n".format(int(num_f)))
