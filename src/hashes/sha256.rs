@@ -37,116 +37,116 @@ pub const fn ch(x: u32, y: u32, z: u32) -> u32 { (x & y) ^ (!x & z) }
 
 pub const fn maj(x: u32, y: u32, z: u32) -> u32 { (x & y) ^ (x & z) ^ (y & z) }
 
-pub fn hash(input: &[u8]) -> [u8; 32] {
-  // Initialize the hash values.
-  let mut hash = H;
+pub struct Sha256;
 
-  // Initialize the array of message words.
-  let mut words = [0u32; 64];
+impl Sha256 {
+  pub fn digest(input: &[u8]) -> [u8; 32] {
+    // Initialize the hash values.
+    let mut hash = H;
 
-  // Initialize the array of message bytes.
-  let mut bytes = [0u8; 64];
+    // Initialize the array of message words.
+    let mut words = [0u32; 64];
 
-  // Padding
-  // The message is padded so that its length is congruent to 448 modulo 512.
-  // We first get the length of the input in bits.
-  let len = input.len() as u64 * 8;
-  let len_with_1_appended = len + 1;
-  let len_mod = len_with_1_appended % 512;
-  let zero_padding = if len_mod > 448 { 512 + 448 - len_mod } else { 448 - len_mod };
-  let len_padded = (len_with_1_appended as usize + zero_padding as usize) / 8;
-  let len_bytes = (len).to_be_bytes();
-  dbg!(len, len_mod, zero_padding);
+    // Initialize the array of message bytes.
+    let mut bytes = [0u8; 64];
 
-  // Initialize the message with padding.
-  let mut message = Vec::with_capacity(len_padded);
-  message.extend_from_slice(input);
-  message.push(0x80);
-  message.extend(&vec![0; 56 - len as usize / 8 - 1]);
-  message.extend_from_slice(&len_bytes);
-  dbg!(message.len(), hex::encode(message.clone()));
+    // Padding
+    // The message is padded so that its length is congruent to 448 modulo 512.
+    // We first get the length of the input in bits.
+    let len = input.len() as u64 * 8;
+    let len_with_1_appended = len + 1;
+    let len_mod = len_with_1_appended % 512;
+    let zero_padding = if len_mod > 448 { 512 + 448 - len_mod } else { 448 - len_mod };
+    let len_padded = (len_with_1_appended as usize + zero_padding as usize) / 8;
+    let len_bytes = (len).to_be_bytes();
+    dbg!(len, len_mod, zero_padding);
 
-  // Process the message in 512-bit blocks.
-  for chunk in message.chunks(64) {
-    // Copy the chunk into the bytes array.
-    bytes.copy_from_slice(chunk);
+    // Initialize the message with padding.
+    let mut message = Vec::with_capacity(len_padded);
+    message.extend_from_slice(input);
+    message.push(0x80);
+    message.extend(&vec![0; 56 - len as usize / 8 - 1]);
+    message.extend_from_slice(&len_bytes);
+    dbg!(message.len(), hex::encode(message.clone()));
 
-    // Copy the bytes into the words array.
-    for i in 0..16 {
-      words[i] =
-        u32::from_be_bytes([bytes[i * 4], bytes[i * 4 + 1], bytes[i * 4 + 2], bytes[i * 4 + 3]]);
+    // Process the message in 512-bit blocks.
+    for chunk in message.chunks(64) {
+      // Copy the chunk into the bytes array.
+      bytes.copy_from_slice(chunk);
+
+      // Copy the bytes into the words array.
+      for i in 0..16 {
+        words[i] =
+          u32::from_be_bytes([bytes[i * 4], bytes[i * 4 + 1], bytes[i * 4 + 2], bytes[i * 4 + 3]]);
+      }
+
+      // Use our permutations to complete the block decomposition
+      for i in 16..64 {
+        words[i] = small_sigma_1(words[i - 2])
+          .wrapping_add(words[i - 7])
+          .wrapping_add(small_sigma_0(words[i - 15]))
+          .wrapping_add(words[i - 16]);
+      }
+
+      // Initialize the working variables.
+      let mut a = hash[0];
+      let mut b = hash[1];
+      let mut c = hash[2];
+      let mut d = hash[3];
+      let mut e = hash[4];
+      let mut f = hash[5];
+      let mut g = hash[6];
+      let mut h = hash[7];
+
+      // Perform the main hash computation.
+      for i in 0..64 {
+        let temp1 = h
+          .wrapping_add(cap_sigma_1(e))
+          .wrapping_add(ch(e, f, g))
+          .wrapping_add(K[i])
+          .wrapping_add(words[i]);
+        let temp2 = cap_sigma_0(a).wrapping_add(maj(a, b, c));
+
+        h = g;
+        g = f;
+        f = e;
+        e = d.wrapping_add(temp1);
+        d = c;
+        c = b;
+        b = a;
+        a = temp1.wrapping_add(temp2);
+      }
+
+      // Update the hash values.
+      hash[0] = hash[0].wrapping_add(a);
+      hash[1] = hash[1].wrapping_add(b);
+      hash[2] = hash[2].wrapping_add(c);
+      hash[3] = hash[3].wrapping_add(d);
+      hash[4] = hash[4].wrapping_add(e);
+      hash[5] = hash[5].wrapping_add(f);
+      hash[6] = hash[6].wrapping_add(g);
+      hash[7] = hash[7].wrapping_add(h);
     }
 
-    // Use our permutations to complete the block decomposition
-    for i in 16..64 {
-      words[i] = small_sigma_1(words[i - 16])
-        .wrapping_add(words[i - 7])
-        .wrapping_add(small_sigma_0(words[i - 15]))
-        .wrapping_add(words[i - 16]);
+    for i in 0..8 {
+      hash[i] = hash[i].to_be();
     }
 
-    // Initialize the working variables.
-    let mut a = hash[0];
-    let mut b = hash[1];
-    let mut c = hash[2];
-    let mut d = hash[3];
-    let mut e = hash[4];
-    let mut f = hash[5];
-    let mut g = hash[6];
-    let mut h = hash[7];
-
-    // Perform the main hash computation.
-    for i in 0..64 {
-      let temp1 = h
-        .wrapping_add(cap_sigma_1(e))
-        .wrapping_add(ch(e, f, g))
-        .wrapping_add(K[i])
-        .wrapping_add(words[i]);
-      let temp2 = cap_sigma_0(a).wrapping_add(maj(a, b, c));
-
-      h = g;
-      g = f;
-      f = e;
-      e = d.wrapping_add(temp1);
-      d = c;
-      c = b;
-      b = a;
-      a = temp1.wrapping_add(temp2);
-    }
-
-    // Update the hash values.
-    hash[0] = hash[0].wrapping_add(a);
-    hash[1] = hash[1].wrapping_add(b);
-    hash[2] = hash[2].wrapping_add(c);
-    hash[3] = hash[3].wrapping_add(d);
-    hash[4] = hash[4].wrapping_add(e);
-    hash[5] = hash[5].wrapping_add(f);
-    hash[6] = hash[6].wrapping_add(g);
-    hash[7] = hash[7].wrapping_add(h);
+    unsafe { std::mem::transmute(hash) }
   }
-
-  unsafe { std::mem::transmute(hash) }
 }
 
 #[cfg(test)]
 mod tests {
-  use sha2::{Digest, Sha256};
 
   use super::*;
   #[test]
   fn sha256_hash() {
     let input = b"abc";
-    let input = &[97u8, 98, 99];
-    dbg!(input);
-    let output = hash(input);
-    let output = hex::encode(output);
-    dbg!(output);
-    // assert_eq!(output, [0x2c, 0x74, 0x1b, 0x8e, 0x6f, 0x7a, 0x0b, 0x8e, 0x5b, 0x6f, 0x9f, 0x7f]);
-
-    let mut hasher = Sha256::new();
-    hasher.update(input);
-    let result = hasher.finalize();
-    let result = hex::encode(result);
-    dbg!(result);
+    let output = Sha256::digest(input);
+    assert_eq!(
+      hex::encode(output),
+      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    );
   }
 }
