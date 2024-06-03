@@ -3,6 +3,8 @@
 //! [`FiniteField`] trait is implemented. This module asserts at compile time that the order of the
 //! field is a prime number and allows for creation of generic prime order fields.
 
+use std::str::FromStr;
+
 use super::*;
 
 mod arithmetic;
@@ -208,6 +210,15 @@ impl From<PlutoPrime> for usize {
       res @ PlutoPrime::Base => res as usize,
       res @ PlutoPrime::Scalar => res as usize,
     }
+  }
+}
+
+impl<const P: usize> FromStr for PrimeField<P> {
+  type Err = ();
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    let num = str::parse(s).expect("failed to parse string into usize");
+    Ok(Self::new(num))
   }
 }
 
