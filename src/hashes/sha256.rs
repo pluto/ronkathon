@@ -88,46 +88,55 @@ impl Sha256 {
   /// );
   /// ```
   pub fn digest(input: &[u8]) -> [u8; 32] {
+    ///////////////////////////////////////////////////////////////////////////
+    // Set up initial data structures.
+    //
     // Initialize the hash values.
+    // This will be the variable we update as we process the input.
     let mut hash = H;
 
-    // Initialize the array of message words.
+    // Initialize the array of message words which will be used in the hash computation.
     let mut words = [0u32; 64];
 
-    // Initialize the array of message bytes.
-    let mut bytes = [0u8; 64];
-
+    ///////////////////////////////////////////////////////////////////////////
     // Padding
+    //
     // The message is padded so that its length is congruent to 448 modulo 512.
-    // We first get the length of the input in bits.
+    // The padding consists of a single 1 bit followed by zeros, and the length
+    // of the message in bits is appended to the end.
     let len = input.len() as u64 * 8;
     let len_with_1_appended = len + 1;
     let len_mod = len_with_1_appended % 512;
     let zero_padding = if len_mod > 448 { 512 + 448 - len_mod } else { 448 - len_mod };
     let len_padded = (len_with_1_appended as usize + zero_padding as usize) / 8;
-    let len_bytes = (len).to_be_bytes();
-    dbg!(len, len_mod, zero_padding);
 
-    // Initialize the message with padding.
+    // Create the padded message from the input.
     let mut message = Vec::with_capacity(len_padded);
     message.extend_from_slice(input);
-    message.push(0x80);
-    message.extend(&vec![0; 56 - len as usize / 8 - 1]);
-    message.extend_from_slice(&len_bytes);
-    dbg!(message.len(), hex::encode(message.clone()));
 
+    // Push on the 1 bit followed by zeroes.
+    message.push(0x80);
+
+    // Push on the remaining needed zeroes we computed above.
+    message.extend(&vec![0; 56 - len as usize / 8 - 1]);
+
+    // Push on the length of the message in bits.
+    message.extend_from_slice(&len.to_be_bytes());
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Hashing
+    //
     // Process the message in 512-bit blocks.
     for chunk in message.chunks(64) {
-      // Copy the chunk into the bytes array.
-      bytes.copy_from_slice(chunk);
-
-      // Copy the bytes into the words array.
+      // Copy the bytes into the words array to fill the first 16 words.
       for i in 0..16 {
         words[i] =
-          u32::from_be_bytes([bytes[i * 4], bytes[i * 4 + 1], bytes[i * 4 + 2], bytes[i * 4 + 3]]);
+          u32::from_be_bytes([chunk[i * 4], chunk[i * 4 + 1], chunk[i * 4 + 2], chunk[i * 4 + 3]]);
       }
 
-      // Use our permutations to complete the block decomposition
+      // Use our permutations/compression functions to complete the block
+      // decomposition for the remaining words.
       for i in 16..64 {
         words[i] = small_sigma_1(words[i - 2])
           .wrapping_add(words[i - 7])
@@ -174,6 +183,9 @@ impl Sha256 {
       hash[6] = hash[6].wrapping_add(g);
       hash[7] = hash[7].wrapping_add(h);
     }
+
+    // Convert the hash to a byte array with correct endianness and
+    // type then return it.
     hash.iter_mut().for_each(|x| *x = x.to_be());
     unsafe { std::mem::transmute(hash) }
   }
