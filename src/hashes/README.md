@@ -18,4 +18,10 @@ The SHA-2 family of hash functions are widely used and are considered to be secu
 As with many cryptographic primitives, SHA-2 is standardized by NIST.
 It is used in many different protocols such as TLS, SSL, PGP, and SSH.
 
-The hash function itself is based on the Merkle-Damgard construction.
+The hash function itself is based on the [Merkle-Damgard construction](https://en.wikipedia.org/wiki/Merkle–Damgård_construction), so it reads in blocks of data and processes them in a certain way.
+The output of the hash function is the hash of the data, which is a fixed length output.
+In our case, we will be using SHA-256, which produces a 256-bit output.
+
+For more detail on the implementation of SHA-256 see [this resource](https://helix.stormhub.org/papers/SHA-256.pdf).
+Also, you can find JavaScript code and a working applet for SHA-256 [here](https://www.movable-type.co.uk/scripts/sha256.html).
+Our implementation can be found in the `src/hashes/sha256.rs` file with detailed documentation and comments.
