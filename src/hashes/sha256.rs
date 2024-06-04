@@ -1,4 +1,6 @@
-use super::*;
+//! An implementation of the SHA-256 hash function.
+//! This module provides an implementation of the SHA-256 hash function, which is a widely-used
+//! cryptographic hash function that produces a 256-bit hash value from an input message.
 
 /// The SHA-256 hash function uses random constants in the hash computation.
 /// These constants here are the first 32 bits of the fractional parts of the cube roots of the
@@ -23,23 +25,68 @@ const H: [u32; 8] =
 /// A rotation function that rotates a 32-bit word to the right by `N` bits.
 /// Note that the implementation here assumes that the bits are replaced by zeroes when shifted
 /// hence the `|`.
-pub const fn rot<const N: usize>(x: u32) -> u32 { (x >> N) | (x << (32 - N)) }
+pub const fn rotate_right<const N: usize>(x: u32) -> u32 { (x >> N) | (x << (32 - N)) }
 
-pub const fn cap_sigma_0(x: u32) -> u32 { rot::<2>(x) ^ rot::<13>(x) ^ rot::<22>(x) }
+/// The [Σ0](https://en.wikipedia.org/wiki/SHA-2) function used in SHA-256.
+/// This is one of the compression functions used in the hash computation.
+pub const fn sigma_0(x: u32) -> u32 {
+  rotate_right::<2>(x) ^ rotate_right::<13>(x) ^ rotate_right::<22>(x)
+}
 
-pub const fn cap_sigma_1(x: u32) -> u32 { rot::<6>(x) ^ rot::<11>(x) ^ rot::<25>(x) }
+/// The [Σ1](https://en.wikipedia.org/wiki/SHA-2) function used in SHA-256.
+/// This is one of the compression functions used in the hash computation.
+pub const fn sigma_1(x: u32) -> u32 {
+  rotate_right::<6>(x) ^ rotate_right::<11>(x) ^ rotate_right::<25>(x)
+}
 
-pub const fn small_sigma_0(x: u32) -> u32 { rot::<7>(x) ^ rot::<18>(x) ^ (x >> 3) }
+/// The [σ0](https://en.wikipedia.org/wiki/SHA-2) function used in SHA-256.
+/// This is one of the message schedule functions used in the hash computation.
+pub const fn small_sigma_0(x: u32) -> u32 {
+  rotate_right::<7>(x) ^ rotate_right::<18>(x) ^ (x >> 3)
+}
 
-pub const fn small_sigma_1(x: u32) -> u32 { rot::<17>(x) ^ rot::<19>(x) ^ (x >> 10) }
+/// The [σ1](https://en.wikipedia.org/wiki/SHA-2) function used in SHA-256.
+/// This is one of the message schedule functions used in the hash computation.
+pub const fn small_sigma_1(x: u32) -> u32 {
+  rotate_right::<17>(x) ^ rotate_right::<19>(x) ^ (x >> 10)
+}
 
+/// The [Ch](https://en.wikipedia.org/wiki/SHA-2) function used in SHA-256.
+/// This is a logical function used in the hash computation used to "choose" between `y` and `z`
+/// given `x` as a conditional.
 pub const fn ch(x: u32, y: u32, z: u32) -> u32 { (x & y) ^ (!x & z) }
 
+/// The [Maj](https://en.wikipedia.org/wiki/SHA-2) function used in SHA-256.
+/// This is a logical function used in the hash computation used to select the "majority" of the
+/// calues of `x`, `y`, and `z`.
 pub const fn maj(x: u32, y: u32, z: u32) -> u32 { (x & y) ^ (x & z) ^ (y & z) }
 
+/// An empty struct to encapsulate the SHA-256 hash function.
 pub struct Sha256;
 
 impl Sha256 {
+  /// The SHA-256 hash function.
+  /// This function takes an input byte array and returns a 32-byte array representing the hash
+  /// of the input.
+  ///
+  /// # Arguments
+  /// * `input` - A byte array representing the input to the hash function.
+  ///
+  /// # Returns
+  /// A 32-byte array representing the hash of the input.
+  ///
+  /// # Example
+  /// ```
+  /// use hex;
+  /// use ronkathon::hashes::Sha256;
+  ///
+  /// let input = b"abc";
+  /// let output = Sha256::digest(input);
+  /// assert_eq!(
+  ///   hex::encode(output),
+  ///   "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+  /// );
+  /// ```
   pub fn digest(input: &[u8]) -> [u8; 32] {
     // Initialize the hash values.
     let mut hash = H;
@@ -101,11 +148,11 @@ impl Sha256 {
       // Perform the main hash computation.
       for i in 0..64 {
         let temp1 = h
-          .wrapping_add(cap_sigma_1(e))
+          .wrapping_add(sigma_1(e))
           .wrapping_add(ch(e, f, g))
           .wrapping_add(K[i])
           .wrapping_add(words[i]);
-        let temp2 = cap_sigma_0(a).wrapping_add(maj(a, b, c));
+        let temp2 = sigma_0(a).wrapping_add(maj(a, b, c));
 
         h = g;
         g = f;
@@ -127,11 +174,7 @@ impl Sha256 {
       hash[6] = hash[6].wrapping_add(g);
       hash[7] = hash[7].wrapping_add(h);
     }
-
-    for i in 0..8 {
-      hash[i] = hash[i].to_be();
-    }
-
+    hash.iter_mut().for_each(|x| *x = x.to_be());
     unsafe { std::mem::transmute(hash) }
   }
 }
