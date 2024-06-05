@@ -58,8 +58,46 @@ $f_{r,P}$ can be calculated as $f_{r-1,P}\cdot\frac{l_{[r-1]P,P}}{v_{rP}}$ where
 
 Usual naive way is impractical on where $r\sim 2^{160}$, and thus, for practical pairings, Miller's algorithm is used that has $O(\log r)$ time complexity, and uses an algorithm similar to double-and-add algorithm.
 
+## Helpful Definitions
+Here are a few related definitions that might be helpful to understand the curve and the pairing.
+
+### roots of unity
+
+the $rth$ root of unity in $F_p$ is some number $h$ such that $h^r \equiv 1$, For example in our field scaler field $F_{101}$ the $4th$ roots of unity are $\{1,10,91,100\}$. 
+
+### $r$-torsion
+
+ $r$-torsion points are points$P \in E(K)$$rP = O$ for some point $P$ so that $P$  has order $r$  or is a factor of $r$. The set of r-torsion points in $E(K)$ is denoted $E(K)[r]$. If $\bar{K}$ is the [algebraic closure](https://en.wikipedia.org/wiki/Algebraic_closure) of $K$ then the number of r-torsion points in $E(K)$ is $\#E(\bar{K})[r] = r^2$. 
+
+- *Security note: If* $r$  and $q$ are not co-prime then the discrete log is solvable in linear time with something called an anomaly attack.
+
+### Frobenius endomorphism
+
+Curve endomorphisms are maps that take points in one a curve subgroup and map them to themselves. An example is point addition and point doubling. The Frobenius endomorphism denoted $\Phi$  takes points in $P \in E(F_q)$ and maps them $\Phi(P) = (X^q, Y^q)$ .
+
+For higher powers of  the map you write $\Phi^k$ .
+
+### Trace Map
+
+This then allows us to define the trace map which takes points in $E(F_{q^k})$ and maps them to $E(F_q)$
+
+$$
+tr(P) = P + \Phi(P ) + ... + \Phi^{k−1}(P )
+$$
+
+Since $k=2$ in our parameters we get $tr(P) = P + \Phi(P)$.
+
+**Trace Zero Subgroup:** The set of points of trace zero $G = \{P | tr P = O\}$ is a cyclic group of order $r$, and every $P \in G$ satisﬁes $\Phi(P ) = qP$ .
+
+### Quadratic Non Residue
+
+A Quadratic Non-residue is a number that, cannot be expressed as a square of any other number. In other words, for a given modulus $n$, a number $b$ is a quadratic non-residue if there is no number a satisfying the congruence $a^2 ≡ b$  (mod n).
+
+An example of quadratic non-residues would be the number 2 in modulo 3, 4, or 5. In these cases, there is no integer that we can square and then divide by the given modulus to get a remainder of 2.
+
 ## References
 Note that most of these are gross over-simplification of actual concepts and we advise you to refer to these references for further clarifications.
 
 - [Ben Lynn's Thesis](https://crypto.stanford.edu/pbc/thesis.pdf)
 - [Craig Costello's PairingsForBeginners](https://static1.squarespace.com/static/5fdbb09f31d71c1227082339/t/5ff394720493bd28278889c6/1609798774687/PairingsForBeginners.pdf)
+- [Pairings in depth](https://static1.squarespace.com/static/5fdbb09f31d71c1227082339/t/5ff394720493bd28278889c6/1609798774687/PairingsForBeginners.pdf)

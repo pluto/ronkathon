@@ -28,7 +28,7 @@ pub mod field;
 pub mod hashes;
 pub mod kzg;
 pub mod polynomial;
-pub mod tiny_rsa;
+pub mod rsa;
 pub mod tree;
 
 use core::{
