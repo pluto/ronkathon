@@ -3,7 +3,7 @@ use crate::field::prime::PlutoBaseField;
 mod constants;
 use rstest::{fixture, rstest};
 
-use crate::hash::poseidon::tests::field::{ark_constants, Fr};
+use crate::hashes::poseidon::tests::field::{ark_constants, Fr};
 mod field;
 use ark_crypto_primitives::sponge::{
   poseidon::{self, PoseidonSponge as ArkPoseidonSponge},
