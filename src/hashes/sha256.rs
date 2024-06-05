@@ -78,7 +78,7 @@ impl Sha256 {
   /// # Example
   /// ```
   /// use hex;
-  /// use ronkathon::hashes::Sha256;
+  /// use ronkathon::hashes::sha256::Sha256;
   ///
   /// let input = b"abc";
   /// let output = Sha256::digest(input);
