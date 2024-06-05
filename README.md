@@ -25,11 +25,11 @@ Ronkathon is a rust implementation of a collection of cryptographic primitives. 
 - [KZG Commitments](src/kzg/README.md)
 - [Reed-Solomon Codes](src/codes/README.md)
 - [Tiny ECDSA](src/ecdsa.rs)
-- [Tiny RSA](src/tiny_rsa/README.md)
+- [RSA](src/tiny_rsa/README.md)
+- [Sha256 Hash](src/hash/README.md)
 
 ## In Progress
 - [ ] Poseidon Hash
-- [ ] Sha256 Hash
 - [ ] Edwards curve Signatures (EdDSA)
 
 ## Resources
@@ -37,11 +37,6 @@ Ronkathon is a rust implementation of a collection of cryptographic primitives. 
 We have found the following resources helpful in understanding the foundational mathematics behind this implementation. After going through these, you should be able to understand the codebase
 
 ### Theoretic Resources
-- [A gentle introduction to Fast Fourier Transforms over Finite Fields](https://vitalik.eth.limo/general/2019/05/12/fft.html)
-- [Ben Lynn's Docatoral Thesis on the Implementation of Pairing-Based Cryptosystems](https://crypto.stanford.edu/pbc/thesis.pdf)
-- [Introduction to Pairings](https://vitalik.eth.limo/general/2017/01/14/exploring_ecp.html)
-- [KZG introduction by dankrad](https://dankradfeist.de/ethereum/2020/06/16/kate-polynomial-commitments.html)
-- [Pairings in depth](https://static1.squarespace.com/static/5fdbb09f31d71c1227082339/t/5ff394720493bd28278889c6/1609798774687/PairingsForBeginners.pdf)
 - [Plonk by Hand P1](https://research.metastate.dev/plonk-by-hand-part-1/)
 - [Plonk by Hand P2](https://research.metastate.dev/plonk-by-hand-part-2-the-proof/)
 ### Code Refrences
