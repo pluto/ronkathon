@@ -160,7 +160,6 @@ pub enum SpongeState {
 /// * `rate` describes number of elements absorbed by sponge before any permutation round
 /// * `sponge_state` describes current [`SpongeState`]. Initialised in [`SpongeState::Init`] state
 ///   and, if sponge is squeezing, then it can't absorb new elements.
-/// absorb again.
 /// * current new elements absorbed into hash state based on the sponge `rate`.
 pub struct SpongeConfig {
   rate:          usize,
