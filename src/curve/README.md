@@ -87,7 +87,7 @@ $$
 
 Since $k=2$ in our parameters we get $tr(P) = P + \Phi(P)$.
 
-**Trace Zero Subgroup:** The set of points of trace zero $G = \{P | tr P = O\}$ is a cyclic group of order $r$, and every $P ∈ G$ satisﬁes $\Phi(P ) = qP$ .
+**Trace Zero Subgroup:** The set of points of trace zero $G = \{P | tr P = O\}$ is a cyclic group of order $r$, and every $P \in G$ satisﬁes $\Phi(P ) = qP$ .
 
 ### Quadratic Non Residue
 
