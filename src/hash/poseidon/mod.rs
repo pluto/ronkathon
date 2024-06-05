@@ -78,7 +78,7 @@ impl<F: FiniteField> Poseidon<F> {
   fn sbox_partial(&mut self) { self.state[0] = self.state[0].pow(self.config.alpha); }
 
   fn sbox(&mut self, round_i: usize) {
-    if round_i < self.config.num_p / 2 || round_i > self.config.num_p / 2 + self.config.num_f {
+    if round_i < self.config.num_f / 2 || round_i >= self.config.num_p + self.config.num_f / 2 {
       self.sbox_full()
     } else {
       self.sbox_partial()
@@ -86,11 +86,11 @@ impl<F: FiniteField> Poseidon<F> {
   }
 
   fn product_mds(&mut self) {
-    let mut new_state: Vec<F> = Vec::with_capacity(self.config.width + 1);
+    let mut new_state: Vec<F> = Vec::new();
     for i in 0..self.config.width {
       let mut new_state_i = F::ZERO;
-      for j in 0..self.config.width {
-        new_state_i += self.state[j] * self.config.mds_matrix[i][j];
+      for (j, state_elem) in self.state.iter().enumerate() {
+        new_state_i += *state_elem * self.config.mds_matrix[i][j];
       }
       new_state.push(new_state_i);
     }
@@ -111,8 +111,11 @@ impl<F: FiniteField> Poseidon<F> {
 
     let num_rounds = self.config.num_f + self.config.num_p;
     for i in 0..num_rounds {
+      // println!("self.state1_{}: {:?}", i, self.state[0]);
       self.add_round_constants(i);
+      // println!("self.state2_{}: {:?}", i, self.state[0]);
       self.sbox(i);
+      // println!("self.state3_{}: {:?}", i, self.state[0]);
       self.product_mds();
     }
 
@@ -138,9 +141,11 @@ pub enum SpongeState {
 /// absorb again.
 /// * current new elements absorbed into hash state based on the sponge `rate`.
 pub struct SpongeConfig {
-  rate:         usize,
-  sponge_state: SpongeState,
-  absorb_index: usize,
+  rate:          usize,
+  capacity:      usize,
+  sponge_state:  SpongeState,
+  absorb_index:  usize,
+  squeeze_index: usize,
 }
 
 /// Poseidon sponge object with poseidon object. Contains:
@@ -166,7 +171,13 @@ impl<F: FiniteField> PoseidonSponge<F> {
     let poseidon = Poseidon::new(width, alpha, num_p, num_f, rc, mds);
     PoseidonSponge {
       poseidon,
-      parameters: SpongeConfig { rate, sponge_state: SpongeState::Init, absorb_index: 0 },
+      parameters: SpongeConfig {
+        rate,
+        capacity: width - rate,
+        sponge_state: SpongeState::Init,
+        absorb_index: 0,
+        squeeze_index: 0,
+      },
     }
   }
 }
@@ -180,6 +191,7 @@ impl<F: FiniteField> Sponge<F> for PoseidonSponge<F> {
   }
 
   fn absorb(&mut self, elements: &[F]) -> Result<(), &str> {
+    let mut remaining_elements = elements;
     // if sponge is in squeezing state, abort
     if self.parameters.sponge_state == SpongeState::Squeezing {
       return Err("sponge is in squeezing mode");
@@ -189,34 +201,51 @@ impl<F: FiniteField> Sponge<F> for PoseidonSponge<F> {
     self.parameters.sponge_state = SpongeState::Absorbing;
 
     // new elements not enough for proceesing in chunks
-    if self.parameters.absorb_index + elements.len() < self.parameters.rate {
+    if self.parameters.absorb_index + remaining_elements.len() <= self.parameters.rate {
       // if new elements length < absorb index + rate
-      for (i, element) in elements.iter().enumerate() {
-        self.poseidon.state[self.parameters.absorb_index + i] += *element;
+      for (i, element) in remaining_elements.iter().enumerate() {
+        self.poseidon.state[self.parameters.capacity + self.parameters.absorb_index + i] +=
+          *element;
       }
-      self.parameters.absorb_index += elements.len();
+      self.parameters.absorb_index += remaining_elements.len();
 
       return Ok(());
-    } else if elements.len() < self.parameters.rate {
-      // and not enough new elements for chunks
-      for (i, element) in
-        elements.iter().take(self.parameters.rate - self.parameters.absorb_index).enumerate()
+    } else if remaining_elements.len() <= self.parameters.rate {
+      // and not enough new elements for chunks, fill current chunk and permute
+      for (i, element) in remaining_elements
+        .iter()
+        .take(self.parameters.rate - self.parameters.absorb_index)
+        .enumerate()
       {
-        self.poseidon.state[self.parameters.absorb_index + i] += *element;
+        self.poseidon.state[self.parameters.capacity + self.parameters.absorb_index + i] +=
+          *element;
       }
+      remaining_elements =
+        &remaining_elements[self.parameters.rate - self.parameters.absorb_index..];
       self.permute();
     }
 
-    let elem_iter = elements.chunks_exact(self.parameters.rate);
-
-    // take remaining elements and update absorb index
-    self.poseidon.state = elem_iter.remainder().to_vec();
-    self.parameters.absorb_index = self.poseidon.state.len();
+    let elem_iter = remaining_elements.chunks_exact(self.parameters.rate);
+    let remain_elem = elem_iter.remainder().to_vec();
 
     // process elements in chunks of sponge rate and permute
     for chunk in elem_iter {
-      self.poseidon.state.iter_mut().zip(chunk).for_each(|(a, b)| *a += *b);
+      self
+        .poseidon
+        .state
+        .iter_mut()
+        .skip(self.parameters.capacity)
+        .zip(chunk)
+        .for_each(|(a, b)| *a += *b);
       self.permute();
+    }
+
+    // take remaining elements and update absorb index
+    if !remain_elem.is_empty() {
+      for (i, element) in remain_elem.iter().enumerate() {
+        self.poseidon.state[self.parameters.capacity + i] += *element;
+      }
+      self.parameters.absorb_index = remain_elem.len();
     }
 
     Ok(())
@@ -225,17 +254,44 @@ impl<F: FiniteField> Sponge<F> for PoseidonSponge<F> {
   fn squeeze(&mut self, n: usize) -> Result<Vec<F>, &str> {
     if self.parameters.sponge_state == SpongeState::Init {
       return Err("sponge has not absorbed anything");
+    } else if self.parameters.sponge_state == SpongeState::Absorbing {
+      // if any elements left from previous absorption, perform permutation one last time
+      if self.parameters.absorb_index != 0 {
+        self.permute();
+      }
     }
 
     // update sponge state to squeezing
     self.parameters.sponge_state = SpongeState::Squeezing;
 
-    // if any elements left from previous absorption, perform permutation one last time
-    if self.parameters.absorb_index != 0 {
-      self.permute();
-    }
+    let mut result = vec![F::ZERO; n];
 
-    let result = (0..n).map(|_| self.poseidon.hash(self.poseidon.state.clone())).collect();
-    Ok(result)
+    let mut elem_taken = 0;
+    loop {
+      let elem_left = n - elem_taken;
+      if self.parameters.squeeze_index + elem_left <= self.parameters.rate {
+        let start_index = self.parameters.capacity + self.parameters.squeeze_index;
+        result[elem_taken..]
+          .clone_from_slice(&self.poseidon.state[start_index..start_index + elem_left]);
+
+        self.parameters.squeeze_index += n;
+        return Ok(result);
+      }
+
+      let elements_size =
+        std::cmp::min(elem_left, self.parameters.rate - self.parameters.squeeze_index);
+
+      let start_index = self.parameters.capacity + self.parameters.squeeze_index;
+      result[elem_taken..elem_taken + elements_size]
+        .clone_from_slice(&self.poseidon.state[start_index..start_index + elements_size]);
+      self.parameters.squeeze_index += elements_size;
+
+      if self.parameters.squeeze_index == self.parameters.rate {
+        self.permute();
+        self.parameters.squeeze_index = 0;
+      }
+
+      elem_taken += elements_size;
+    }
   }
 }
