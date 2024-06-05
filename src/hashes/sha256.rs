@@ -78,7 +78,7 @@ impl Sha256 {
   /// # Example
   /// ```
   /// use hex;
-  /// use ronkathon::hashes::Sha256;
+  /// use ronkathon::hashes::sha256::Sha256;
   ///
   /// let input = b"abc";
   /// let output = Sha256::digest(input);
@@ -118,7 +118,7 @@ impl Sha256 {
     message.push(0x80);
 
     // Push on the remaining needed zeroes we computed above.
-    message.extend(&vec![0; 56 - len as usize / 8 - 1]);
+    message.extend(&vec![0; len_padded - len as usize / 8 - 1]);
 
     // Push on the length of the message in bits.
     message.extend_from_slice(&len.to_be_bytes());
@@ -194,14 +194,20 @@ impl Sha256 {
 #[cfg(test)]
 mod tests {
 
+  use rstest::rstest;
+
   use super::*;
-  #[test]
-  fn sha256_hash() {
-    let input = b"abc";
-    let output = Sha256::digest(input);
-    assert_eq!(
-      hex::encode(output),
-      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-    );
+  #[rstest]
+  #[case(b"abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")]
+  #[case(
+    b"abcdefghijklmnopqrstuvwxyz0123456789",
+    "011fc2994e39d251141540f87a69092b3f22a86767f7283de7eeedb3897bedf6"
+  )]
+  #[case(
+    b"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+    "2d8c2f6d978ca21712b5f6de36c9d31fa8e96a4fa5d8ff8b0188dfb9e7c171bb"
+  )]
+  fn sha256_hash(#[case] input: &[u8], #[case] expected: &str) {
+    assert_eq!(hex::encode(Sha256::digest(input)), expected);
   }
 }
