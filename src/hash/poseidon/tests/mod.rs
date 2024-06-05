@@ -87,6 +87,25 @@ fn hash(mut pluto_poseidon: Poseidon<PlutoBaseField>) {
   assert_eq!(res, PlutoBaseField::new(20));
 }
 
+#[test]
+#[should_panic]
+fn invalid_poseidon_config_width() {
+  PoseidonConfig::<PlutoBaseField>::new(1, ALPHA, NUM_P, NUM_F, vec![], vec![]);
+}
+
+#[test]
+#[should_panic]
+fn invalid_poseidon_config_mds() {
+  PoseidonConfig::<PlutoBaseField>::new(WIDTH, ALPHA, NUM_P, NUM_F, vec![], vec![]);
+}
+
+#[test]
+#[should_panic]
+fn invalid_poseidon_config_ark() {
+  let (_, mds) = load_constants::<PlutoBaseField>();
+  PoseidonConfig::<PlutoBaseField>::new(WIDTH, ALPHA, NUM_P, NUM_F, vec![], mds);
+}
+
 #[rstest]
 #[case(1, 1)]
 #[case(2, 2)]
@@ -149,6 +168,7 @@ fn squeeze_without_absorb(mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseFie
 #[case(3, 4, 4)]
 #[case(5, 8, 3)]
 #[case(7, 4, 7)]
+#[case(15, 5, 9)]
 fn poseidon_sponge_multiple_absorb_single_squeeze(
   mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField>,
   mut ark_poseidon: ArkPoseidonSponge<Fr>,
@@ -184,6 +204,7 @@ fn poseidon_sponge_multiple_absorb_single_squeeze(
 #[case(3, 4, 4, 4)]
 #[case(5, 8, 3, 7)]
 #[case(6, 4, 7, 10)]
+#[case(17, 14, 12, 17)]
 fn poseidon_sponge_multiple_absorb_multiple_squeeze(
   mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField>,
   mut ark_poseidon: ArkPoseidonSponge<Fr>,
@@ -215,4 +236,44 @@ fn poseidon_sponge_multiple_absorb_multiple_squeeze(
 
     assert_eq!(ark_result, pluto_result);
   }
+}
+
+#[rstest]
+#[case(4, 4, 4)]
+#[case(1, 15, 2)]
+fn poseidon_sponge_multiple_absorb_vs_one_time_absorb(
+  #[from(pluto_poseidon_sponge)] mut pluto_poseidon_sponge1: PoseidonSponge<PlutoBaseField>,
+  #[from(pluto_poseidon_sponge)] mut pluto_poseidon_sponge2: PoseidonSponge<PlutoBaseField>,
+  #[case] absorb_size: usize,
+  #[case] absorb_time: usize,
+  #[case] squeeze_size: usize,
+) {
+  let input1 = input(absorb_size);
+
+  for _ in 0..absorb_time {
+    let absorb_res = pluto_poseidon_sponge1.absorb(&input1.0);
+    assert!(absorb_res.is_ok());
+  }
+
+  let pluto_result = pluto_poseidon_sponge1.squeeze(squeeze_size);
+  assert!(pluto_result.is_ok());
+
+  let hash_result1 = pluto_result.unwrap();
+
+  let mut input2 = input1.0.clone();
+  for _ in 0..absorb_time - 1 {
+    input2.extend_from_within(..absorb_size);
+  }
+
+  let absorb_res = pluto_poseidon_sponge2.absorb(&input2);
+  assert!(absorb_res.is_ok());
+
+  let hash_result2 = pluto_poseidon_sponge2.squeeze(squeeze_size);
+  assert!(hash_result2.is_ok());
+  let hash_result2 = hash_result2.unwrap();
+
+  let hash_result1: Vec<String> = hash_result1.into_iter().map(|val| val.to_string()).collect();
+  let hash_result2: Vec<String> = hash_result2.into_iter().map(|val| val.to_string()).collect();
+
+  assert_eq!(hash_result1, hash_result2);
 }

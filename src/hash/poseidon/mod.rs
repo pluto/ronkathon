@@ -1,4 +1,4 @@
-//! Contains implementation of Poseidon Hash function
+//! Contains implementation of Poseidon Hash function.
 #[doc = include_str!("./README.md")]
 #[cfg(test)]
 mod tests;
@@ -8,8 +8,7 @@ use crate::field::FiniteField;
 
 /// Poseidon config used to instantiate hash function
 pub struct PoseidonConfig<F: FiniteField> {
-  /// alpha used during sbox layer to raise the state by. Used during non-linear layer of the
-  /// permutation to mix the elements.
+  /// alpha used during sbox layer calculate `x^{alpha}`
   alpha:           usize,
   /// width of the hash function that decides how many elements of finite field are stored in the
   /// state of hash function at each step
@@ -69,15 +68,19 @@ impl<F: FiniteField> Poseidon<F> {
     }
   }
 
+  /// applies sbox in the full round. Raises the state by [`PoseidonConfig::alpha`].
   fn sbox_full(&mut self) {
     for state in self.state.iter_mut() {
       *state = state.pow(self.config.alpha);
     }
   }
 
+  /// applies sbox in partial round. Raises first element by [`PoseidonConfig::alpha`]
   fn sbox_partial(&mut self) { self.state[0] = self.state[0].pow(self.config.alpha); }
 
-  fn sbox(&mut self, round_i: usize) {
+  /// applies non-linear layer of the round in the form of s-boxes. Partial rounds are sandwiched
+  /// between half full rounds.
+  fn apply_non_linear_layer(&mut self, round_i: usize) {
     if round_i < self.config.num_f / 2 || round_i >= self.config.num_p + self.config.num_f / 2 {
       self.sbox_full()
     } else {
@@ -85,7 +88,8 @@ impl<F: FiniteField> Poseidon<F> {
     }
   }
 
-  fn product_mds(&mut self) {
+  /// applies linear layer of the round by multiplying the state with MDS matrix to mix the elements
+  fn apply_linear_layer(&mut self) {
     let mut new_state: Vec<F> = Vec::new();
     for i in 0..self.config.width {
       let mut new_state_i = F::ZERO;
@@ -97,6 +101,7 @@ impl<F: FiniteField> Poseidon<F> {
     self.state = new_state
   }
 
+  /// adds round constants to the state to break the symmetricity in the state
   fn add_round_constants(&mut self, ith: usize) {
     for (i, state) in self.state.iter_mut().enumerate() {
       *state += self.config.round_constants[ith * self.config.width + i];
@@ -104,26 +109,43 @@ impl<F: FiniteField> Poseidon<F> {
   }
 
   /// perform the hashing on elements of state. state is padded by zero values, if not equal to
-  /// width of the hash function
+  /// width of the hash function.
+  /// ## Example
+  /// ```ignore
+  /// use ronkathon::field::prime::PlutoBaseField;
+  ///
+  /// // Poseidon parameters
+  /// const WIDTH: usize = 10;
+  /// const ALPHA: usize = 5;
+  /// const NUM_P: usize = 16;
+  /// const NUM_F: usize = 8;
+  /// // load round constants and mds matrix
+  /// let (rc, mds) = load_constants::<PlutoBaseField>();
+  ///
+  /// // create a poseidon hash object with empty state
+  /// let mut poseidon = Poseidon::<PlutoBaseField>::new(WIDTH, ALPHA, NUM_P, NUM_F, rc, mds);
+  ///
+  /// // create any input
+  /// let input = std::iter::repeat(PlutoBaseField::ZERO).take(WIDTH).collect();
+  ///
+  /// let res = poseidon.hash(input);
+  /// ```
   pub fn hash(&mut self, mut state: Vec<F>) -> F {
     state.extend(std::iter::repeat(F::ZERO).take(self.config.width - state.len()));
     self.state = state;
 
     let num_rounds = self.config.num_f + self.config.num_p;
     for i in 0..num_rounds {
-      // println!("self.state1_{}: {:?}", i, self.state[0]);
       self.add_round_constants(i);
-      // println!("self.state2_{}: {:?}", i, self.state[0]);
-      self.sbox(i);
-      // println!("self.state3_{}: {:?}", i, self.state[0]);
-      self.product_mds();
+      self.apply_non_linear_layer(i);
+      self.apply_linear_layer();
     }
 
     self.state[1]
   }
 }
 
-/// Sponge state that describes current sponge progress
+/// Sponge state that describes current sponge progress.
 #[derive(Clone, Copy, PartialEq)]
 pub enum SpongeState {
   /// Sponge is initialised with state marked as zero
@@ -190,8 +212,27 @@ impl<F: FiniteField> Sponge<F> for PoseidonSponge<F> {
     self.parameters.absorb_index = 0;
   }
 
+  /// perform sponge absorption of arbitrary length finite field elements. permutes the state after
+  /// each `rate` length chunk has been fully absorbed.
+  ///
+  /// ## Example
+  /// ```ignore
+  /// # use rand::rng;
+  /// use ronathon::field::prime::PlutoBaseField;
+  ///
+  /// // create any state
+  /// let size = rng.gen::<u32>();
+  /// let input = std::iter::repeat(PlutoBaseField::ONE).take(size).collect();
+  ///
+  /// // load round constants
+  /// let (rc, mds) = load_constants::<PlutoBaseField>();
+  ///
+  /// let mut pluto_poseidon_sponge = PoseidonSponge::new(WIDTH, ALPHA, NUM_P, NUM_F, rate, rc, mds)
+  ///
+  /// let absorb_res = pluto_poseidon_sponge.absorb(&input);
+  /// assert!(absorb_res.is_ok());
+  /// ```
   fn absorb(&mut self, elements: &[F]) -> Result<(), &str> {
-    let mut remaining_elements = elements;
     // if sponge is in squeezing state, abort
     if self.parameters.sponge_state == SpongeState::Squeezing {
       return Err("sponge is in squeezing mode");
@@ -200,9 +241,11 @@ impl<F: FiniteField> Sponge<F> for PoseidonSponge<F> {
     // update sponge state as absorbing
     self.parameters.sponge_state = SpongeState::Absorbing;
 
+    let mut remaining_elements = elements;
+
     // new elements not enough for proceesing in chunks
     if self.parameters.absorb_index + remaining_elements.len() <= self.parameters.rate {
-      // if new elements length < absorb index + rate
+      // if new elements doesn't complete current partially filled chunk
       for (i, element) in remaining_elements.iter().enumerate() {
         self.poseidon.state[self.parameters.capacity + self.parameters.absorb_index + i] +=
           *element;
@@ -210,8 +253,8 @@ impl<F: FiniteField> Sponge<F> for PoseidonSponge<F> {
       self.parameters.absorb_index += remaining_elements.len();
 
       return Ok(());
-    } else if remaining_elements.len() <= self.parameters.rate {
-      // and not enough new elements for chunks, fill current chunk and permute
+    } else if self.parameters.absorb_index != 0 {
+      // and not enough new elements for chunks, fill current chunk completely and permute
       for (i, element) in remaining_elements
         .iter()
         .take(self.parameters.rate - self.parameters.absorb_index)
@@ -234,7 +277,7 @@ impl<F: FiniteField> Sponge<F> for PoseidonSponge<F> {
         .poseidon
         .state
         .iter_mut()
-        .skip(self.parameters.capacity)
+        .skip(self.parameters.capacity + self.parameters.absorb_index)
         .zip(chunk)
         .for_each(|(a, b)| *a += *b);
       self.permute();
@@ -251,6 +294,30 @@ impl<F: FiniteField> Sponge<F> for PoseidonSponge<F> {
     Ok(())
   }
 
+  /// squeezes arbitrary element output
+  ///
+  /// ## Example
+  /// ```ignore
+  /// # use rand::rng;
+  /// use ronathon::field::prime::PlutoBaseField;
+  ///
+  /// // create arbitrary length state
+  /// let size = rng.gen::<u32>();
+  /// let input = std::iter::repeat(PlutoBaseField::ONE).take(size).collect();
+  ///
+  /// let (rc, mds) = load_constants::<PlutoBaseField>();
+  ///
+  /// let mut pluto_poseidon_sponge = PoseidonSponge::new(WIDTH, ALPHA, NUM_P, NUM_F, rate, rc, mds)
+  ///
+  /// // peform absorption any number of times
+  /// let _ = pluto_poseidon_sponge.absorb(&input);
+  /// let absorb_res = pluto_poseidon_sponge.absorb(&input);
+  /// assert!(absorb_res.is_ok());
+  ///
+  /// // squeeze arbitrary elements output
+  /// let pluto_result = pluto_poseidon_sponge.squeeze(squeeze_size);
+  /// assert!(pluto_result.is_ok());
+  /// ```
   fn squeeze(&mut self, n: usize) -> Result<Vec<F>, &str> {
     if self.parameters.sponge_state == SpongeState::Init {
       return Err("sponge has not absorbed anything");
@@ -274,7 +341,7 @@ impl<F: FiniteField> Sponge<F> for PoseidonSponge<F> {
         result[elem_taken..]
           .clone_from_slice(&self.poseidon.state[start_index..start_index + elem_left]);
 
-        self.parameters.squeeze_index += n;
+        self.parameters.squeeze_index += elem_left;
         return Ok(result);
       }
 

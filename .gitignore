@@ -27,3 +27,6 @@ dump
 *.swo
 
 *.sage.py
+
+# coverage files
+lcov.info
