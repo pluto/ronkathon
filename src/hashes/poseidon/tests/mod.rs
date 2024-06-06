@@ -3,7 +3,10 @@ use crate::field::prime::PlutoBaseField;
 mod constants;
 use rstest::{fixture, rstest};
 
-use crate::hashes::poseidon::tests::field::{ark_constants, Fr};
+use crate::hashes::{
+  poseidon::tests::field::{ark_constants, Fr},
+  Sponge,
+};
 mod field;
 use ark_crypto_primitives::sponge::{
   poseidon::{self, PoseidonSponge as ArkPoseidonSponge},
@@ -58,10 +61,10 @@ fn pluto_poseidon() -> Poseidon<PlutoBaseField> {
 }
 
 #[fixture]
-fn pluto_poseidon_sponge(rate: usize) -> PoseidonSponge<PlutoBaseField> {
+fn pluto_poseidon_sponge(rate: usize) -> PoseidonSponge<PlutoBaseField, Init> {
   let (rc, mds) = load_constants::<PlutoBaseField>();
   //   let (rc, mds) = random_constants(WIDTH, NUM_F + NUM_P);
-  PoseidonSponge::new(WIDTH, ALPHA, NUM_P, NUM_F, rate, rc, mds)
+  PoseidonSponge::<PlutoBaseField, Init>::new(WIDTH, ALPHA, NUM_P, NUM_F, rate, rc, mds)
 }
 
 #[fixture]
@@ -114,15 +117,18 @@ fn invalid_poseidon_config_ark() {
 #[case(14, 10)]
 #[case(25, 20)]
 fn poseidon_sponge_single_absorb_squeeze(
-  mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField>,
+  pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField, Init>,
   mut ark_poseidon: ArkPoseidonSponge<Fr>,
   #[case] absorb_size: usize,
   #[case] squeeze_size: usize,
 ) {
   let input = input(absorb_size);
+
+  let mut pluto_poseidon_sponge = pluto_poseidon_sponge.start_absorbing();
   let absorb_res = pluto_poseidon_sponge.absorb(&input.0);
   assert!(absorb_res.is_ok());
 
+  let mut pluto_poseidon_sponge = pluto_poseidon_sponge.start_squeezing();
   let pluto_result = pluto_poseidon_sponge.squeeze(squeeze_size);
   assert!(pluto_result.is_ok());
 
@@ -139,7 +145,7 @@ fn poseidon_sponge_single_absorb_squeeze(
 }
 
 #[rstest]
-fn abosrb_after_squeeze(mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField>) {
+fn abosrb_after_squeeze(pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField, Init>) {
   let size = 5;
   let squeeze_size = 2;
 
@@ -147,19 +153,15 @@ fn abosrb_after_squeeze(mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField
     .take(size)
     .collect::<Vec<PlutoBaseField>>();
 
+  let mut pluto_poseidon_sponge = pluto_poseidon_sponge.start_absorbing();
+
   let _ = pluto_poseidon_sponge.absorb(&elements);
+
+  let mut pluto_poseidon_sponge = pluto_poseidon_sponge.start_squeezing();
+
   let _ = pluto_poseidon_sponge.squeeze(squeeze_size);
 
   let res = pluto_poseidon_sponge.absorb(&elements);
-  assert!(res.is_err());
-}
-
-#[rstest]
-fn squeeze_without_absorb(mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField>) {
-  let squeeze_size = 2;
-
-  let res = pluto_poseidon_sponge.squeeze(squeeze_size);
-
   assert!(res.is_err());
 }
 
@@ -170,17 +172,21 @@ fn squeeze_without_absorb(mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseFie
 #[case(7, 4, 7)]
 #[case(15, 5, 9)]
 fn poseidon_sponge_multiple_absorb_single_squeeze(
-  mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField>,
+  pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField, Init>,
   mut ark_poseidon: ArkPoseidonSponge<Fr>,
   #[case] absorb_size: usize,
   #[case] absorb_time: usize,
   #[case] squeeze_size: usize,
 ) {
   let input = input(absorb_size);
+  let mut pluto_poseidon_sponge = pluto_poseidon_sponge.start_absorbing();
+
   for _ in 0..absorb_time {
     let absorb_res = pluto_poseidon_sponge.absorb(&input.0);
     assert!(absorb_res.is_ok());
   }
+
+  let mut pluto_poseidon_sponge = pluto_poseidon_sponge.start_squeezing();
 
   let pluto_result = pluto_poseidon_sponge.squeeze(squeeze_size);
   assert!(pluto_result.is_ok());
@@ -206,7 +212,7 @@ fn poseidon_sponge_multiple_absorb_single_squeeze(
 #[case(6, 4, 7, 10)]
 #[case(17, 14, 12, 17)]
 fn poseidon_sponge_multiple_absorb_multiple_squeeze(
-  mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField>,
+  pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField, Init>,
   mut ark_poseidon: ArkPoseidonSponge<Fr>,
   #[case] absorb_size: usize,
   #[case] absorb_time: usize,
@@ -214,6 +220,8 @@ fn poseidon_sponge_multiple_absorb_multiple_squeeze(
   #[case] squeeze_time: usize,
 ) {
   let input = input(absorb_size);
+  let mut pluto_poseidon_sponge = pluto_poseidon_sponge.start_absorbing();
+
   for _ in 0..absorb_time {
     let absorb_res = pluto_poseidon_sponge.absorb(&input.0);
     assert!(absorb_res.is_ok());
@@ -222,6 +230,8 @@ fn poseidon_sponge_multiple_absorb_multiple_squeeze(
   for _ in 0..absorb_time {
     ark_poseidon.absorb(&input.1);
   }
+
+  let mut pluto_poseidon_sponge = pluto_poseidon_sponge.start_squeezing();
 
   for _ in 0..squeeze_time {
     let pluto_result = pluto_poseidon_sponge.squeeze(squeeze_size);
@@ -242,18 +252,22 @@ fn poseidon_sponge_multiple_absorb_multiple_squeeze(
 #[case(4, 4, 4)]
 #[case(1, 15, 2)]
 fn poseidon_sponge_multiple_absorb_vs_one_time_absorb(
-  #[from(pluto_poseidon_sponge)] mut pluto_poseidon_sponge1: PoseidonSponge<PlutoBaseField>,
-  #[from(pluto_poseidon_sponge)] mut pluto_poseidon_sponge2: PoseidonSponge<PlutoBaseField>,
+  #[from(pluto_poseidon_sponge)] pluto_poseidon_sponge1: PoseidonSponge<PlutoBaseField, Init>,
+  #[from(pluto_poseidon_sponge)] pluto_poseidon_sponge2: PoseidonSponge<PlutoBaseField, Init>,
   #[case] absorb_size: usize,
   #[case] absorb_time: usize,
   #[case] squeeze_size: usize,
 ) {
   let input1 = input(absorb_size);
 
+  let mut pluto_poseidon_sponge1 = pluto_poseidon_sponge1.start_absorbing();
+
   for _ in 0..absorb_time {
     let absorb_res = pluto_poseidon_sponge1.absorb(&input1.0);
     assert!(absorb_res.is_ok());
   }
+
+  let mut pluto_poseidon_sponge1 = pluto_poseidon_sponge1.start_squeezing();
 
   let pluto_result = pluto_poseidon_sponge1.squeeze(squeeze_size);
   assert!(pluto_result.is_ok());
@@ -265,8 +279,12 @@ fn poseidon_sponge_multiple_absorb_vs_one_time_absorb(
     input2.extend_from_within(..absorb_size);
   }
 
+  let mut pluto_poseidon_sponge2 = pluto_poseidon_sponge2.start_absorbing();
+
   let absorb_res = pluto_poseidon_sponge2.absorb(&input2);
   assert!(absorb_res.is_ok());
+
+  let mut pluto_poseidon_sponge2 = pluto_poseidon_sponge2.start_squeezing();
 
   let hash_result2 = pluto_poseidon_sponge2.squeeze(squeeze_size);
   assert!(hash_result2.is_ok());
