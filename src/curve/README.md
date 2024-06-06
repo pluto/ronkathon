@@ -67,7 +67,7 @@ the $rth$ root of unity in $F_p$ is some number $h$ such that $h^r \equiv 1$, Fo
 
 ### $r$-torsion
 
- $r$-torsion points are points$P \in E(K)$$rP = O$ for some point $P$ so that $P$  has order $r$  or is a factor of $r$. The set of r-torsion points in $E(K)$ is denoted $E(K)[r]$. If $\bar{K}$ is the [algebraic closure](https://en.wikipedia.org/wiki/Algebraic_closure) of $K$ then the number of r-torsion points in $E(K)$ is $\#E(\bar{K})[r] = r^2$. 
+ $r$-torsion points are points$P \in E(K)$$rP = O$ for some point $P$ so that $P$  has order $r$  or is a factor of $r$. The set of r-torsion points in $E(K)$ is denoted $E(K)[r]$. If $\bar{K}$ is the [algebraic closure](https://en.wikipedia.org/wiki/Algebraic_closure) of $K$ then the number of r-torsion points in $E(K)$ is the number of points in $E(\bar{K})[r] = r^2$. 
 
 - *Security note: If* $r$  and $q$ are not co-prime then the discrete log is solvable in linear time with something called an anomaly attack.
 
