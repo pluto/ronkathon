@@ -68,6 +68,26 @@ Absorption operation can be different for different hash functions. For example:
 
 ## Example
 
+First, we need to generate round constants which will be used in poseidon parameters. Poseidon requires following parameters for initialisation:
+
+- $\mathbb{F}_p$: finite field
+- `WIDTH`: width of the state of the hash
+- `ALPHA`: used in s-box layer
+- `NUM_P`: number of partial rounds
+- `NUM_F`: number of full rounds
+- `rc`: round constants used in round constant layer of a round
+- `mds`: matrix used in linear layer of a round
+
+This can be generated using [sage file](../../../math/poseidon_constants.sage) provided at project's core. Run following command to generate a constants file:
+
+- `Usage: <script> <field> <s_box> <field_size> <num_cells> <alpha> <security_level> <modulus_hex>`
+- field = 1 for GF(p), 0 for GF(p^k)
+- s_box = 0 for x^alpha, s_box = 1 for x^(-1)
+
+```sh
+sage poseidon_constants.sage 1 0 7 16 3 10 0x65
+```
+
 Here's an example to use [Poseidon](./mod.rs) struct for hashing input of length `WIDTH`. Note that input is padded with extra zeroes if length is not equal to width.
 
 ```rust
