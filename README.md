@@ -28,9 +28,9 @@ Ronkathon is a rust implementation of a collection of cryptographic primitives. 
 - [RSA](src/tiny_rsa/README.md)
 - [Sha256 Hash](src/hash/README.md)
 - [Merkle Proofs](src/tree/README.md)
+- [Poseidon Hash](src/hashes/poseidon/README.md)
 
 ## In Progress
-- [ ] Poseidon Hash
 - [ ] Edwards curve Signatures (EdDSA)
 
 ## Resources
