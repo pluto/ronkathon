@@ -9,10 +9,10 @@ This group, in at least certain cases, is discrete logarithm hard, which is the 
 For the sake of `ronkathon`, we use a specific curve which we affectionately call the "Pluto Curve."
 Our equation is:
 $$y^2 = x^3 + 3$$
-and we work with the field $\mathbb{F}_{p}$ and $\mathbb{F}_{p^2}$ where $p = 101$.
-Predominantly, we use the extension $\mathbb{F}_{p^2}$ since we need this for the [Tate pairing](https://en.wikipedia.org/wiki/Tate_pairing) operation.
-We refer to $\mathbb{F}_{101}$ as the `PlutoBaseField` and $\mathbb{F}_{101^2}$ as the `PlutoBaseFieldExtension` within `ronkathon`.
-From which, we also use the terminology of `PlutoCurve` to refer to $E(\mathbb{F}_{101})$ and `PlutoExtendedCurve` to refer to $E(\mathbb{F}_{101^2})$.
+and we work with the field $F_p$ and $F_{p^2}$ where $p = 101$.
+Predominantly, we use the extension $F_{p^2}$ since we need this for the [Tate pairing](https://en.wikipedia.org/wiki/Tate_pairing) operation.
+We refer to $F_{101}$ as the `PlutoBaseField` and $F_{101^2}$ as the `PlutoBaseFieldExtension` within `ronkathon`.
+From which, we also use the terminology of `PlutoCurve` to refer to $E(F_{101})$ and `PlutoExtendedCurve` to refer to $E(F_{101^2})$.
 
 ### Type B curve and type 1 pairing
 
@@ -24,15 +24,15 @@ It follows that $E(\mathbb{F}_{101})$ is [supersingular](https://en.wikipedia.or
 Finally, the embedding degree of the curve is $k=2$.
 - This curve has a 17-torsion subgroup calculated as largest prime factor of order of curve `102 = 17.2.3`.
 
-Since, the curve is supersingular, this allows us to define the type-1 Tate pairing $e \colon \mathbb{G}_{1} \times \mathbb{G}_{2} \to \mathbb{F}_{p^2}^{*}$ in a convenient manner, where both $\mathbb{G}_{1},\mathbb{G}_{2}\in\mathcal{G}_{1}$, i.e. the base field subgroup of r-torsion subgroup.
+Since, the curve is supersingular, this allows us to define the type-1 Tate pairing $e \colon G_{1} \times G_{2} \to F_{p^2}^{*}$ in a convenient manner, where both $G_{1},G_{2}\in\mathcal{G}_{1}$, i.e. the base field subgroup of r-torsion subgroup.
 
 In particular, we can pick $\mathbb{G}_{1}$ to be the [$r$-torsion subgroup](https://crypto.stanford.edu/pbc/notes/elliptic/torsion.html) of `PlutoCurve` where $r = 17$ is the [scalar field](https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication) of the curve.
 Note that $r=17$ is valid since $17 \nmid 101-1$ and $17 \mid 101^2 -1$ ([Balasubramanian-Koblitz theorem](https://crypto.stanford.edu/pbc/notes/ep/bk.html)).
 
-In this case, we pick $G = \mathbb{Z}_{17}$ and define our pairing as:
+In this case, we pick $G = Z_{17}$ and define our pairing as:
 $$e(P, Q) = f(P, \Psi(Q))^{(p^2-1)/r}$$
 where $f$ is the Tate pairing and $\Psi$ is the map $\Psi(x,y) = (\zeta x, y)$ where $\zeta$ is a primitive cube root of unity.
-This is due to the fact that $\Psi$ is the distortion map that maps a factor of $E(\mathbb{F}_{101^2})[17] \cong \mathbb{Z}_{17} \times \mathbb{Z}_{17}$ (which is the $17$-torsion group) to the other.
+This is due to the fact that $\Psi$ is the distortion map that maps a factor of $E(F_{101^2})[17] \cong Z_{17} \times Z_{17}$ (which is the $17$-torsion group) to the other.
 
 ## Pairing and Miller's algorithm
 
@@ -67,7 +67,7 @@ the $rth$ root of unity in $F_p$ is some number $h$ such that $h^r \equiv 1$, Fo
 
 ### $r$-torsion
 
- $r$-torsion points are points$P \in E(K)$$rP = O$ for some point $P$ so that $P$  has order $r$  or is a factor of $r$. The set of r-torsion points in $E(K)$ is denoted $E(K)[r]$. If $\bar{K}$ is the [algebraic closure](https://en.wikipedia.org/wiki/Algebraic_closure) of $K$ then the number of r-torsion points in $E(K)$ is the number of points in $E(\bar{K})[r] = r^2$. 
+ $r$-torsion points are points $P \in E(K) | rP = O$ for some point $P$ so that $P$  has order $r$  or is a factor of $r$. The set of r-torsion points in $E(K)$ is denoted $E(K)[r]$. If $\bar{K}$ is the [algebraic closure](https://en.wikipedia.org/wiki/Algebraic_closure) of $K$ then the number of r-torsion points in $E(K)$ is the number of points in $E(\bar{K})[r] = r^2$. 
 
 - *Security note: If* $r$  and $q$ are not co-prime then the discrete log is solvable in linear time with something called an anomaly attack.
 
