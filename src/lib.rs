@@ -6,11 +6,11 @@
 //!
 //! ## Features
 //! - Finite fields: Implementations of finite fields and extension fields, including arithmetic
-//!  operations and field elements.
+//!   operations and field elements.
 //! - Polynomials: Implementations of polynomials in various bases, with support for arithmetic
-//! operations such as addition, multiplication, and division.
+//!   operations such as addition, multiplication, and division.
 //! - Elliptic curves: Implementations of elliptic curves over finite fields, with support for
-//! operations such as point addition, scalar multiplication, and pairing operations.
+//!   operations such as point addition, scalar multiplication, and pairing operations.
 
 #![allow(incomplete_features)]
 #![feature(effects)]
@@ -23,11 +23,15 @@
 #![feature(generic_const_exprs)]
 #![warn(missing_docs)]
 
+pub mod codes;
 pub mod curve;
+pub mod ecdsa;
 pub mod field;
+pub mod hashes;
 pub mod kzg;
 pub mod polynomial;
-pub mod setup;
+pub mod rsa;
+pub mod tree;
 
 use core::{
   fmt::{self, Display, Formatter},
@@ -36,7 +40,10 @@ use core::{
   ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
 };
 
-use rand::Rng;
+use rand::{
+  distributions::{Distribution, Standard},
+  Rng,
+};
 #[cfg(test)] use rstest::{fixture, rstest};
 
 use self::{
@@ -46,7 +53,7 @@ use self::{
   },
   field::{
     extension::{GaloisField, PlutoBaseFieldExtension},
-    prime::{PlutoBaseField, PlutoPrime, PlutoScalarField, PrimeField},
+    prime::{PlutoBaseField, PlutoPrime, PrimeField},
     FiniteField,
   },
   polynomial::{Monomial, Polynomial},

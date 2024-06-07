@@ -8,6 +8,7 @@
 //! Note that this would be cleaner if we could use trait specialization to keep the default
 //! implementations in the trait itself, but this feature is not yet to that point of utility.
 
+use self::field::extension::PlutoExtensions;
 use super::*;
 
 /// The [`PlutoBaseCurve`] is an the base field set to the [`PlutoBaseField`]. This is the curve
@@ -26,20 +27,17 @@ pub struct PlutoExtendedCurve;
 impl EllipticCurve for PlutoBaseCurve {
   type BaseField = PlutoBaseField;
   type Coefficient = PlutoBaseField;
-  type ScalarField = PlutoScalarField;
 
   const EQUATION_A: Self::Coefficient = PlutoBaseField::ZERO;
   const EQUATION_B: Self::Coefficient = PlutoBaseField::new(3);
   const GENERATOR: (Self::BaseField, Self::BaseField) =
     (PlutoBaseField::ONE, PlutoBaseField::new(2));
+  const ORDER: usize = PlutoPrime::Scalar as usize;
 }
 
 impl EllipticCurve for PlutoExtendedCurve {
   type BaseField = PlutoBaseFieldExtension;
   type Coefficient = PlutoBaseField;
-  // TODO: This scalar field is not correct yet. We need to implement the correct scalar field for
-  // the extension field as `PlutoScalarFieldExtension`
-  type ScalarField = PlutoScalarField;
 
   const EQUATION_A: Self::Coefficient = PlutoBaseField::ZERO;
   const EQUATION_B: Self::Coefficient = PlutoBaseField::new(3);
@@ -47,7 +45,40 @@ impl EllipticCurve for PlutoExtendedCurve {
     PlutoBaseFieldExtension::new([PlutoBaseField::new(36), PlutoBaseField::ZERO]),
     PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::new(31)]),
   );
+  const ORDER: usize = PlutoExtensions::QuadraticScalar as usize;
 }
+
+impl From<AffinePoint<PlutoBaseCurve>> for AffinePoint<PlutoExtendedCurve> {
+  fn from(point: AffinePoint<PlutoBaseCurve>) -> Self {
+    match point {
+      AffinePoint::Point(x, y) => {
+        let x = PlutoBaseFieldExtension::from(x);
+        let y = PlutoBaseFieldExtension::from(y);
+        AffinePoint::new(x, y)
+      },
+      AffinePoint::Infinity => AffinePoint::Infinity,
+    }
+  }
+}
+
+// TODO: have to remove const trait from finite field for this. Ask Colin or Waylon if that's
+// alright
+// impl<C: EllipticCurve> Distribution<AffinePoint<C>> for Standard {
+//   #[inline]
+//   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> AffinePoint<C> {
+//     loop {
+//       let x = C::BaseField::rand(rng);
+//       let rhs = x.pow(3) + x * C::EQUATION_A.into() + C::EQUATION_B.into();
+//       if rhs.euler_criterion() {
+//         if rand::random::<bool>() {
+//           return AffinePoint::new(x, rhs.sqrt().unwrap().0);
+//         } else {
+//           return AffinePoint::new(x, rhs.sqrt().unwrap().1);
+//         }
+//       }
+//     }
+//   }
+// }
 
 #[cfg(test)]
 mod pluto_base_curve_tests {
