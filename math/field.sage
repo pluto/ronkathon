@@ -7,6 +7,11 @@ print(F)
 primitive_element = F.primitive_element()
 print("The primitive element is: ", primitive_element)
 
+# Quadratic Residues
+elements = [F(i) for i in range(1,101)]
+quadratic_residues = [x^2 for x in elements]
+print("The quadratic residues are: ", sorted(set(quadratic_residues)))
+
 ######################################################################
 # Let's find a mth root of unity (for m = 5)
 # First, check that m divides 101 - 1 = 100

@@ -1,8 +1,11 @@
 //! Elliptic curve operations and types.
 
+use self::field::prime::PlutoScalarField;
 use super::*;
 
+pub mod pairing;
 pub mod pluto_curve;
+#[cfg(test)] mod tests;
 
 /// Elliptic curve parameters for a curve over a finite field in Weierstrass form
 /// `y^2 = x^3 + ax + b`
@@ -14,10 +17,7 @@ pub trait EllipticCurve: Copy {
   type BaseField: FiniteField;
 
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
-  type ScalarField: FiniteField;
-
-  /// Order of this elliptic curve, i.e. number of elements in the scalar field.
-  const ORDER: usize = Self::ScalarField::ORDER;
+  const ORDER: usize;
 
   /// Coefficient `a` in the Weierstrass equation of this elliptic curve.
   const EQUATION_A: Self::Coefficient;
@@ -25,7 +25,7 @@ pub trait EllipticCurve: Copy {
   /// Coefficient `b` in the Weierstrass equation of this elliptic curve.
   const EQUATION_B: Self::Coefficient;
 
-  /// Generator of this elliptic curve.
+  /// Generator of the scalar field to the elliptic curve.
   const GENERATOR: (Self::BaseField, Self::BaseField);
 }
 
@@ -35,7 +35,7 @@ pub trait EllipticCurve: Copy {
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub enum AffinePoint<C: EllipticCurve> {
   /// A point on the curve.
-  PointOnCurve(C::BaseField, C::BaseField),
+  Point(C::BaseField, C::BaseField),
 
   /// The point at infinity.
   Infinity,
@@ -49,59 +49,7 @@ impl<C: EllipticCurve> AffinePoint<C> {
       x * x * x + C::EQUATION_A.into() * x + C::EQUATION_B.into(),
       "Point is not on curve"
     );
-    Self::PointOnCurve(x, y)
-  }
-}
-
-// Example:
-// Base
-
-impl<C: EllipticCurve> Neg for AffinePoint<C> {
-  type Output = AffinePoint<C>;
-
-  fn neg(self) -> Self::Output {
-    let (x, y) = match self {
-      AffinePoint::PointOnCurve(x, y) => (x, -y),
-      AffinePoint::Infinity => panic!("Cannot double point at infinity"),
-    };
-    AffinePoint::new(x, y)
-  }
-}
-
-// TODO: This should likely use a `Self::ScalarField` instead of `u32`.
-/// Scalar multiplication on the rhs: P*(u32)
-/// This is the niave implementation of scalar multiplication
-/// There is a faster way to do this but this is simpler to reason about for now
-#[allow(clippy::suspicious_arithmetic_impl)]
-impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
-  type Output = AffinePoint<C>;
-
-  fn mul(mut self, scalar: u32) -> Self::Output {
-    let val = self;
-    for _ in 1..scalar {
-      self = self + val;
-    }
-    self
-  }
-}
-
-/// Scalar multiplication on the Lhs (u32)*P
-impl<C: EllipticCurve> std::ops::Mul<AffinePoint<C>> for u32 {
-  type Output = AffinePoint<C>;
-
-  fn mul(self, _rhs: AffinePoint<C>) -> Self::Output {
-    let mut result = AffinePoint::Infinity;
-    let mut base = AffinePoint::generator();
-    let mut exp = self;
-
-    while exp > 0 {
-      if exp % 2 == 1 {
-        result = result + base;
-      }
-      base = base.point_doubling();
-      exp /= 2;
-    }
-    result
+    Self::Point(x, y)
   }
 }
 
@@ -117,11 +65,11 @@ impl<C: EllipticCurve> Add for AffinePoint<C> {
       _ => (),
     }
     let (x1, y1) = match self {
-      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Point(x, y) => (x, y),
       AffinePoint::Infinity => unreachable!(),
     };
     let (x2, y2) = match rhs {
-      AffinePoint::PointOnCurve(x, y) => (x, y),
+      AffinePoint::Point(x, y) => (x, y),
       AffinePoint::Infinity => unreachable!(),
     };
     if x1 == x2 && y1 == -y2 {
@@ -137,7 +85,76 @@ impl<C: EllipticCurve> Add for AffinePoint<C> {
     };
     let x = lambda * lambda - x1 - x2;
     let y = lambda * (x1 - x) - y1;
+
     AffinePoint::new(x, y)
+  }
+}
+
+impl<C: EllipticCurve> AddAssign for AffinePoint<C> {
+  fn add_assign(&mut self, rhs: Self) { *self = *self + rhs; }
+}
+
+impl<C: EllipticCurve> Sum for AffinePoint<C> {
+  fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+    iter.reduce(|x, y| x + y).unwrap_or(AffinePoint::Infinity)
+  }
+}
+
+impl<C: EllipticCurve> Neg for AffinePoint<C> {
+  type Output = AffinePoint<C>;
+
+  fn neg(self) -> Self::Output {
+    let (x, y) = match self {
+      AffinePoint::Point(x, y) => (x, -y),
+      AffinePoint::Infinity => return AffinePoint::Infinity,
+    };
+    AffinePoint::new(x, y)
+  }
+}
+
+/// This is the niave implementation of scalar multiplication
+/// There is a faster way to do this but this is simpler to reason about for now
+#[allow(clippy::suspicious_arithmetic_impl)]
+impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
+  type Output = AffinePoint<C>;
+
+  fn mul(mut self, scalar: u32) -> Self::Output {
+    if scalar == 0 {
+      return AffinePoint::Infinity;
+    }
+    let val = self;
+    for _ in 1..scalar {
+      self += val;
+    }
+    self
+  }
+}
+
+impl<C: EllipticCurve> Sub for AffinePoint<C> {
+  type Output = AffinePoint<C>;
+
+  fn sub(self, rhs: Self) -> Self::Output { self + -rhs }
+}
+
+impl<C: EllipticCurve> Mul<PlutoScalarField> for AffinePoint<C> {
+  type Output = AffinePoint<C>;
+
+  fn mul(self, scalar: PlutoScalarField) -> Self::Output { scalar.value as u32 * self }
+}
+
+#[allow(clippy::suspicious_arithmetic_impl)]
+impl<C: EllipticCurve> std::ops::Mul<AffinePoint<C>> for u32 {
+  type Output = AffinePoint<C>;
+
+  fn mul(self, val: AffinePoint<C>) -> Self::Output {
+    if self == 0 {
+      return AffinePoint::Infinity;
+    }
+    let mut out = val;
+    for _ in 1..self {
+      out += val;
+    }
+    out
   }
 }
 
@@ -146,11 +163,12 @@ impl<C: EllipticCurve> AffinePoint<C> {
   /// Compute the point doubling operation on this point.
   pub fn point_doubling(self) -> AffinePoint<C> {
     let (x, y) = match self {
-      AffinePoint::PointOnCurve(x, y) => (x, y),
-      AffinePoint::Infinity => panic!("Cannot double point at infinity"),
+      AffinePoint::Point(x, y) => (x, y),
+      AffinePoint::Infinity => return AffinePoint::Infinity,
     };
     // m = (3x^2) / (2y)
-    let m = (((C::BaseField::ONE + C::BaseField::ONE) + C::BaseField::ONE) * x * x)
+    let m = (((C::BaseField::ONE + C::BaseField::ONE) + C::BaseField::ONE) * x * x
+      + C::EQUATION_A.into())
       / ((C::BaseField::ONE + C::BaseField::ONE) * y);
 
     // 2P = (m^2 - 2x, m(3x - m^2)- y)

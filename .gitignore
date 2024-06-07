@@ -31,3 +31,6 @@ lcov.info
 
 # sage
 *.sage.py
+
+# coverage files
+lcov.info

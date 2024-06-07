@@ -145,4 +145,14 @@ impl<const N: usize, const P: usize> Mul<PrimeField<P>> for GaloisField<N, P> {
 impl<const N: usize, const P: usize> MulAssign<PrimeField<P>> for GaloisField<N, P> {
   fn mul_assign(&mut self, rhs: PrimeField<P>) { *self = *self * rhs; }
 }
+
+impl<const N: usize, const P: usize> Mul<GaloisField<N, P>> for PrimeField<P> {
+  type Output = GaloisField<N, P>;
+
+  fn mul(self, rhs: GaloisField<N, P>) -> Self::Output {
+    let mut res = rhs;
+    res *= self;
+    res
+  }
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////
