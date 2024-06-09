@@ -55,7 +55,6 @@ impl Mul for TestExtension {
     let poly_irred =
       Polynomial::<Monomial, TestField, 3>::from(Self::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS);
     let product = (poly_self * poly_rhs) % poly_irred;
-    // let product = poly_self;
     let res: [TestField; 2] =
       array::from_fn(|i| product.coefficients.get(i).cloned().unwrap_or(TestField::ZERO));
     Self::new(res)

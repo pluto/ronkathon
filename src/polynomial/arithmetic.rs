@@ -347,7 +347,16 @@ mod tests {
     poly_c: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 2>,
     poly_d: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 2>,
   ) {
-    assert_eq!((poly_a * poly_b).coefficients, [PlutoBaseField::new(5), PlutoBaseField::new(16), PlutoBaseField::new(34), PlutoBaseField::new(60), PlutoBaseField::new(70), PlutoBaseField::new(70), PlutoBaseField::new(59), PlutoBaseField::new(36)]);
+    assert_eq!((poly_a * poly_b).coefficients, [
+      PlutoBaseField::new(5),
+      PlutoBaseField::new(16),
+      PlutoBaseField::new(34),
+      PlutoBaseField::new(60),
+      PlutoBaseField::new(70),
+      PlutoBaseField::new(70),
+      PlutoBaseField::new(59),
+      PlutoBaseField::new(36)
+    ]);
     assert_eq!((poly_c * poly_d).coefficients, [
       PrimeField::<{ PlutoPrime::Base as usize }>::new(3),
       PrimeField::<{ PlutoPrime::Base as usize }>::new(10),

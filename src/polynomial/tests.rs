@@ -81,43 +81,35 @@ fn leading_coefficient(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
   assert_eq!(poly.leading_coefficient(), PlutoBaseField::new(4));
 }
 
-// #[rstest]
-// fn pow_mult(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
-//   assert_eq!(poly.pow_mult::<2>(PlutoBaseField::new(5)).coefficients, [
-//     PlutoBaseField::new(0),
-//     PlutoBaseField::new(0),
-//     PlutoBaseField::new(5),
-//     PlutoBaseField::new(10),
-//     PlutoBaseField::new(15),
-//     PlutoBaseField::new(20)
-//   ]);
-// }
+#[rstest]
+fn pow_mult(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
+  assert_eq!(poly.pow_mult(PlutoBaseField::new(5), 2), [
+    PlutoBaseField::new(0),
+    PlutoBaseField::new(0),
+    PlutoBaseField::new(5),
+    PlutoBaseField::new(10),
+    PlutoBaseField::new(15),
+    PlutoBaseField::new(20)
+  ]);
+}
 
-// #[rstest]
-// fn trim_zeros(mut poly: Polynomial<Monomial, PlutoBaseField, 4>) {
-//   poly.coefficients.push(PlutoBaseField::ZERO);
-//   assert_eq!(poly.coefficients, [
-//     PlutoBaseField::new(1),
-//     PlutoBaseField::new(2),
-//     PlutoBaseField::new(3),
-//     PlutoBaseField::new(4),
-//     PlutoBaseField::ZERO
-//   ]);
-//   poly.trim_zeros();
-//   assert_eq!(poly.coefficients, [
-//     PlutoBaseField::new(1),
-//     PlutoBaseField::new(2),
-//     PlutoBaseField::new(3),
-//     PlutoBaseField::new(4)
-//   ]);
-// }
-
-// #[test]
-// fn trim_to_zero() {
-//   let poly =
-//     Polynomial::<Monomial, PlutoBaseField, 2>::new([PlutoBaseField::ZERO, PlutoBaseField::ZERO]);
-//   assert_eq!(poly.coefficients, [PlutoBaseField::ZERO]);
-// }
+#[test]
+fn trim_zeros() {
+  let mut coefficients = vec![
+    PlutoBaseField::new(1),
+    PlutoBaseField::new(2),
+    PlutoBaseField::new(3),
+    PlutoBaseField::new(4),
+    PlutoBaseField::ZERO,
+  ];
+  Polynomial::<Monomial, PlutoBaseField, 5>::trim_zeros(coefficients.as_mut());
+  assert_eq!(coefficients, [
+    PlutoBaseField::new(1),
+    PlutoBaseField::new(2),
+    PlutoBaseField::new(3),
+    PlutoBaseField::new(4)
+  ]);
+}
 
 #[rstest]
 fn dft(poly: Polynomial<Monomial, PlutoBaseField, 4>) {

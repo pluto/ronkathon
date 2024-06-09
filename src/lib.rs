@@ -18,8 +18,6 @@
 #![feature(const_mut_refs)]
 #![feature(const_for)]
 #![feature(const_option)]
-#![feature(const_cmp)]
-#![feature(derive_const)]
 #![feature(generic_const_exprs)]
 #![warn(missing_docs)]
 

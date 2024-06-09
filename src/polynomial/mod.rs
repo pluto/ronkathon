@@ -92,14 +92,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   /// - A new polynomial in [`Monomial`] basis with the given coefficients.
   /// - The polynomial is automatically simplified to have a non-zero leading coefficient, that is
   ///   coefficient on the highest power term x^d.
-  pub fn new(coefficients: [F; D]) -> Self {
-    // TODO: might not be correct
-    // assert!(coefficients[D - 1] != F::ZERO, "last coefficient should be non-zero");
-    Self { coefficients, basis: Monomial }
-    // Remove trailing zeros in the `coefficients` vector so that the highest degree term is
-    // non-zero.
-    // poly.trim_zeros();
-  }
+  pub fn new(coefficients: [F; D]) -> Self { Self { coefficients, basis: Monomial } }
 
   /// Helper method to remove leading zeros from coefficients
   fn trim_zeros(coefficients: &mut Vec<F>) {
@@ -154,14 +147,11 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   /// ## Returns:
   /// - A new polynomial in the [`Monomial`] [`Basis`] that is the result of multiplying the
   ///   polynomial by `coeff` times `x^pow`.
-  pub fn pow_mult(poly_coefficients: Vec<F>, coeff: F, pow: usize) -> Vec<F> {
-    let mut coefficients = vec![F::ZERO; poly_coefficients.len() + pow];
-    poly_coefficients.iter().enumerate().for_each(|(i, c)| {
+  pub fn pow_mult(&self, coeff: F, pow: usize) -> Vec<F> {
+    let mut coefficients = vec![F::ZERO; self.coefficients.len() + pow];
+    self.coefficients.iter().enumerate().for_each(|(i, c)| {
       coefficients[i + pow] = *c * coeff;
     });
-    // Polynomial::<Monomial, F, { D + POW }>::new(coefficients.try_into().unwrap_or_else(
-    //   |v: Vec<F>| panic!("Expected a Vec of length {} but it was {}", D + POW, v.len()),
-    // ))
     coefficients
   }
 
@@ -245,7 +235,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   ///
   /// ## Panics
   /// - This function will panic in calling [`FiniteField::primitive_root_of_unity`] if the field
-  /// does not have roots of unity for the degree of the polynomial.
+  ///   does not have roots of unity for the degree of the polynomial.
   pub fn dft(&self) -> Polynomial<Lagrange<F>, F, D> {
     let n = self.num_terms();
     let primitive_root_of_unity = F::primitive_root_of_unity(n);
@@ -265,39 +255,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
       }),
     )
   }
-
-  // / Computes DFT using radix-2 cooley-tukey [Fast Fourier Transform](). Converts a polynomial in
-  // / [`Monomial`] [`Basis`] to [`Lagrange`] basis by evaluating the polynomial at roots of unity.
-  // /
-  // /
-  // /
-  // / Assumes: polynomial degree is power of 2.
-  // #[cfg(feature = "fft")]
-  // pub fn fft(&self) -> Polynomial<Lagrange<F>, F> {
-  //   assert!(self.degree().is_power_of_two());
-  //   let n = self.degree();
-  //   let mut y = vec![F::ZERO; n];
-
-  //   let logn = n.ilog2();
-  //   for i in 0..n {
-  //     y[bit_reversal(i as u32, logn) as usize] = self.coefficients[i];
-  //   }
-
-  //   for i in 1..logn + 1 {}
-
-  //   Polynomial::<Lagrange<F>, F>::new(y)
-  // }
 }
-
-// fn bit_reversal(mut num: u32, n: u32) -> u32 {
-//   let mut result = 0;
-//   for _ in 0..n {
-//     result <<= 1;
-//     result |= num & 1;
-//     num >>= 1;
-//   }
-//   result
-// }
 
 impl<const P: usize, const D: usize> Display for Polynomial<Monomial, PrimeField<P>, D> {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
