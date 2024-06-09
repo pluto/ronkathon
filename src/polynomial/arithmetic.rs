@@ -9,8 +9,6 @@
 //! - [`SubAssign`] for subtracting two polynomials in place.
 //! - [`Neg`] for negating a polynomial.
 //! - [`Mul`] for multiplying two polynomials.
-//! - [`MulAssign`] for multiplying two polynomials in place.
-//! - [`Product`] for multiplying a collection of polynomials.
 //! - [`Div`] for dividing two polynomials.
 //! - [`Rem`] for finding the remainder of dividing two polynomials.
 use super::*;
@@ -108,55 +106,45 @@ impl<F: FiniteField, const D: usize> Neg for Polynomial<Monomial, F, D> {
 /// $$
 /// (a_0 + a_1 x + a_2 x^2 + \ldots) \times (b_0 + b_1 x + b_2 x^2 + \ldots) = c_0 + c_1 x + c_2 x^2
 /// + \ldots $$ where $c_i = \sum_{j=0}^{i} a_j b_{i-j}$.
-impl<F: FiniteField, const D: usize> Mul for Polynomial<Monomial, F, D>
-where [(); 2 * D - 1]:
+impl<F: FiniteField, const D: usize, const D2: usize> Mul<Polynomial<Monomial, F, D2>>
+  for Polynomial<Monomial, F, D>
+where [(); D + D2 - 1]:
 {
-  type Output = Polynomial<Monomial, F, { 2 * D - 1 }>;
+  type Output = Polynomial<Monomial, F, { D + D2 - 1 }>;
 
-  fn mul(self, rhs: Self) -> Self::Output {
+  fn mul(self, rhs: Polynomial<Monomial, F, D2>) -> Self::Output {
     // let d = self.degree() + rhs.degree();
-    let mut coefficients = [F::ZERO; 2 * D - 1];
+    let mut coefficients = [F::ZERO; D + D2 - 1];
     for i in 0..D {
-      for j in 0..D {
+      for j in 0..D2 {
         coefficients[i + j] += self.coefficients[i] * rhs.coefficients[j];
       }
     }
-    Polynomial::<Monomial, F, { 2 * D - 1 }>::new(coefficients)
+    Polynomial::<Monomial, F, { D + D2 - 1 }>::new(coefficients)
   }
 }
 
-// TODO: can't mutate const with new degree, maybe any unsafe rust could help
-// /// Implements in-place multiplication of two polynomials by using the [`Mul`] implementation.
-// impl<F: FiniteField, const D: usize> MulAssign for Polynomial<Monomial, F, D>
-// where [(); 2 * D]:
-// {
-//   fn mul_assign(&mut self, rhs: Self) {
-//     let cloned = self.clone();
-//     let mul_poly: Polynomial<Monomial, F, { 2 * D }> = cloned * rhs;
-//     self.coefficients = mul_poly.coefficients;
-//   }
-// }
+/// Implements division of two polynomials by using the [`Polynomial::quotient_and_remainder`]
+/// method. Implicitly uses the Euclidean division algorithm.
+impl<F: FiniteField, const D: usize, const D2: usize> Div<Polynomial<Monomial, F, D2>>
+  for Polynomial<Monomial, F, D>
+{
+  type Output = Self;
 
-// /// Implements product of a collection of polynomials by using the [`Mul`] implementation.
-// impl<F: FiniteField, const D: usize> Product for Polynomial<Monomial, F, D> {
-//   fn product<I: Iterator<Item = Self>>(iter: I) -> Self { iter.reduce(|x, y| x * y).unwrap() }
-// }
+  fn div(self, rhs: Polynomial<Monomial, F, D2>) -> Self::Output {
+    self.quotient_and_remainder(rhs).0
+  }
+}
 
-// /// Implements division of two polynomials by using the [`Polynomial::quotient_and_remainder`]
-// /// method. Implicitly uses the Euclidean division algorithm.
-// impl<F: FiniteField, const D: usize> Div for Polynomial<Monomial, F, D> {
-//   type Output = Self;
+/// Implements remainder of dividing two polynomials by using the
+/// [`Polynomial::quotient_and_remainder`] method. Implicitly uses the Euclidean division algorithm.
+impl<F: FiniteField, const D: usize, const D2: usize> Rem<Polynomial<Monomial, F, D2>>
+  for Polynomial<Monomial, F, D>
+{
+  type Output = Self;
 
-//   fn div(self, rhs: Self) -> Self::Output { self.quotient_and_remainder(rhs).0 }
-// }
-
-// /// Implements remainder of dividing two polynomials by using the
-// /// [`Polynomial::quotient_and_remainder`] method. Implicitly uses the Euclidean division
-// algorithm. impl<F: FiniteField, const D: usize> Rem for Polynomial<Monomial, F, D> {
-//   type Output = Self;
-
-//   fn rem(self, rhs: Self) -> Self { self.quotient_and_remainder(rhs).1 }
-// }
+  fn rem(self, rhs: Polynomial<Monomial, F, D2>) -> Self { self.quotient_and_remainder(rhs).1 }
+}
 
 #[cfg(test)]
 mod tests {
@@ -291,65 +279,75 @@ mod tests {
     ]);
   }
 
-  //   #[rstest]
-  //   fn div(
-  //     poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
-  //     poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
-  //   ) {
-  //     assert_eq!((poly_a.clone() / poly_b.clone()).coefficients, [PrimeField::<
-  //       { PlutoPrime::Base as usize },
-  //     >::new(0)]);
-  //     assert_eq!((poly_b / poly_a).coefficients, [
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(95),
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(78)
-  //     ]);
+  #[rstest]
+  fn div(
+    poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 4>,
+    poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 5>,
+  ) {
+    assert_eq!(
+      (poly_a.clone() / poly_b.clone()).coefficients,
+      [PrimeField::<{ PlutoPrime::Base as usize }>::new(0); 4]
+    );
+    assert_eq!((poly_b / poly_a).coefficients, [
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(95),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(78),
+      PlutoBaseField::ZERO,
+      PlutoBaseField::ZERO,
+      PlutoBaseField::ZERO
+    ]);
 
-  //     let p = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(2),
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
-  //     ]);
-  //     let q = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
-  //     ]);
-  //     let r = p / q;
-  //     assert_eq!(r.coefficients, [
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(1)
-  //     ]);
-  //   }
+    let p = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 3>::new([
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(2),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+    ]);
+    let q = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 2>::new([
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+    ]);
+    let r = p / q;
+    assert_eq!(r.coefficients, [
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PlutoBaseField::ZERO
+    ]);
+  }
 
-  //   #[rstest]
-  //   fn rem(
-  //     poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
-  //     poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>,
-  //   ) {
-  //     assert_eq!((poly_a.clone() % poly_b.clone()).coefficients, poly_a.coefficients);
-  //     assert_eq!((poly_b % poly_a).coefficients, [
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(11),
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(41),
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(71)
-  //     ]);
+  #[rstest]
+  fn rem(
+    poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 4>,
+    poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 5>,
+  ) {
+    assert_eq!((poly_a.clone() % poly_b.clone()).coefficients, poly_a.coefficients);
+    assert_eq!((poly_b % poly_a).coefficients, [
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(11),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(41),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(71),
+      PlutoBaseField::ZERO,
+      PlutoBaseField::ZERO,
+    ]);
 
-  //     let p = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(2),
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
-  //     ]);
-  //     let q = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>>::new(vec![
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
-  //       PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
-  //     ]);
-  //     let r = p % q;
-  //     assert_eq!(r.coefficients, [PrimeField::<{ PlutoPrime::Base as usize }>::new(0)]);
-  //   }
+    let p = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 3>::new([
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(2),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+    ]);
+    let q = Polynomial::<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 2>::new([
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+      PrimeField::<{ PlutoPrime::Base as usize }>::new(1),
+    ]);
+    let r = p % q;
+    assert_eq!(r.coefficients, [PrimeField::<{ PlutoPrime::Base as usize }>::new(0); 3]);
+  }
 
   #[rstest]
   fn mul(
+    poly_a: Polynomial<Monomial, PlutoBaseField, 4>,
+    poly_b: Polynomial<Monomial, PlutoBaseField, 5>,
     poly_c: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 2>,
     poly_d: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 2>,
   ) {
+    assert_eq!((poly_a * poly_b).coefficients, [PlutoBaseField::new(5), PlutoBaseField::new(16), PlutoBaseField::new(34), PlutoBaseField::new(60), PlutoBaseField::new(70), PlutoBaseField::new(70), PlutoBaseField::new(59), PlutoBaseField::new(36)]);
     assert_eq!((poly_c * poly_d).coefficients, [
       PrimeField::<{ PlutoPrime::Base as usize }>::new(3),
       PrimeField::<{ PlutoPrime::Base as usize }>::new(10),

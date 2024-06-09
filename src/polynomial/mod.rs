@@ -20,7 +20,7 @@
 use super::*;
 
 pub mod arithmetic;
-// #[cfg(test)] mod tests;
+#[cfg(test)] mod tests;
 
 // https://people.inf.ethz.ch/gander/papers/changing.pdf
 
@@ -94,20 +94,19 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   ///   coefficient on the highest power term x^d.
   pub fn new(coefficients: [F; D]) -> Self {
     // TODO: might not be correct
-    assert!(coefficients[D - 1] != F::ZERO, "last coefficient should be non-zero");
+    // assert!(coefficients[D - 1] != F::ZERO, "last coefficient should be non-zero");
     Self { coefficients, basis: Monomial }
     // Remove trailing zeros in the `coefficients` vector so that the highest degree term is
     // non-zero.
     // poly.trim_zeros();
   }
 
-  // fn trim_zeros(&mut self) {
-  //   let last_nonzero_index = self.coefficients.iter().rposition(|&c| c != F::ZERO);
-  //   match last_nonzero_index {
-  //     Some(index) => self.coefficients.truncate(index + 1),
-  //     None => self.coefficients.truncate(1),
-  //   }
-  // }
+  /// Helper method to remove leading zeros from coefficients
+  fn trim_zeros(coefficients: &mut Vec<F>) {
+    while coefficients.last().cloned() == Some(F::ZERO) {
+      coefficients.pop();
+    }
+  }
 
   /// Gets the degree of the polynomial in the [`Monomial`] [`Basis`].
   /// ## Arguments:
@@ -115,21 +114,16 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   ///
   /// ## Returns:
   /// - The degree of the polynomial as a `usize`.
-  pub const fn degree(&self) -> usize {
-    let mut i = D - 1;
-    // TODO: this doesn't work due to const PartialEq impl only added to structs and not for traits
-    // See [issue](https://github.com/rust-lang/rust/issues/92391)
-    // and [issue](https://github.com/rust-lang/rust/issues/77695)
-    while i > 0 && self.coefficients[i] == F::ZERO {
-      i -= 1;
-    }
-    i
-    // self.coefficients.len() - 1 }
+  pub fn degree(&self) -> usize {
+    self.coefficients.iter().rposition(|&coeff| coeff != F::ZERO).unwrap_or(0)
   }
 
   /// Retrieves the coefficient on the highest degree monomial term of a polynomial in the
   /// [`Monomial`] [`Basis`].
-  pub const fn leading_coefficient(&self) -> F { *self.coefficients.last().unwrap() }
+  // pub const fn leading_coefficient(&self) -> F { *self.coefficients.last().unwrap() }
+  pub fn leading_coefficient(&self) -> F {
+    self.coefficients.iter().rev().find(|&&coeff| coeff != F::ZERO).copied().unwrap_or(F::ZERO)
+  }
 
   /// Evaluates the polynomial at a given [`FiniteField`] element `x` using the [`Monomial`] basis.
   /// This is not using Horner's method or any other optimization.
@@ -160,14 +154,15 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   /// ## Returns:
   /// - A new polynomial in the [`Monomial`] [`Basis`] that is the result of multiplying the
   ///   polynomial by `coeff` times `x^pow`.
-  pub fn pow_mult<const pow: usize>(&self, coeff: F) -> Polynomial<Monomial, F, { D + pow }> {
-    let mut coefficients = vec![F::ZERO; self.coefficients.len() + pow];
-    self.coefficients.iter().enumerate().for_each(|(i, c)| {
+  pub fn pow_mult(poly_coefficients: Vec<F>, coeff: F, pow: usize) -> Vec<F> {
+    let mut coefficients = vec![F::ZERO; poly_coefficients.len() + pow];
+    poly_coefficients.iter().enumerate().for_each(|(i, c)| {
       coefficients[i + pow] = *c * coeff;
     });
-    Polynomial::<Monomial, F, { D + pow }>::new(coefficients.try_into().unwrap_or_else(
-      |v: Vec<F>| panic!("Expected a Vec of length {} but it was {}", D + pow, v.len()),
-    ))
+    // Polynomial::<Monomial, F, { D + POW }>::new(coefficients.try_into().unwrap_or_else(
+    //   |v: Vec<F>| panic!("Expected a Vec of length {} but it was {}", D + POW, v.len()),
+    // ))
+    coefficients
   }
 
   /// [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) of two polynomials in [`Monomial`] basis.
@@ -181,37 +176,62 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   /// - A tuple of two polynomials in [`Monomial`] basis:
   ///   - The first element is the quotient polynomial.
   ///   - The second element is the remainder polynomial.
-  // fn quotient_and_remainder<const D2: usize>(
-  //   self,
-  //   rhs: Polynomial<Monomial, F, D2>,
-  // ) -> (Self, Self) {
-  //   // Initial quotient value
-  //   let mut q = vec![];
+  fn quotient_and_remainder<const D2: usize>(
+    self,
+    rhs: Polynomial<Monomial, F, D2>,
+  ) -> (Self, Self) {
+    // Initial quotient value
+    let mut q_coeffs = vec![F::ZERO; D];
 
-  //   // Initial remainder value is our numerator polynomial
-  //   let mut p = self.coefficients.to_vec();
+    // Initial remainder value is our numerator polynomial
+    let mut p_coeffs = self.coefficients.to_vec();
 
-  //   // Leading coefficient of the denominator
-  //   let c = rhs.leading_coefficient();
+    // Leading coefficient of the denominator
+    let c = rhs.leading_coefficient();
 
-  //   // Create quotient polynomial
-  //   let mut diff = D - D2;
-  //   // if diff < 0 {
-  //   //   return (Self::new(vec![F::ZERO]), p);
-  //   // }
-  //   let mut q_coeffs = vec![F::ZERO; diff as usize + 1];
+    // Perform the repeated long division algorithm
+    while p_coeffs.iter().filter(|&&x| x != F::ZERO).count() > 0
+      && p_coeffs.len() >= rhs.coefficients.len()
+    {
+      // find degree of dividend, divisor
+      let p_degree = p_coeffs.iter().rposition(|&x| x != F::ZERO).unwrap();
+      let rhs_degree = rhs.coefficients.iter().rposition(|&x| x != F::ZERO).unwrap();
 
-  //   // Perform the repeated long division algorithm
-  //   while diff >= 0 {
-  //     let s = p.leading_coefficient() * c.inverse().unwrap();
-  //     q_coeffs[diff as usize] = s;
-  //     p -= rhs.pow_mult(s, diff as usize);
-  //     p.trim_zeros();
-  //     diff = p.degree() as isize - rhs.degree() as isize;
-  //   }
-  //   // let q = Polynomial<Monomial, F,
-  //   (q, p)
-  // }
+      if p_degree < rhs_degree {
+        break;
+      }
+
+      let diff = p_degree - rhs_degree;
+      let s = p_coeffs[p_degree] * c.inverse().unwrap();
+      q_coeffs[diff] = s;
+
+      for (i, &coeff) in rhs.coefficients.iter().enumerate() {
+        p_coeffs[diff + i] -= coeff * s;
+      }
+
+      Polynomial::<Monomial, F, D>::trim_zeros(&mut p_coeffs);
+    }
+
+    let quotient = Polynomial {
+      coefficients: q_coeffs.try_into().unwrap_or_else(|v: Vec<F>| {
+        let mut arr = [F::ZERO; D];
+        arr.copy_from_slice(&v[..D]);
+        arr
+      }),
+      basis:        self.basis.clone(),
+    };
+
+    let remainder = Polynomial {
+      coefficients: p_coeffs.try_into().unwrap_or_else(|v: Vec<F>| {
+        let mut arr = [F::ZERO; D];
+        arr[..v.len()].copy_from_slice(&v[..]);
+        arr
+      }),
+      basis:        self.basis.clone(),
+    };
+
+    (quotient, remainder)
+  }
 
   /// Computes the [Discrete Fourier Transform](https://en.wikipedia.org/wiki/Discrete_Fourier_transform)
   /// of the polynomial in the [`Monomial`] basis by evaluating the polynomial at the roots of

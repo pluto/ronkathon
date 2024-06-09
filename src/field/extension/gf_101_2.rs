@@ -138,13 +138,13 @@ impl Mul for PlutoBaseFieldExtension {
   type Output = Self;
 
   fn mul(self, rhs: Self) -> Self::Output {
-    let poly_self = Polynomial::<Monomial, PlutoBaseField, 1>::from(self);
-    let poly_rhs = Polynomial::<Monomial, PlutoBaseField, 1>::from(rhs);
+    let poly_self = Polynomial::<Monomial, PlutoBaseField, 2>::from(self);
+    let poly_rhs = Polynomial::<Monomial, PlutoBaseField, 2>::from(rhs);
     let poly_irred =
-      Polynomial::<Monomial, PlutoBaseField, 1>::from(Self::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS);
-    // let product = (poly_self * poly_rhs) % poly_irred;
-    let res: [PlutoBaseField; 2] = [PlutoBaseField::ZERO, PlutoBaseField::ZERO];
-    //   array::from_fn(|i| product.coefficients.get(i).cloned().unwrap_or(PlutoBaseField::ZERO));
+      Polynomial::<Monomial, PlutoBaseField, 3>::from(Self::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS);
+    let product = (poly_self * poly_rhs) % poly_irred;
+    let res: [PlutoBaseField; 2] =
+      array::from_fn(|i| product.coefficients.get(i).cloned().unwrap_or(PlutoBaseField::ZERO));
 
     Self::new(res)
   }
