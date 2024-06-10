@@ -13,19 +13,20 @@
 //! - [`Rem`] for finding the remainder of dividing two polynomials.
 use super::*;
 
-/// Implements addition of two polynomials by adding their coefficients.
-impl<F: FiniteField, const D: usize> Add for Polynomial<Monomial, F, D> {
+impl<F: FiniteField, const D: usize, const D2: usize> Add<Polynomial<Monomial, F, D2>>
+  for Polynomial<Monomial, F, D>
+{
   type Output = Self;
 
-  fn add(self, rhs: Self) -> Self {
-    let d = self.coefficients.len().max(rhs.coefficients.len());
+  /// Implements addition of two polynomials by adding their coefficients.
+  /// Note: degree of first operand > deg of second operand.
+  fn add(self, rhs: Polynomial<Monomial, F, D2>) -> Self {
     let coefficients = self
       .coefficients
       .iter()
-      .chain(std::iter::repeat(&F::ZERO))
       .zip(rhs.coefficients.iter().chain(std::iter::repeat(&F::ZERO)))
       .map(|(&a, &b)| a + b)
-      .take(d)
+      .take(D)
       .collect::<Vec<F>>()
       .try_into()
       .unwrap_or_else(|v: Vec<F>| panic!("Expected a Vec of length {} but it was {}", D, v.len()));
@@ -33,33 +34,32 @@ impl<F: FiniteField, const D: usize> Add for Polynomial<Monomial, F, D> {
   }
 }
 
-/// Implements in-place addition of two polynomials by adding their coefficients.
-impl<F: FiniteField, const D: usize> AddAssign for Polynomial<Monomial, F, D> {
-  fn add_assign(&mut self, rhs: Self) {
-    for i in 0..D {
-      self.coefficients[i] += rhs.coefficients[i];
-    }
-  }
+impl<F: FiniteField, const D: usize, const D2: usize> AddAssign<Polynomial<Monomial, F, D2>>
+  for Polynomial<Monomial, F, D>
+{
+  /// Implements in-place addition of two polynomials by adding their coefficients.
+  fn add_assign(&mut self, rhs: Polynomial<Monomial, F, D2>) { *self = *self + rhs; }
 }
 
-/// Implements summing a collection of polynomials.
 impl<F: FiniteField, const D: usize> Sum for Polynomial<Monomial, F, D> {
+  /// Implements summing a collection of polynomials.
   fn sum<I: Iterator<Item = Self>>(iter: I) -> Self { iter.reduce(|x, y| x + y).unwrap() }
 }
 
-/// Implements subtraction of two polynomials by subtracting their coefficients.
-impl<F: FiniteField, const D: usize> Sub for Polynomial<Monomial, F, D> {
+impl<F: FiniteField, const D: usize, const D2: usize> Sub<Polynomial<Monomial, F, D2>>
+  for Polynomial<Monomial, F, D>
+{
   type Output = Self;
 
-  fn sub(self, rhs: Self) -> Self {
-    let d = self.coefficients.len().max(rhs.coefficients.len());
+  /// Implements subtraction of two polynomials by subtracting their coefficients.
+  /// Note: degree of first operand > deg of second operand.
+  fn sub(self, rhs: Polynomial<Monomial, F, D2>) -> Self {
     let coefficients = self
       .coefficients
       .iter()
-      .chain(std::iter::repeat(&F::ZERO))
       .zip(rhs.coefficients.iter().chain(std::iter::repeat(&F::ZERO)))
       .map(|(&a, &b)| a - b)
-      .take(d)
+      .take(D)
       .collect::<Vec<F>>()
       .try_into()
       .unwrap_or_else(|v: Vec<F>| panic!("Expected a Vec of length {} but it was {}", D, v.len()));
@@ -67,25 +67,17 @@ impl<F: FiniteField, const D: usize> Sub for Polynomial<Monomial, F, D> {
   }
 }
 
-/// Implements in-place subtraction of two polynomials by subtracting their coefficients.
-impl<F: FiniteField, const D: usize> SubAssign for Polynomial<Monomial, F, D> {
-  fn sub_assign(&mut self, rhs: Self) {
-    // let d = self.degree().max(rhs.degree());
-    // if self.degree() < d {
-    //   self.coefficients.resize(d + 1, F::ZERO);
-    // } else {
-    //   rhs.coefficients.resize(d + 1, F::ZERO);
-    // }
-    for i in 0..D {
-      self.coefficients[i] -= rhs.coefficients[i];
-    }
-  }
+impl<F: FiniteField, const D: usize, const D2: usize> SubAssign<Polynomial<Monomial, F, D2>>
+  for Polynomial<Monomial, F, D>
+{
+  /// Implements in-place subtraction of two polynomials by subtracting their coefficients.
+  fn sub_assign(&mut self, rhs: Polynomial<Monomial, F, D2>) { *self = *self - rhs; }
 }
 
-/// Implements negation of a polynomial by negating its coefficients.
 impl<F: FiniteField, const D: usize> Neg for Polynomial<Monomial, F, D> {
   type Output = Self;
 
+  /// Implements negation of a polynomial by negating its coefficients.
   fn neg(self) -> Self {
     Self {
       coefficients: self
@@ -102,18 +94,20 @@ impl<F: FiniteField, const D: usize> Neg for Polynomial<Monomial, F, D> {
   }
 }
 
-/// Implements multiplication of two polynomials by computing:
-/// $$
-/// (a_0 + a_1 x + a_2 x^2 + \ldots) \times (b_0 + b_1 x + b_2 x^2 + \ldots) = c_0 + c_1 x + c_2 x^2
-/// + \ldots $$ where $c_i = \sum_{j=0}^{i} a_j b_{i-j}$.
 impl<F: FiniteField, const D: usize, const D2: usize> Mul<Polynomial<Monomial, F, D2>>
   for Polynomial<Monomial, F, D>
 where [(); D + D2 - 1]:
 {
   type Output = Polynomial<Monomial, F, { D + D2 - 1 }>;
 
+  /// Implements multiplication of two polynomials by computing:
+  /// $$
+  /// (a_0 + a_1 x + a_2 x^2 + \ldots) \times (b_0 + b_1 x + b_2 x^2 + \ldots) = c_0 + c_1 x + c_2
+  /// x^2
+  /// + \ldots $$ where $c_i = \sum_{j=0}^{i} a_j b_{i-j}$.
+  ///
+  /// Note: Returns a polynomial of degree $D1+D2-1$
   fn mul(self, rhs: Polynomial<Monomial, F, D2>) -> Self::Output {
-    // let d = self.degree() + rhs.degree();
     let mut coefficients = [F::ZERO; D + D2 - 1];
     for i in 0..D {
       for j in 0..D2 {
@@ -124,25 +118,30 @@ where [(); D + D2 - 1]:
   }
 }
 
-/// Implements division of two polynomials by using the [`Polynomial::quotient_and_remainder`]
-/// method. Implicitly uses the Euclidean division algorithm.
 impl<F: FiniteField, const D: usize, const D2: usize> Div<Polynomial<Monomial, F, D2>>
   for Polynomial<Monomial, F, D>
 {
   type Output = Self;
 
+  /// Implements division of two polynomials by using the [`Polynomial::quotient_and_remainder`]
+  /// method. Implicitly uses the Euclidean division algorithm.
+  ///
+  /// Note: returns a polynomial with degree of first operand.
   fn div(self, rhs: Polynomial<Monomial, F, D2>) -> Self::Output {
     self.quotient_and_remainder(rhs).0
   }
 }
 
-/// Implements remainder of dividing two polynomials by using the
-/// [`Polynomial::quotient_and_remainder`] method. Implicitly uses the Euclidean division algorithm.
 impl<F: FiniteField, const D: usize, const D2: usize> Rem<Polynomial<Monomial, F, D2>>
   for Polynomial<Monomial, F, D>
 {
   type Output = Self;
 
+  /// Implements remainder of dividing two polynomials by using the
+  /// [`Polynomial::quotient_and_remainder`] method. Implicitly uses the Euclidean division
+  /// algorithm.
+  ///
+  /// Note: returns a polynomial of degree of first operand
   fn rem(self, rhs: Polynomial<Monomial, F, D2>) -> Self { self.quotient_and_remainder(rhs).1 }
 }
 
@@ -192,7 +191,7 @@ mod tests {
     poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 4>,
     poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 5>,
   ) {
-    assert_eq!((poly_b + poly_a.coefficients.into()).coefficients, [
+    assert_eq!((poly_b + poly_a).coefficients, [
       PrimeField::<{ PlutoPrime::Base as usize }>::new(6),
       PrimeField::<{ PlutoPrime::Base as usize }>::new(8),
       PrimeField::<{ PlutoPrime::Base as usize }>::new(10),
@@ -206,7 +205,7 @@ mod tests {
     poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 4>,
     mut poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 5>,
   ) {
-    poly_b += poly_a.coefficients.into();
+    poly_b += poly_a;
     assert_eq!(poly_b.coefficients, [
       PrimeField::<{ PlutoPrime::Base as usize }>::new(6),
       PrimeField::<{ PlutoPrime::Base as usize }>::new(8),
@@ -250,6 +249,14 @@ mod tests {
       PrimeField::<{ PlutoPrime::Base as usize }>::new(97),
       PrimeField::<{ PlutoPrime::Base as usize }>::new(92)
     ]);
+
+    assert_eq!((poly_b - poly_a).coefficients, [
+      PlutoBaseField::new(4),
+      PlutoBaseField::new(4),
+      PlutoBaseField::new(4),
+      PlutoBaseField::new(4),
+      PlutoBaseField::new(9)
+    ]);
   }
 
   #[rstest]
@@ -285,7 +292,7 @@ mod tests {
     poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 5>,
   ) {
     assert_eq!(
-      (poly_a.clone() / poly_b.clone()).coefficients,
+      (poly_a / poly_b).coefficients,
       [PrimeField::<{ PlutoPrime::Base as usize }>::new(0); 4]
     );
     assert_eq!((poly_b / poly_a).coefficients, [
@@ -318,7 +325,7 @@ mod tests {
     poly_a: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 4>,
     poly_b: Polynomial<Monomial, PrimeField<{ PlutoPrime::Base as usize }>, 5>,
   ) {
-    assert_eq!((poly_a.clone() % poly_b.clone()).coefficients, poly_a.coefficients);
+    assert_eq!((poly_a % poly_b).coefficients, poly_a.coefficients);
     assert_eq!((poly_b % poly_a).coefficients, [
       PrimeField::<{ PlutoPrime::Base as usize }>::new(11),
       PrimeField::<{ PlutoPrime::Base as usize }>::new(41),

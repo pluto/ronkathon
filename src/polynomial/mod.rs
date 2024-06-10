@@ -24,11 +24,11 @@ pub mod arithmetic;
 
 // https://people.inf.ethz.ch/gander/papers/changing.pdf
 
-/// A polynomial of arbitrary degree.
+/// A polynomial of arbitrary degree `D-1`.
 /// Allows for a choice of basis between [`Monomial`] and [`Lagrange`].
 /// The coefficients are stored in a vector with the zeroth degree term first.
 /// Highest degree term should be non-zero.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Polynomial<B: Basis, F: FiniteField, const D: usize> {
   /// Coefficients of the polynomial in the chosen basis.
   /// These will be in either:
@@ -49,7 +49,7 @@ pub trait Basis {
 
 /// [`Monomial`] is a struct that implements the [`Basis`] trait.
 /// It is used to specify the [monomial basis](https://en.wikipedia.org/wiki/Monomial_basis) for a polynomial.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Monomial;
 impl Basis for Monomial {
   type Data = ();
@@ -208,7 +208,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
         arr.copy_from_slice(&v[..D]);
         arr
       }),
-      basis:        self.basis.clone(),
+      basis:        self.basis,
     };
 
     let remainder = Polynomial {
@@ -217,7 +217,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
         arr[..v.len()].copy_from_slice(&v[..]);
         arr
       }),
-      basis:        self.basis.clone(),
+      basis:        self.basis,
     };
 
     (quotient, remainder)
@@ -383,6 +383,6 @@ impl<const N: usize, F: FiniteField, const D: usize> From<[F; N]> for Polynomial
 impl<const N: usize, const P: usize, const D: usize> From<GaloisField<N, P>>
   for Polynomial<Monomial, PrimeField<P>, D>
 {
-  /// Convert from an [`Ext`] field element into a polynomial in the [`Monomial`] basis.
+  /// Convert from an [`GaloisField`] field element into a polynomial in the [`Monomial`] basis.
   fn from(ext: GaloisField<N, P>) -> Self { Self::from(ext.coeffs) }
 }

@@ -3,7 +3,7 @@ use super::*;
 ///////////////////////////////////////////////////////////////////////////////////////////////
 /// ## Field operations
 
-/// Addition of two [`Ext`] elements.
+/// Addition of two [`GaloisField`] elements.
 impl<const N: usize, const P: usize> Add for GaloisField<N, P> {
   type Output = Self;
 
@@ -16,19 +16,19 @@ impl<const N: usize, const P: usize> Add for GaloisField<N, P> {
   }
 }
 
-/// Addition assignment of two [`Ext`] elements.
+/// Addition assignment of two [`GaloisField`] elements.
 impl<const N: usize, const P: usize> AddAssign for GaloisField<N, P> {
   fn add_assign(&mut self, rhs: Self) { *self = *self + rhs; }
 }
 
-/// Sum of a collection of [`Ext`] elements.
+/// Sum of a collection of [`GaloisField`] elements.
 impl<const N: usize, const P: usize> Sum for GaloisField<N, P> {
   fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
     iter.reduce(|x, y| x + y).unwrap_or(PrimeField::<P>::ZERO.into())
   }
 }
 
-/// Negation of an [`Ext`] element.
+/// Negation of an [`GaloisField`] element.
 impl<const N: usize, const P: usize> Neg for GaloisField<N, P> {
   type Output = Self;
 
@@ -40,21 +40,21 @@ impl<const N: usize, const P: usize> Neg for GaloisField<N, P> {
   }
 }
 
-/// Subtraction of two [`Ext`] elements.
+/// Subtraction of two [`GaloisField`] elements.
 impl<const N: usize, const P: usize> Sub for GaloisField<N, P> {
   type Output = Self;
 
   fn sub(self, rhs: Self) -> Self { self + (-rhs) }
 }
 
-/// Subtraction assignment of two [`Ext`] elements.
+/// Subtraction assignment of two [`GaloisField`] elements.
 impl<const N: usize, const P: usize> SubAssign for GaloisField<N, P> {
   fn sub_assign(&mut self, rhs: Self) { *self = *self - rhs; }
 }
 
 // TODO: These should be able to be implemented generically for any `N` and `P`.
-// /// Returns the multiplication of two [`Ext<2, GF101>`] elements by reducing result modulo
-// /// irreducible polynomial.
+// /// Returns the multiplication of two [`GaloisField<2, GF101>`] elements by reducing result
+// modulo /// irreducible polynomial.
 // impl<const N: usize, const P: u32> Mul for GaloisField<N, P> {
 //     type Output = Self;
 
@@ -101,7 +101,7 @@ impl<const N: usize, const P: usize> SubAssign for GaloisField<N, P> {
 ///////////////////////////////////////////////////////////////////////////////////////////////
 /// ## Inclusion of [`FiniteField`] operations
 
-/// Addition of a [`FiniteField`] element to an [`Ext`] element.
+/// Addition of a [`FiniteField`] element to an [`GaloisField`] element.
 impl<const N: usize, const P: usize> Add<PrimeField<P>> for GaloisField<N, P> {
   type Output = Self;
 
@@ -111,12 +111,12 @@ impl<const N: usize, const P: usize> Add<PrimeField<P>> for GaloisField<N, P> {
   }
 }
 
-/// Addition assignment of a [`FiniteField`] element to an [`Ext`] element.
+/// Addition assignment of a [`FiniteField`] element to an [`GaloisField`] element.
 impl<const N: usize, const P: usize> AddAssign<PrimeField<P>> for GaloisField<N, P> {
   fn add_assign(&mut self, rhs: PrimeField<P>) { *self = *self + rhs; }
 }
 
-/// Subtraction of a [`FiniteField`] element from an [`Ext`] element.
+/// Subtraction of a [`FiniteField`] element from an [`GaloisField`] element.
 impl<const N: usize, const P: usize> Sub<PrimeField<P>> for GaloisField<N, P> {
   type Output = Self;
 
@@ -126,12 +126,12 @@ impl<const N: usize, const P: usize> Sub<PrimeField<P>> for GaloisField<N, P> {
   }
 }
 
-/// Subtraction assignment of a [`FiniteField`] element from an [`Ext`] element.
+/// Subtraction assignment of a [`FiniteField`] element from an [`GaloisField`] element.
 impl<const N: usize, const P: usize> SubAssign<PrimeField<P>> for GaloisField<N, P> {
   fn sub_assign(&mut self, rhs: PrimeField<P>) { *self = *self - rhs; }
 }
 
-/// Multiplication of an [`Ext`] element by a [`FiniteField`] element.
+/// Multiplication of an [`GaloisField`] element by a [`FiniteField`] element.
 impl<const N: usize, const P: usize> Mul<PrimeField<P>> for GaloisField<N, P> {
   type Output = Self;
 
@@ -141,7 +141,7 @@ impl<const N: usize, const P: usize> Mul<PrimeField<P>> for GaloisField<N, P> {
   }
 }
 
-/// Multiplication assignment of an [`Ext`] element by a [`FiniteField`] element.
+/// Multiplication assignment of an [`GaloisField`] element by a [`FiniteField`] element.
 impl<const N: usize, const P: usize> MulAssign<PrimeField<P>> for GaloisField<N, P> {
   fn mul_assign(&mut self, rhs: PrimeField<P>) { *self = *self * rhs; }
 }
