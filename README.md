@@ -19,9 +19,9 @@
 Ronkathon is a rust implementation of a collection of cryptographic primitives. It is inspired by the common python plonkathon repository, and plonk-by-hand. We use the same curve and field as plonk-by-hand (not secure), and are working towards building everything from scratch to understand everything from first principles.
 
 ## Primitives
-- [Fields and Their Extensions](src/fields/README.md)
-- [Curves and Their Pairings](src/curves/README.md)
-- [Polynomials](src/polynomials/mod.rs)
+- [Fields and Their Extensions](src/field/README.md)
+- [Curves and Their Pairings](src/curve/README.md)
+- [Polynomials](src/polynomial/mod.rs)
 - [KZG Commitments](src/kzg/README.md)
 - [Reed-Solomon Codes](src/codes/README.md)
 - [Tiny ECDSA](src/ecdsa.rs)
