@@ -1,116 +1,13 @@
-//! Contains implementation of binary field and its extensions
-// TODO:
-// - move gf2k to const K, and use slices
-// - move arithmetics out of binary
-// - rename gf to binary field, and binary field extensions
-// - more tests and docs
-// -
-
+//! contains implementation of binary extension fields using tower field arithmetic in multilinear basis as defined in [DP23b](https://eprint.iacr.org/2023/1784.pdf)
 use std::{
   iter::{Product, Sum},
   ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
 };
 
-use super::FiniteField;
+use super::BinaryField;
+use crate::field::FiniteField;
 
-/// binary field containing element `{0,1}`
-#[derive(Debug, Default, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct BinaryField(u8);
-
-impl BinaryField {
-  const fn new(value: u8) -> Self {
-    debug_assert!(value < 2, "value should be less than 2");
-    Self(value)
-  }
-}
-
-impl FiniteField for BinaryField {
-  const ONE: Self = BinaryField(1);
-  const ORDER: usize = 2;
-  // TODO: incorrect
-  const PRIMITIVE_ELEMENT: Self = Self::ONE;
-  const ZERO: Self = BinaryField(0);
-
-  fn inverse(&self) -> Option<Self> { Some(*self) }
-
-  fn pow(self, _: usize) -> Self { self }
-
-  fn primitive_root_of_unity(_: usize) -> Self { Self::ONE }
-}
-
-impl From<usize> for BinaryField {
-  fn from(value: usize) -> Self { Self::new(value as u8) }
-}
-
-impl Add for BinaryField {
-  type Output = Self;
-
-  #[allow(clippy::suspicious_arithmetic_impl)]
-  fn add(self, rhs: Self) -> Self::Output { BinaryField(self.0 ^ rhs.0) }
-}
-
-impl AddAssign for BinaryField {
-  fn add_assign(&mut self, rhs: Self) { *self = *self + rhs; }
-}
-
-impl Sum for BinaryField {
-  fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-    iter.reduce(|x, y| x + y).unwrap_or(Self::ZERO)
-  }
-}
-
-impl Sub for BinaryField {
-  type Output = Self;
-
-  #[allow(clippy::suspicious_arithmetic_impl)]
-  fn sub(self, rhs: Self) -> Self::Output { BinaryField(self.0 ^ rhs.0) }
-}
-
-impl SubAssign for BinaryField {
-  fn sub_assign(&mut self, rhs: Self) { *self = *self - rhs; }
-}
-
-impl Neg for BinaryField {
-  type Output = Self;
-
-  fn neg(self) -> Self::Output { self }
-}
-
-impl Mul for BinaryField {
-  type Output = Self;
-
-  #[allow(clippy::suspicious_arithmetic_impl)]
-  fn mul(self, rhs: Self) -> Self::Output { BinaryField(self.0 & rhs.0) }
-}
-
-impl MulAssign for BinaryField {
-  fn mul_assign(&mut self, rhs: Self) { *self = *self * rhs; }
-}
-
-impl Product for BinaryField {
-  fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-    iter.reduce(|x, y| x * y).unwrap_or(Self::ONE)
-  }
-}
-
-impl Div for BinaryField {
-  type Output = Self;
-
-  #[allow(clippy::suspicious_arithmetic_impl)]
-  fn div(self, rhs: Self) -> Self::Output { self * rhs.inverse().unwrap() }
-}
-
-impl DivAssign for BinaryField {
-  fn div_assign(&mut self, rhs: Self) { *self = *self / rhs; }
-}
-
-impl Rem for BinaryField {
-  type Output = Self;
-
-  fn rem(self, rhs: Self) -> Self::Output { self - (self / rhs) * rhs }
-}
-
-/// Binary extension field GF_{2^{2^K}} using binary towers
+/// Binary extension field GF_{2^{2^K}} using binary towers arithmetic as explained in Section 2.3 of [DP23b](https://eprint.iacr.org/2023/1784.pdf)
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BinaryFieldExtension<const K: usize>
 where [(); 1 << K]: {
@@ -134,8 +31,8 @@ where [(); 1 << K]:
   }
 
   const fn one() -> Self {
-    let mut coefficients = [BinaryField(0); 1 << K];
-    coefficients[0] = BinaryField(1);
+    let mut coefficients = [BinaryField::ZERO; 1 << K];
+    coefficients[0] = BinaryField::ONE;
     BinaryFieldExtension { coefficients }
   }
 }
@@ -145,6 +42,7 @@ where [(); 1 << K]:
 {
   const ONE: Self = Self::one();
   const ORDER: usize = 1 << (1 << K);
+  // TODO: incorrect
   const PRIMITIVE_ELEMENT: Self = Self::one();
   const ZERO: Self = Self::default();
 
@@ -313,22 +211,6 @@ where [(); 1 << K]:
   fn rem(self, rhs: Self) -> Self::Output { self - (self / rhs) * rhs }
 }
 
-fn num_digits(n: u64) -> usize {
-  let r = format!("{:b}", n);
-  r.len()
-}
-
-fn to_bool_vec(mut num: u64) -> Vec<BinaryField> {
-  let length = 1 << num_digits((num_digits(num) - 1) as u64);
-  let mut result = Vec::new();
-  while num > 0 {
-    result.push(BinaryField::new(((num & 1) != 0) as u8));
-    num >>= 1;
-  }
-  result.extend(std::iter::repeat(BinaryField::new(0)).take(length - result.len()));
-  result
-}
-
 impl<const K: usize> From<usize> for BinaryFieldExtension<K>
 where [(); 1 << K]:
 {
@@ -370,7 +252,7 @@ where
   }
 }
 
-fn multiply(v1: Vec<BinaryField>, v2: Vec<BinaryField>, k: usize) -> Vec<BinaryField> {
+pub(super) fn multiply(v1: Vec<BinaryField>, v2: Vec<BinaryField>, k: usize) -> Vec<BinaryField> {
   debug_assert!(v1.len() == v2.len(), "v1 and v2 should be of same size");
 
   if k == 0 {
@@ -406,52 +288,18 @@ fn add_vec(lhs: Vec<BinaryField>, rhs: Vec<BinaryField>) -> Vec<BinaryField> {
   lhs.into_iter().zip(rhs).map(|(a, b)| a + b).collect()
 }
 
-#[cfg(test)]
-mod tests {
-  use super::*;
+pub(super) fn num_digits(n: u64) -> usize {
+  let r = format!("{:b}", n);
+  r.len()
+}
 
-  fn from_bool_vec(num: Vec<BinaryField>) -> u64 {
-    let mut result: u64 = 0;
-    for (i, &bit) in num.iter().rev().enumerate() {
-      if bit.0 == 1 {
-        result |= 1 << (num.len() - 1 - i);
-      }
-    }
-    result
+pub(super) fn to_bool_vec(mut num: u64) -> Vec<BinaryField> {
+  let length = 1 << num_digits((num_digits(num) - 1) as u64);
+  let mut result = Vec::new();
+  while num > 0 {
+    result.push(BinaryField::new(((num & 1) != 0) as u8));
+    num >>= 1;
   }
-
-  #[test]
-  fn field_arithmetic() {
-    let a = BinaryField::new(0);
-    let b = BinaryField::new(1);
-    let c = a + b;
-    assert_eq!(c, b);
-  }
-
-  #[test]
-  fn test_num_digits() {
-    let digits = num_digits(4);
-    assert_eq!(digits, 3);
-  }
-
-  #[test]
-  fn multiply_vec() {
-    let a = vec![BinaryField::new(1)];
-    let b = vec![BinaryField::new(1)];
-    let res = multiply(a, b, 0);
-    assert_eq!(res, vec![BinaryField::new(1)]);
-
-    let a = to_bool_vec(160);
-    let b = to_bool_vec(23);
-    assert_eq!(a.len(), 8);
-    assert_eq!(a.len(), b.len());
-    println!("{:?}", a);
-
-    assert_eq!(from_bool_vec(a.clone()), 160);
-    assert_eq!(from_bool_vec(b.clone()), 23);
-
-    let res = multiply(a, b, 3);
-    let num = from_bool_vec(res);
-    println!("{}", num);
-  }
+  result.extend(std::iter::repeat(BinaryField::new(0)).take(length - result.len()));
+  result
 }
