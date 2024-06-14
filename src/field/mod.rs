@@ -2,6 +2,7 @@
 
 use super::*;
 
+pub mod binary;
 pub mod extension;
 pub mod prime;
 
