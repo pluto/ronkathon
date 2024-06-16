@@ -40,14 +40,14 @@ where [(); 1 << K]:
 impl<const K: usize> FiniteField for BinaryFieldExtension<K>
 where [(); 1 << K]:
 {
-  const ONE: Self = Self::one();
+  const ONE: Self = Self::ONE;
   const ORDER: usize = 1 << (1 << K);
   // TODO: incorrect
-  const PRIMITIVE_ELEMENT: Self = Self::one();
+  const PRIMITIVE_ELEMENT: Self = Self::ONE;
   const ZERO: Self = Self::default();
 
   fn pow(self, power: usize) -> Self {
-    let mut result = BinaryFieldExtension::one();
+    let mut result = BinaryFieldExtension::ONE;
     let mut base = self;
     let mut exp = power;
 
@@ -62,20 +62,25 @@ where [(); 1 << K]:
     result
   }
 
-  fn inverse(&self) -> Option<Self> { todo!() }
+  fn inverse(&self) -> Option<Self> {
+    if *self == Self::ZERO {
+      return None;
+    }
+    Some(self.pow(Self::ORDER - 2))
+  }
 }
 
 // Function to find a primitive element
-// const fn find_primitive_element<const K: usize>() -> GF2k<K>
+// const fn find_primitive_element<const K: usize>() -> BinaryFieldExtension<K>
 // where [(); 1 << K]: {
-//   let mut candidate = GF2k::<K>::one();
-//   let order = GF2k::<K>::ORDER;
+//   let mut candidate = BinaryFieldExtension::<K>::one();
+//   let order = BinaryFieldExtension::<K>::ORDER;
 
 //   loop {
 //     let mut is_primitive = true;
 
 //     for i in 1..order {
-//       if candidate.pow(i) == GF2k::<K>::one() {
+//       if candidate.pow(i) == GF2k::<K>::ONE {
 //         is_primitive = false;
 //         break;
 //       }
@@ -88,10 +93,10 @@ where [(); 1 << K]:
 //     // Increment candidate
 //     for coef in candidate.coefficients.iter_mut() {
 //       if coef.0 == 0 {
-//         *coef = GF2(1);
+//         *coef = BinaryField(1);
 //         break;
 //       } else {
-//         *coef = GF2(0);
+//         *coef = BinaryField(0);
 //       }
 //     }
 //   }
@@ -158,13 +163,14 @@ where [(); 1 << K]:
   type Output = Self;
 
   fn mul(self, rhs: Self) -> Self::Output {
-    BinaryFieldExtension::<K>::new(multiply(
-      self.coefficients.to_vec(),
-      rhs.coefficients.to_vec(),
-      K,
-    ))
+    BinaryFieldExtension::<K>::new(multiply(&self.coefficients, &rhs.coefficients, K))
   }
 }
+
+// const fn mul_ext<const K: usize>(lhs: BinaryFieldExtension<K>, rhs: BinaryFieldExtension<K>) ->
+// BinaryFieldExtension<K> {
+
+// }
 
 impl<const K: usize> MulAssign for BinaryFieldExtension<K>
 where [(); 1 << K]:
@@ -185,6 +191,7 @@ where [(); 1 << K]:
 {
   type Output = Self;
 
+  // TODO: recheck
   fn neg(self) -> Self::Output { self }
 }
 
@@ -252,7 +259,7 @@ where
   }
 }
 
-pub(super) fn multiply(v1: Vec<BinaryField>, v2: Vec<BinaryField>, k: usize) -> Vec<BinaryField> {
+pub(super) fn multiply(v1: &[BinaryField], v2: &[BinaryField], k: usize) -> Vec<BinaryField> {
   debug_assert!(v1.len() == v2.len(), "v1 and v2 should be of same size");
 
   if k == 0 {
@@ -266,26 +273,26 @@ pub(super) fn multiply(v1: Vec<BinaryField>, v2: Vec<BinaryField>, k: usize) -> 
   let (l1, r1) = v1.split_at(halflen);
   let (l2, r2) = v2.split_at(halflen);
 
-  let l1l2 = multiply(l1.to_vec(), l2.to_vec(), k - 1);
-  let r1r2 = multiply(r1.to_vec(), r2.to_vec(), k - 1);
+  let l1l2 = multiply(l1, l2, k - 1);
+  let r1r2 = multiply(r1, r2, k - 1);
 
-  let z3 = multiply(add_vec(l1.to_vec(), r1.to_vec()), add_vec(l2.to_vec(), r2.to_vec()), k - 1);
+  let z3 = multiply(&add_vec(l1, r1), &add_vec(l2, r2), k - 1);
 
   let mut k2_val = vec![BinaryField::new(0); 1 << (k - 1)];
   k2_val[quarterlen] = BinaryField::new(1);
 
-  let r1r2_high = multiply(k2_val, r1r2.clone(), k - 1);
-  let mut res_low = add_vec(l1l2.clone(), r1r2.clone());
-  let res_high = add_vec(z3, l1l2);
-  let res_high = add_vec(res_high, r1r2);
-  let mut res_high = add_vec(res_high, r1r2_high);
+  let r1r2_high = multiply(&k2_val, &r1r2, k - 1);
+  let mut res_low = add_vec(&l1l2, &r1r2);
+  let res_high = add_vec(&z3, &l1l2);
+  let res_high = add_vec(&res_high, &r1r2);
+  let mut res_high = add_vec(&res_high, &r1r2_high);
   res_low.append(&mut res_high);
 
   res_low
 }
 
-fn add_vec(lhs: Vec<BinaryField>, rhs: Vec<BinaryField>) -> Vec<BinaryField> {
-  lhs.into_iter().zip(rhs).map(|(a, b)| a + b).collect()
+fn add_vec(lhs: &[BinaryField], rhs: &[BinaryField]) -> Vec<BinaryField> {
+  lhs.iter().zip(rhs).map(|(a, b)| *a + *b).collect()
 }
 
 pub(super) fn num_digits(n: u64) -> usize {

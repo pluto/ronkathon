@@ -4,14 +4,16 @@ use std::{
   ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
 };
 
+use super::PrimeField;
 use crate::field::FiniteField;
 
 pub mod extension;
-#[cfg(test)] pub mod tests;
+#[cfg(test)] mod tests;
 
 /// binary field containing element `{0,1}`
 #[derive(Debug, Default, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BinaryField(u8);
+// pub type BinaryField = PrimeField<2>;
 
 impl BinaryField {
   /// create new binary field element
@@ -27,7 +29,12 @@ impl FiniteField for BinaryField {
   const PRIMITIVE_ELEMENT: Self = Self::ONE;
   const ZERO: Self = BinaryField(0);
 
-  fn inverse(&self) -> Option<Self> { Some(*self) }
+  fn inverse(&self) -> Option<Self> {
+    if *self == Self::ZERO {
+      return None;
+    }
+    Some(*self)
+  }
 
   fn pow(self, _: usize) -> Self { self }
 
@@ -42,7 +49,7 @@ impl Add for BinaryField {
   type Output = Self;
 
   #[allow(clippy::suspicious_arithmetic_impl)]
-  fn add(self, rhs: Self) -> Self::Output { BinaryField(self.0 ^ rhs.0) }
+  fn add(self, rhs: Self) -> Self::Output { BinaryField::new(self.0 ^ rhs.0) }
 }
 
 impl AddAssign for BinaryField {
