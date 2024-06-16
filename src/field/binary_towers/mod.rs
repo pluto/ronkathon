@@ -4,7 +4,6 @@ use std::{
   ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
 };
 
-use super::PrimeField;
 use crate::field::FiniteField;
 
 pub mod extension;
@@ -13,7 +12,6 @@ pub mod extension;
 /// binary field containing element `{0,1}`
 #[derive(Debug, Default, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BinaryField(u8);
-// pub type BinaryField = PrimeField<2>;
 
 impl BinaryField {
   /// create new binary field element
@@ -37,8 +35,6 @@ impl FiniteField for BinaryField {
   }
 
   fn pow(self, _: usize) -> Self { self }
-
-  fn primitive_root_of_unity(_: usize) -> Self { Self::ONE }
 }
 
 impl From<usize> for BinaryField {

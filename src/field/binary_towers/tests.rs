@@ -2,15 +2,12 @@ use std::array;
 
 use extension::BinaryFieldExtension;
 use pretty_assertions::assert_eq;
+use rand::{thread_rng, Rng};
 use rstest::rstest;
 
 use super::*;
 use crate::{
-  field::{
-    binary_towers::extension::{multiply, num_digits, to_bool_vec},
-    extension::ExtensionField,
-    GaloisField,
-  },
+  field::{extension::ExtensionField, prime::PrimeField, GaloisField},
   polynomial::Monomial,
   Polynomial,
 };
@@ -130,24 +127,9 @@ impl Rem for TestBinaryExtensionField {
   fn rem(self, rhs: Self) -> Self::Output { self - (self / rhs) * rhs }
 }
 
-fn from_bool_vec(num: Vec<BinaryField>) -> u64 {
-  let mut result: u64 = 0;
-  for (i, &bit) in num.iter().rev().enumerate() {
-    if bit.0 == 1 {
-      result |= 1 << (num.len() - 1 - i);
-    }
-  }
-  result
-}
-
-fn from_bool_vec_bin(num: Vec<TestBinaryField>) -> u64 {
-  let mut result: u64 = 0;
-  for (i, &bit) in num.iter().rev().enumerate() {
-    if bit.value == 1 {
-      result |= 1 << (num.len() - 1 - i);
-    }
-  }
-  result
+pub(super) fn num_digits(n: u64) -> usize {
+  let r = format!("{:b}", n);
+  r.len()
 }
 
 #[rstest]
@@ -182,21 +164,38 @@ fn num_digit(#[case] num: u64, #[case] digits: usize) {
 }
 
 #[test]
-fn multiply_vec() {
-  let a = [BinaryField::new(1)];
-  let b = [BinaryField::new(1)];
-  let res = multiply(&a, &b, 0);
-  assert_eq!(res, vec![BinaryField::new(1)]);
+fn add_sub_neg() {
+  let mut rng = thread_rng();
+  let a = rng.gen::<BinaryFieldExtension<3>>();
+  let b = rng.gen::<BinaryFieldExtension<3>>();
 
-  let a = to_bool_vec(160);
-  let b = to_bool_vec(23);
-  assert_eq!(a.len(), 8);
-  assert_eq!(a.len(), b.len());
+  assert_eq!(a + a, BinaryFieldExtension::<3>::ZERO);
+  assert_eq!(a + a, b + b);
+  assert_eq!(a + b, b + a);
+  assert_eq!(a + b, a - b);
+  assert_eq!(a, -a);
+  assert_eq!(a + (-b), (-a) + b);
+}
 
-  assert_eq!(from_bool_vec(a.clone()), 160);
-  assert_eq!(from_bool_vec(b.clone()), 23);
+#[rstest]
+#[case(BinaryFieldExtension::<3>::from(160), BinaryFieldExtension::<3>::from(23), BinaryFieldExtension::<3>::from(90))]
+#[case(BinaryFieldExtension::<3>::from(217), BinaryFieldExtension::<3>::from(20), BinaryFieldExtension::<3>::from(151))]
+#[case(BinaryFieldExtension::<3>::from(19), BinaryFieldExtension::<3>::from(230), BinaryFieldExtension::<3>::from(3))]
+#[case(BinaryFieldExtension::<3>::from(203), BinaryFieldExtension::<3>::from(187), BinaryFieldExtension::<3>::from(4))]
+#[case(BinaryFieldExtension::<3>::from(145), BinaryFieldExtension::<3>::from(38), BinaryFieldExtension::<3>::from(152))]
+#[case(BinaryFieldExtension::<3>::from(209), BinaryFieldExtension::<3>::from(155), BinaryFieldExtension::<3>::from(71))]
+fn mul_div(
+  #[case] a: BinaryFieldExtension<3>,
+  #[case] b: BinaryFieldExtension<3>,
+  #[case] res: BinaryFieldExtension<3>,
+) {
+  let c = a * b;
+  assert_eq!(a * b, res);
+  assert_eq!(b * a, res);
 
-  let res = multiply(&a, &b, 3);
-  let num = from_bool_vec(res);
-  assert_eq!(num, 90);
+  let d = a / b;
+  assert_eq!(d * c, a.pow(2));
+
+  let e = BinaryFieldExtension::<3>::ONE / (a * b);
+  assert_eq!(a * b * e, BinaryFieldExtension::<3>::ONE);
 }
