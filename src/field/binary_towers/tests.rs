@@ -1,7 +1,6 @@
 use std::array;
 
 use extension::BinaryFieldExtension;
-use pretty_assertions::assert_eq;
 use rand::{thread_rng, Rng};
 use rstest::rstest;
 
@@ -132,6 +131,16 @@ pub(super) fn num_digits(n: u64) -> usize {
   r.len()
 }
 
+fn from_bool_vec(num: Vec<BinaryField>) -> u64 {
+  let mut result: u64 = 0;
+  for (i, &bit) in num.iter().rev().enumerate() {
+    if bit.0 == 1 {
+      result |= 1 << (num.len() - 1 - i);
+    }
+  }
+  result
+}
+
 #[rstest]
 #[case(0, 1)]
 #[case(1, 1)]
@@ -198,4 +207,40 @@ fn mul_div(
 
   let e = BinaryFieldExtension::<3>::ONE / (a * b);
   assert_eq!(a * b * e, BinaryFieldExtension::<3>::ONE);
+}
+
+#[test]
+fn small_by_large_mul() {
+  let mut rng = thread_rng();
+  for _ in 0..100 {
+    let a = rng.gen::<BinaryFieldExtension<5>>();
+
+    let val = rng.gen_range(0..1 << (1 << 3));
+
+    let b = BinaryFieldExtension::<3>::from(val);
+    let d = BinaryFieldExtension::<5>::from(val);
+
+    let small_by_large_res = a * b;
+    let res = from_bool_vec(small_by_large_res.coefficients.to_vec());
+
+    let mul_res = a * d;
+    let res_2 = from_bool_vec(mul_res.coefficients.to_vec());
+
+    assert_eq!(res, res_2);
+
+    // return self if second operand's extension field > first operand
+    assert_eq!(b, b * a);
+  }
+}
+
+#[test]
+fn efficient_embedding() {
+  let mut rng = thread_rng();
+  let a = rng.gen::<BinaryFieldExtension<4>>();
+
+  let (a1, a2) = a.into();
+
+  let b: BinaryFieldExtension<4> = (a1, a2).into();
+
+  assert_eq!(a, b);
 }

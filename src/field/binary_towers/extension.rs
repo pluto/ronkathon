@@ -1,5 +1,6 @@
 //! contains implementation of binary extension fields using tower field arithmetic in multilinear basis as defined in [DP23b](https://eprint.iacr.org/2023/1784.pdf)
 use std::{
+  cmp::Ordering,
   iter::{Product, Sum},
   ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
 };
@@ -123,18 +124,18 @@ where [(); 1 << K]:
   fn sub_assign(&mut self, rhs: Self) { *self = *self - rhs; }
 }
 
-impl<const K: usize> Mul for BinaryFieldExtension<K>
-where [(); 1 << K]:
-{
-  type Output = Self;
+// impl<const K: usize> Mul for BinaryFieldExtension<K>
+// where [(); 1 << K]:
+// {
+//   type Output = Self;
 
-  fn mul(self, rhs: Self) -> Self::Output {
-    let res = multiply(&self.coefficients, &rhs.coefficients, K).try_into().unwrap_or_else(
-      |v: Vec<BinaryField>| panic!("expected vec of len: {}, but found: {}", 1 << K, v.len()),
-    );
-    BinaryFieldExtension::<K>::new(res)
-  }
-}
+//   fn mul(self, rhs: Self) -> Self::Output {
+//     let res = multiply(&self.coefficients, &rhs.coefficients, K).try_into().unwrap_or_else(
+//       |v: Vec<BinaryField>| panic!("expected vec of len: {}, but found: {}", 1 << K, v.len()),
+//     );
+//     BinaryFieldExtension::<K>::new(res)
+//   }
+// }
 
 impl<const K: usize> MulAssign for BinaryFieldExtension<K>
 where [(); 1 << K]:
@@ -147,6 +148,50 @@ where [(); 1 << K]:
 {
   fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
     iter.reduce(|x, y| x * y).unwrap_or(Self::one())
+  }
+}
+
+impl<const K: usize, const K2: usize> Mul<BinaryFieldExtension<K2>> for BinaryFieldExtension<K>
+where
+  [(); 1 << K]:,
+  [(); 1 << K2]:,
+{
+  type Output = Self;
+
+  /// multiplies a [`BinaryFieldExtension`]::<K> with [`BinaryFieldExtension`]::<K2> by efficient
+  /// small-by-large field multiplication in binary extension fields. breaks down K into chunks of
+  /// `1<<K2` and define K's basis in `K2`.
+  ///
+  /// **Note**: return self if K < K2.
+  #[allow(clippy::suspicious_arithmetic_impl)]
+  fn mul(self, rhs: BinaryFieldExtension<K2>) -> Self::Output {
+    match K.cmp(&K2) {
+      Ordering::Equal => {
+        let res = multiply(&self.coefficients, &rhs.coefficients, K).try_into().unwrap_or_else(
+          |v: Vec<BinaryField>| panic!("expected vec of len: {}, but found: {}", 1 << K, v.len()),
+        );
+        BinaryFieldExtension::<K>::new(res)
+      },
+      Ordering::Less => self,
+      Ordering::Greater => {
+        let small_values = self
+          .coefficients
+          .chunks_exact(1 << K2)
+          .map(|v| {
+            let coefficients: [BinaryField; 1 << K2] =
+              v.try_into().expect("expected a vec of size");
+            BinaryFieldExtension::<K2>::new(coefficients) * rhs
+          })
+          .collect::<Vec<BinaryFieldExtension<K2>>>();
+        let mut coefficients = [BinaryField::ZERO; 1 << K];
+        for (i, value) in small_values.iter().enumerate() {
+          let range_start = i * (1 << K2);
+          coefficients[range_start..range_start + (1 << K2)]
+            .copy_from_slice(&value.coefficients[..]);
+        }
+        BinaryFieldExtension::<K>::new(coefficients)
+      },
+    }
   }
 }
 
