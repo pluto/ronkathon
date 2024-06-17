@@ -74,8 +74,8 @@ pub struct Program<'a> {
   group_order: usize,
 }
 
-/// `CommonPreprocessedInput` represents circuit related input which is apriori known to `Prover`
-/// and `Verifier` involved in the process.
+/// Represents circuit related input which is apriori known to `Prover` and `Verifier` involved in
+/// the process.
 pub struct CommonPreprocessedInput {
   /// multiplicative group order
   pub group_order: usize,
@@ -103,16 +103,8 @@ impl<'a> Program<'a> {
   ///
   /// Assumes: group_order >= constraints.len()
   pub fn new(constraints: &[&'a str], group_order: usize) -> Result<Self, ProgramError<'a>> {
-    let assembly: Result<Vec<WireCoeffs>, ParserError> = constraints
-      .iter()
-      .map(|constraint| {
-        parse_constraints(constraint)
-        // match wire_coeffs {
-        //   Ok(coeff) => coeff,
-        //   Err(parser_error) => return Err(ProgramError::ParserError(i, parser_error)),
-        // }
-      })
-      .collect();
+    let assembly: Result<Vec<WireCoeffs>, ParserError> =
+      constraints.iter().map(|constraint| parse_constraints(constraint)).collect();
 
     let assembly = match assembly {
       Ok(wire_coeffs) => wire_coeffs,
@@ -347,7 +339,6 @@ mod tests {
 
     let program = program.unwrap();
     let (s1, s2, s3) = program.s_polynomials();
-    println!("{}\n{}\n{}", s1, s2, s3);
 
     assert_eq!(s1.coefficients, vec![
       PlutoScalarField::from(4),

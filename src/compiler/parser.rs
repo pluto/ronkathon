@@ -62,6 +62,7 @@ impl<'a> WireCoeffs<'a> {
   fn l(&self) -> PlutoScalarField {
     match self.wires[0] {
       Some(wire) => match self.coeffs.get(wire) {
+        // negation is done to satisfy constraint equation of vanilla plonk
         Some(val) => -PlutoScalarField::from(*val),
         None => PlutoScalarField::ZERO,
       },
@@ -72,6 +73,7 @@ impl<'a> WireCoeffs<'a> {
   fn r(&self) -> PlutoScalarField {
     if self.wires[0].is_some() && self.wires[1].is_some() && self.wires[0] != self.wires[1] {
       match self.coeffs.get(self.wires[1].unwrap()) {
+        // negation is done to satisfy constraint equation of vanilla plonk
         Some(val) => -PlutoScalarField::from(*val),
         None => PlutoScalarField::ZERO,
       }
@@ -117,7 +119,7 @@ impl<'a> WireCoeffs<'a> {
 /// `['a', '+', 'b', '*', 'c', '*', '5']` becomes `{'a': 1, 'b*c': 5}`
 ///
 /// Note that this is a recursive algo, so the input can be a mix of tokens and
-/// mapping expressions
+/// mapping expressions.
 fn evaluate<'a>(
   exprs: &[&'a str],
   first_is_neg: bool,
@@ -197,25 +199,36 @@ fn evaluate<'a>(
 /// - `a public` =>                    `(['a', None, None], {'$public': 1, 'a': -1,
 ///   '$output_coeffs': 0}`
 /// - `b <== a * c` =>                 `(['a', 'c', 'b'], {'a*c': 1})`
-/// - `d <== a * c - 45 * a + 987` =>  `(['a', 'c', 'd'], {'a*c': 1, 'a': -45, '': 987})`
+/// - `d <== a * c - 45 * a + 987` =>  `(['a', 'c', 'd'], {'a*c': 1, 'a': -45, '$constant': 987})`
 ///
 /// invalid equations:
 /// - `7 === 7`             =>         # Can't assign to non-variable
 /// - `a <== b * * c`       =>         # Two times signs in a row
 /// - `e <== a + b * c * d` =>         # Multiplicative degree > 2
 pub fn parse_constraints(constraint: &str) -> Result<WireCoeffs, ParserError> {
+  // split into tokens by spaces
   let tokens: Vec<&str> = constraint.trim().trim_end_matches('\n').split(' ').collect();
+
+  // parse assignment or arithmetic checks
   if tokens[1] == "<==" || tokens[1] == "===" {
+    // first token is the output
     let mut out = tokens[0];
+
+    // parse rest of the constraints
     let mut coeffs = evaluate(&tokens[2..], false)?;
+
+    // handle output's negative coefficient
     if out.starts_with('-') {
       out = &out[1..];
       coeffs.insert("$output_coeffs".to_string(), -1);
     }
+
+    // handle valid output variable name
     if !is_valid_var_name(out) {
       return Err(ParserError::ConstraintsInvalidVariableName(out));
     }
 
+    // parse all valid variables
     let mut variables: Vec<&str> = tokens
       .into_iter()
       .skip(2)
@@ -226,10 +239,10 @@ pub fn parse_constraints(constraint: &str) -> Result<WireCoeffs, ParserError> {
       .collect();
     variables.sort();
 
+    // create set of all allowed variables
     let mut allowed_coeffs_set: HashSet<String> =
       HashSet::from_iter(variables.iter().map(|var| var.to_string()));
     allowed_coeffs_set.extend(["$output_coeffs".to_string(), "$constant".to_string()]);
-
     match variables.len() {
       0 => {},
       1 => {
@@ -250,12 +263,17 @@ pub fn parse_constraints(constraint: &str) -> Result<WireCoeffs, ParserError> {
     }
 
     let variables_len = variables.len();
+
+    // get wire variable names
     let mut wires: Vec<Option<&str>> =
       variables.into_iter().map(Some).chain(iter::repeat(None).take(2 - variables_len)).collect();
+
+    // output variable is in last wire
     wires.push(Some(out));
 
     Ok(WireCoeffs { wires, coeffs })
   } else if tokens[1] == "public" {
+    // parse public constraint
     let coeffs = HashMap::from([
       (tokens[0].to_string(), -1),
       (String::from("$output_coeffs"), 0),
@@ -342,6 +360,7 @@ mod tests {
   #[case("a === 9", vec![None, None, Some("a")], HashMap::from([(String::from("$constant"), 9)]))]
   #[case("b <== a + 9 * 10", vec![Some("a"), Some("a"), Some("b")], HashMap::from([(String::from("a"), 1), (String::from("$constant"), 90)]))]
   #[case("-a <== b * -c * -9 - 10", vec![Some("b"), Some("c"), Some("a")], HashMap::from([(String::from("$output_coeffs"), -1), (String::from("b*c"), 9), (String::from("$constant"), -10)]))]
+  #[case("x2 <== x * x", vec![Some("x"), Some("x"), Some("x2")], HashMap::from([(String::from("x*x"), 1)]))]
   #[should_panic]
   #[case("a <== b * c + d", vec![], HashMap::from([]))]
   #[should_panic(expected = "assertion")]
