@@ -17,6 +17,8 @@
 //! - Includes Discrete Fourier Transform (DFT) for polynomials in the [`Monomial`] basis to convert
 //!   into the [`Lagrange`] basis via evaluation at the roots of unity.
 
+use std::array;
+
 use super::*;
 
 pub mod arithmetic;
@@ -141,18 +143,16 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   /// [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) algorithm (to implement [`Div`] and [`Rem`] traits).
   ///
   /// ## Arguments:
+  /// - `const D2`: The degree of the term to multiply by, e.g., `D2==5` multiplies by `x^5`.
   /// - `coeff`: The scalar to multiply the polynomial by.
-  /// - `pow`: The power of the monomial to multiply the polynomial by.
   ///
   /// ## Returns:
   /// - A new polynomial in the [`Monomial`] [`Basis`] that is the result of multiplying the
   ///   polynomial by `coeff` times `x^pow`.
-  pub fn pow_mult(&self, coeff: F, pow: usize) -> Vec<F> {
-    let mut coefficients = vec![F::ZERO; self.coefficients.len() + pow];
-    self.coefficients.iter().enumerate().for_each(|(i, c)| {
-      coefficients[i + pow] = *c * coeff;
-    });
-    coefficients
+  pub fn pow_mult<const D2: usize>(&self, coeff: F) -> Polynomial<Monomial, F, { D + D2 }> {
+    let coefficients: [F; D + D2] =
+      array::from_fn(|i| if i >= D2 { self.coefficients[i - D2] * coeff } else { F::ZERO });
+    Polynomial::<Monomial, F, { D + D2 }>::new(coefficients)
   }
 
   /// [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) of two polynomials in [`Monomial`] basis.
