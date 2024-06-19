@@ -83,14 +83,17 @@ fn leading_coefficient(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
 
 #[rstest]
 fn pow_mult(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
-  assert_eq!(poly.pow_mult(PlutoBaseField::new(5), 2), [
-    PlutoBaseField::new(0),
-    PlutoBaseField::new(0),
-    PlutoBaseField::new(5),
-    PlutoBaseField::new(10),
-    PlutoBaseField::new(15),
-    PlutoBaseField::new(20)
-  ]);
+  assert_eq!(
+    poly.pow_mult::<2>(PlutoBaseField::new(5)),
+    Polynomial::<Monomial, PlutoBaseField, 6>::new([
+      PlutoBaseField::new(0),
+      PlutoBaseField::new(0),
+      PlutoBaseField::new(5),
+      PlutoBaseField::new(10),
+      PlutoBaseField::new(15),
+      PlutoBaseField::new(20)
+    ])
+  );
 }
 
 #[test]
