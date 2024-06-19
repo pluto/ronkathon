@@ -50,7 +50,7 @@ fn test_setup() {
 }
 
 #[fixture]
-fn poly_1() -> Polynomial<Monomial, PlutoScalarField> {
+fn poly_1() -> Polynomial<Monomial, PlutoScalarField, 4> {
   // p(x) = (x-1)(x-2)(x-3)
   // p(x) = - 6 + 11x -6x^2 + x^3
   // p(x) = 11 + 11x + 11x^2 + x^3 mod 17
@@ -59,11 +59,11 @@ fn poly_1() -> Polynomial<Monomial, PlutoScalarField> {
   let b = PlutoScalarField::from(11usize);
   let c = PlutoScalarField::from(11usize);
   let d = PlutoScalarField::from(1usize);
-  Polynomial::<Monomial, PlutoScalarField>::new(vec![a, b, c, d])
+  Polynomial::<Monomial, PlutoScalarField, 4>::new([a, b, c, d])
 }
 
 #[fixture]
-fn poly_2() -> Polynomial<Monomial, PlutoScalarField> {
+fn poly_2() -> Polynomial<Monomial, PlutoScalarField, 5> {
   // p(x) = (x-1)(x-2)(x-3)(x-4)
   // p(x) = 24 - 50x + 35x^2 - 10x^3
   // -> 24 mod 17 is 7
@@ -75,16 +75,16 @@ fn poly_2() -> Polynomial<Monomial, PlutoScalarField> {
   let c = PlutoScalarField::from(1usize);
   let d = PlutoScalarField::from(11usize);
   let e = PlutoScalarField::from(1usize);
-  Polynomial::<Monomial, PlutoScalarField>::new(vec![a, b, c, d, e])
+  Polynomial::<Monomial, PlutoScalarField, 5>::new([a, b, c, d, e])
 }
 
 #[fixture]
-fn poly_3() -> Polynomial<Monomial, PlutoScalarField> {
+fn poly_3() -> Polynomial<Monomial, PlutoScalarField, 3> {
   // p(x)  = 3 + 2x + x^2
   let a = PlutoScalarField::from(3usize);
   let b = PlutoScalarField::from(2usize);
   let c = PlutoScalarField::from(1usize);
-  Polynomial::<Monomial, PlutoScalarField>::new(vec![a, b, c])
+  Polynomial::<Monomial, PlutoScalarField, 3>::new([a, b, c])
 }
 
 #[test]
@@ -96,9 +96,9 @@ fn test_commit() {
   // p(x) = 11 + 11x + 11x^2 + x^3 mod 17
 
   // -> -6 mod 17 is 11 so this is [11, 11, 11, 1]
-  let coefficients = poly_1().coefficients.clone();
+  let coefficients = poly_1().coefficients;
   //  g1srs[0] * 11 + g1srs[1] * 11 + g1srs[2] * 11 + g1srs[3] * 1
-  let commit_1 = commit(coefficients, g1srs.clone());
+  let commit_1 = commit(coefficients.to_vec(), g1srs.clone());
   assert_eq!(commit_1, AffinePoint::<PlutoExtendedCurve>::Infinity);
 
   println!("\n\nSECOND COMMIT");
@@ -108,9 +108,9 @@ fn test_commit() {
   // -> 50 mod 17 is 16
   // -> 35 mod 17 is 1
   // coefficients = [7, 16, 1, 11, 1]
-  let coefficients = poly_2().coefficients.clone();
+  let coefficients = poly_2().coefficients;
   //  g1srs[0] * 7 + g1srs[1] * 16 + g1srs[2] * 1 + g1srs[3] * 11 + g1srs[4] * 1
-  let commit_2 = commit(coefficients, g1srs.clone());
+  let commit_2 = commit(coefficients.to_vec(), g1srs.clone());
 
   assert_eq!(
     commit_2,
@@ -122,9 +122,9 @@ fn test_commit() {
 
   println!("\n\nTHIRD COMMIT");
   // p(x)  = 3 + 2x + x^2
-  let coefficients = poly_3().coefficients.clone();
+  let coefficients = poly_3().coefficients;
   // g1srs[0] * 3 + g1srs[1] * 2  + g1srs[2] * 1
-  let commit_3 = commit(coefficients, g1srs);
+  let commit_3 = commit(coefficients.to_vec(), g1srs);
 
   assert_eq!(
     commit_3,
@@ -159,7 +159,7 @@ fn opening() {
   let poly = poly_1();
   let eval_point = PlutoScalarField::new(4);
   //   let eval_result = poly.evaluate(eval_point);
-  let commit = commit(poly.coefficients.clone(), g1srs.clone());
+  let commit = commit(poly.coefficients.clone().to_vec(), g1srs.clone());
   assert_eq!(commit, AffinePoint::<PlutoExtendedCurve>::Infinity);
   // p(x) = (x-1)(x-2)(x-3)
   // p(x) = - 6 + 11x -6x^2 + x^3
@@ -167,7 +167,7 @@ fn opening() {
   // divisor poly q(x) = x - 4
   // result = p(x) / q(x) = x^2 - 2x + 3
   // multiplying (1,2) * 3 + (68, 74) * 15 + (65, 98) * 1
-  let open_commit = open(poly.coefficients, eval_point, g1srs.clone());
+  let open_commit = open::<4>(poly.coefficients.to_vec(), eval_point, g1srs.clone());
 
   assert_eq!(
     open_commit,
@@ -221,7 +221,10 @@ fn all_srs_combinations() {
 #[case(poly_1(), PlutoScalarField::new(4))]
 #[case(poly_2(), PlutoScalarField::new(3))]
 #[case(poly_3(), PlutoScalarField::new(5))]
-fn e2e(#[case] poly: Polynomial<Monomial, PlutoScalarField>, #[case] eval_point: PlutoScalarField) {
+fn e2e<const D: usize>(
+  #[case] poly: Polynomial<Monomial, PlutoScalarField, D>,
+  #[case] eval_point: PlutoScalarField,
+) {
   let paring_params = commit_and_open(poly, eval_point);
 
   // Both `p_commit` and `q_commit` are in the same group so this is good.
@@ -259,8 +262,8 @@ fn e2e(#[case] poly: Polynomial<Monomial, PlutoScalarField>, #[case] eval_point:
 #[case(poly_2(), PlutoScalarField::new(3))]
 #[case(poly_3(), PlutoScalarField::new(5))]
 #[should_panic]
-fn invalid_check(
-  #[case] poly: Polynomial<Monomial, PlutoScalarField>,
+fn invalid_check<const D: usize>(
+  #[case] poly: Polynomial<Monomial, PlutoScalarField, D>,
   #[case] eval_point: PlutoScalarField,
 ) {
   let paring_params = commit_and_open(poly, eval_point);
@@ -280,8 +283,8 @@ fn invalid_check(
 #[case(poly_2(), PlutoScalarField::new(3))]
 #[case(poly_3(), PlutoScalarField::new(5))]
 #[should_panic]
-fn fake_proof(
-  #[case] poly: Polynomial<Monomial, PlutoScalarField>,
+fn fake_proof<const D: usize>(
+  #[case] poly: Polynomial<Monomial, PlutoScalarField, D>,
   #[case] eval_point: PlutoScalarField,
 ) {
   let paring_params = commit_and_open(poly, eval_point);
@@ -307,14 +310,14 @@ pub struct PairingParams {
 }
 
 /// given a polynomial and eval point return the pairing params
-pub fn commit_and_open(
-  poly: Polynomial<Monomial, PlutoScalarField>,
+pub fn commit_and_open<const D: usize>(
+  poly: Polynomial<Monomial, PlutoScalarField, D>,
   eval_point: PlutoScalarField,
 ) -> PairingParams {
   let (g1srs, g2srs) = setup();
   let eval_result = poly.evaluate(eval_point);
-  let p_commit = commit(poly.coefficients.clone(), g1srs.clone());
-  let q_commit = open(poly.coefficients, eval_point, g1srs.clone());
+  let p_commit = commit(poly.coefficients.clone().to_vec(), g1srs.clone());
+  let q_commit = open::<D>(poly.coefficients.to_vec(), eval_point, g1srs.clone());
   PairingParams { p: p_commit, q: q_commit, point: eval_point, value: eval_result, g1srs, g2srs }
 }
 

@@ -12,9 +12,9 @@
 //! - Elliptic curves: Implementations of elliptic curves over finite fields, with support for
 //!   operations such as point addition, scalar multiplication, and pairing operations.
 
-#![feature(const_trait_impl)]
 #![allow(incomplete_features)]
 #![feature(effects)]
+#![feature(const_trait_impl)]
 #![feature(const_mut_refs)]
 #![feature(const_for)]
 #![feature(const_option)]

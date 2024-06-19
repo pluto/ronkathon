@@ -28,7 +28,7 @@ pub struct PoseidonConfig<F: FiniteField> {
 }
 
 /// Poseidon hash function struct with state and config
-/// state contains current hash state of [`PoseidonConfig::width`] length and [`PoseidonConfig`]
+/// state contains current hash state of `width` length and [`PoseidonConfig`]
 /// contains config for rounds in the hash function.
 #[derive(Debug, Clone)]
 pub struct Poseidon<F: FiniteField> {

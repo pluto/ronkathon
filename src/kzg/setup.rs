@@ -44,29 +44,35 @@ pub fn setup() -> (Vec<AffinePoint<PlutoExtendedCurve>>, Vec<AffinePoint<PlutoEx
 /// Both binding and hiding commitment
 #[allow(dead_code)]
 pub fn commit(
-  coefs: Vec<PlutoScalarField>,
+  coeffs: Vec<PlutoScalarField>,
   g1_srs: Vec<AffinePoint<PlutoExtendedCurve>>,
 ) -> AffinePoint<PlutoExtendedCurve> {
   // check srs is longer than coefs
-  assert!(g1_srs.len() >= coefs.len());
+  assert!(g1_srs.len() >= coeffs.len());
   // SUM_{i=0}^{n} (g1^tau^i * coef_i)
-  g1_srs.into_iter().zip(coefs).map(|(g1, coef)| g1 * coef).sum::<AffinePoint<PlutoExtendedCurve>>()
+  g1_srs
+    .into_iter()
+    .zip(coeffs)
+    .map(|(g1, coeff)| g1 * coeff)
+    .sum::<AffinePoint<PlutoExtendedCurve>>()
 }
 
 /// Open the commitment
-pub fn open(
-  coefs: Vec<PlutoScalarField>,
+pub fn open<const D: usize>(
+  coeffs: Vec<PlutoScalarField>,
   eval_point: PlutoScalarField,
   g1_srs: Vec<AffinePoint<PlutoExtendedCurve>>,
 ) -> AffinePoint<PlutoExtendedCurve> {
-  let poly = Polynomial::<Monomial, PlutoScalarField>::new(coefs.clone());
+  let poly = Polynomial::<Monomial, PlutoScalarField, D>::new(coeffs.try_into().unwrap_or_else(
+    |v: Vec<PlutoScalarField>| panic!("Expected a Vec of length {} but it was {}", D, v.len()),
+  ));
   let divisor =
-    Polynomial::<Monomial, PlutoScalarField>::new(vec![-eval_point, PlutoScalarField::ONE]);
+    Polynomial::<Monomial, PlutoScalarField, 2>::new([-eval_point, PlutoScalarField::ONE]);
 
   let result = poly.div(divisor).coefficients;
   println!("resulting polynomial {:?}", result);
 
-  commit(result, g1_srs)
+  commit(result.to_vec(), g1_srs)
 }
 
 /// Verify the polynomial evaluation.
