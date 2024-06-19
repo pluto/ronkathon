@@ -1,17 +1,17 @@
 use super::*;
 
 #[fixture]
-fn poly() -> Polynomial<Monomial, PlutoBaseField> {
+fn poly() -> Polynomial<Monomial, PlutoBaseField, 4> {
   // Coefficients of the polynomial 1 + 2x + 3x^2 + 4x^3
   let a = PlutoBaseField::new(1);
   let b = PlutoBaseField::new(2);
   let c = PlutoBaseField::new(3);
   let d = PlutoBaseField::new(4);
-  Polynomial::<Monomial, PlutoBaseField>::new(vec![a, b, c, d])
+  Polynomial::<Monomial, PlutoBaseField, 4>::new([a, b, c, d])
 }
 
 #[rstest]
-fn evaluation(poly: Polynomial<Monomial, PlutoBaseField>) {
+fn evaluation(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
   // Should get: 1 + 2*(2) + 3*(2)^2 + 4*(2)^3 = 49
   let y = poly.evaluate(PlutoBaseField::new(2));
   let r = PlutoBaseField::new(49);
@@ -24,7 +24,7 @@ fn evaluation_with_zero() {
   let a = PlutoBaseField::new(1);
   let b = PlutoBaseField::new(0);
   let c = PlutoBaseField::new(3);
-  let polynomial = Polynomial::<Monomial, PlutoBaseField>::new(vec![a, b, c]);
+  let polynomial = Polynomial::<Monomial, PlutoBaseField, 3>::new([a, b, c]);
   let y = polynomial.evaluate(PlutoBaseField::new(0));
 
   // Should get: 1 + 3(0)^2 = 1
@@ -33,7 +33,7 @@ fn evaluation_with_zero() {
 }
 
 #[rstest]
-fn lagrange_evaluation(poly: Polynomial<Monomial, PlutoBaseField>) {
+fn lagrange_evaluation(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
   // Convert to Lagrange basis using roots of unity
   let lagrange = poly.dft();
   println!("{}", lagrange);
@@ -50,12 +50,12 @@ fn no_roots_of_unity() {
   let a = PlutoBaseField::new(1);
   let b = PlutoBaseField::new(2);
   let c = PlutoBaseField::new(3);
-  let polynomial = Polynomial::<Monomial, PlutoBaseField>::new(vec![a, b, c]);
+  let polynomial = Polynomial::<Monomial, PlutoBaseField, 3>::new([a, b, c]);
   polynomial.dft();
 }
 
 #[rstest]
-fn check_coefficients(poly: Polynomial<Monomial, PlutoBaseField>) {
+fn check_coefficients(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
   assert_eq!(poly.coefficients, [
     PlutoBaseField::new(1),
     PlutoBaseField::new(2),
@@ -72,39 +72,41 @@ fn check_coefficients(poly: Polynomial<Monomial, PlutoBaseField>) {
 }
 
 #[rstest]
-fn degree(poly: Polynomial<Monomial, PlutoBaseField>) {
+fn degree(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
   assert_eq!(poly.degree(), 3);
 }
 
 #[rstest]
-fn leading_coefficient(poly: Polynomial<Monomial, PlutoBaseField>) {
+fn leading_coefficient(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
   assert_eq!(poly.leading_coefficient(), PlutoBaseField::new(4));
 }
 
 #[rstest]
-fn pow_mult(poly: Polynomial<Monomial, PlutoBaseField>) {
-  assert_eq!(poly.pow_mult(PlutoBaseField::new(5), 2).coefficients, [
-    PlutoBaseField::new(0),
-    PlutoBaseField::new(0),
-    PlutoBaseField::new(5),
-    PlutoBaseField::new(10),
-    PlutoBaseField::new(15),
-    PlutoBaseField::new(20)
-  ]);
+fn pow_mult(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
+  assert_eq!(
+    poly.pow_mult::<2>(PlutoBaseField::new(5)),
+    Polynomial::<Monomial, PlutoBaseField, 6>::new([
+      PlutoBaseField::new(0),
+      PlutoBaseField::new(0),
+      PlutoBaseField::new(5),
+      PlutoBaseField::new(10),
+      PlutoBaseField::new(15),
+      PlutoBaseField::new(20)
+    ])
+  );
 }
 
-#[rstest]
-fn trim_zeros(mut poly: Polynomial<Monomial, PlutoBaseField>) {
-  poly.coefficients.push(PlutoBaseField::ZERO);
-  assert_eq!(poly.coefficients, [
+#[test]
+fn trim_zeros() {
+  let mut coefficients = vec![
     PlutoBaseField::new(1),
     PlutoBaseField::new(2),
     PlutoBaseField::new(3),
     PlutoBaseField::new(4),
-    PlutoBaseField::ZERO
-  ]);
-  poly.trim_zeros();
-  assert_eq!(poly.coefficients, [
+    PlutoBaseField::ZERO,
+  ];
+  Polynomial::<Monomial, PlutoBaseField, 5>::trim_zeros(coefficients.as_mut());
+  assert_eq!(coefficients, [
     PlutoBaseField::new(1),
     PlutoBaseField::new(2),
     PlutoBaseField::new(3),
@@ -112,22 +114,15 @@ fn trim_zeros(mut poly: Polynomial<Monomial, PlutoBaseField>) {
   ]);
 }
 
-#[test]
-fn trim_to_zero() {
-  let poly =
-    Polynomial::<Monomial, PlutoBaseField>::new(vec![PlutoBaseField::ZERO, PlutoBaseField::ZERO]);
-  assert_eq!(poly.coefficients, [PlutoBaseField::ZERO]);
-}
-
 #[rstest]
-fn dft(poly: Polynomial<Monomial, PlutoBaseField>) {
+fn dft(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
   assert_eq!(poly.dft().coefficients, [
     PlutoBaseField::new(10),
     PlutoBaseField::new(79),
     PlutoBaseField::new(99),
     PlutoBaseField::new(18)
   ]);
-  let poly =
-    Polynomial::<Monomial, PlutoBaseField>::new(vec![PlutoBaseField::ZERO, PlutoBaseField::ZERO]);
-  assert_eq!(poly.coefficients, [PlutoBaseField::ZERO]);
+  // let poly =
+  //   Polynomial::<Monomial, PlutoBaseField>::new(vec![PlutoBaseField::ZERO,
+  // PlutoBaseField::ZERO]); assert_eq!(poly.coefficients, [PlutoBaseField::ZERO]);
 }

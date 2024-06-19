@@ -89,10 +89,10 @@ impl Mul for TestBinaryExtensionField {
   type Output = Self;
 
   fn mul(self, rhs: Self) -> Self::Output {
-    let poly_self = Polynomial::<Monomial, TestBinaryField>::from(self);
-    let poly_rhs = Polynomial::<Monomial, TestBinaryField>::from(rhs);
+    let poly_self = Polynomial::<Monomial, TestBinaryField, 8>::from(self);
+    let poly_rhs = Polynomial::<Monomial, TestBinaryField, 8>::from(rhs);
     let poly_irred =
-      Polynomial::<Monomial, TestBinaryField>::from(Self::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS);
+      Polynomial::<Monomial, TestBinaryField, 8>::from(Self::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS);
     let product = (poly_self * poly_rhs) % poly_irred;
     let res: [TestBinaryField; 8] =
       array::from_fn(|i| product.coefficients.get(i).cloned().unwrap_or(TestBinaryField::ZERO));

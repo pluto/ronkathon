@@ -17,6 +17,8 @@
 //! - Includes Discrete Fourier Transform (DFT) for polynomials in the [`Monomial`] basis to convert
 //!   into the [`Lagrange`] basis via evaluation at the roots of unity.
 
+use std::array;
+
 use super::*;
 
 pub mod arithmetic;
@@ -24,17 +26,17 @@ pub mod arithmetic;
 
 // https://people.inf.ethz.ch/gander/papers/changing.pdf
 
-/// A polynomial of arbitrary degree.
+/// A polynomial of arbitrary degree `D-1`.
 /// Allows for a choice of basis between [`Monomial`] and [`Lagrange`].
 /// The coefficients are stored in a vector with the zeroth degree term first.
 /// Highest degree term should be non-zero.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Polynomial<B: Basis, F: FiniteField> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Polynomial<B: Basis, F: FiniteField, const D: usize> {
   /// Coefficients of the polynomial in the chosen basis.
   /// These will be in either:
   /// - Increasing order of degree for [`Monomial`] basis.
   /// - Order of the nodes of the Lagrange polynomial for [`Lagrange`] basis.
-  pub coefficients: Vec<F>,
+  pub coefficients: [F; D],
 
   /// The basis of the polynomial. Additional node points are stored for [`Lagrange`] basis.
   pub basis: B,
@@ -49,7 +51,7 @@ pub trait Basis {
 
 /// [`Monomial`] is a struct that implements the [`Basis`] trait.
 /// It is used to specify the [monomial basis](https://en.wikipedia.org/wiki/Monomial_basis) for a polynomial.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Monomial;
 impl Basis for Monomial {
   type Data = ();
@@ -68,7 +70,7 @@ impl<F: FiniteField> Basis for Lagrange<F> {
   type Data = Self;
 }
 
-impl<B: Basis, F: FiniteField> Polynomial<B, F> {
+impl<B: Basis, F: FiniteField, const D: usize> Polynomial<B, F, D> {
   /// A polynomial in any basis has a fixed number of independent terms.
   /// For example, in [`Monomial`] basis, the number of terms is one more than the degree of the
   /// polynomial.
@@ -81,7 +83,7 @@ impl<B: Basis, F: FiniteField> Polynomial<B, F> {
   pub fn num_terms(&self) -> usize { self.coefficients.len() }
 }
 
-impl<F: FiniteField> Polynomial<Monomial, F> {
+impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   /// Create a new polynomial in [`Monomial`] basis.
   ///
   /// ## Arguments:
@@ -92,19 +94,12 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   /// - A new polynomial in [`Monomial`] basis with the given coefficients.
   /// - The polynomial is automatically simplified to have a non-zero leading coefficient, that is
   ///   coefficient on the highest power term x^d.
-  pub fn new(coefficients: Vec<F>) -> Self {
-    let mut poly = Self { coefficients, basis: Monomial };
-    // Remove trailing zeros in the `coefficients` vector so that the highest degree term is
-    // non-zero.
-    poly.trim_zeros();
-    poly
-  }
+  pub fn new(coefficients: [F; D]) -> Self { Self { coefficients, basis: Monomial } }
 
-  fn trim_zeros(&mut self) {
-    let last_nonzero_index = self.coefficients.iter().rposition(|&c| c != F::ZERO);
-    match last_nonzero_index {
-      Some(index) => self.coefficients.truncate(index + 1),
-      None => self.coefficients.truncate(1),
+  /// Helper method to remove leading zeros from coefficients
+  fn trim_zeros(coefficients: &mut Vec<F>) {
+    while coefficients.last().cloned() == Some(F::ZERO) {
+      coefficients.pop();
     }
   }
 
@@ -114,11 +109,16 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   ///
   /// ## Returns:
   /// - The degree of the polynomial as a `usize`.
-  pub fn degree(&self) -> usize { self.coefficients.len() - 1 }
+  pub fn degree(&self) -> usize {
+    self.coefficients.iter().rposition(|&coeff| coeff != F::ZERO).unwrap_or(0)
+  }
 
   /// Retrieves the coefficient on the highest degree monomial term of a polynomial in the
   /// [`Monomial`] [`Basis`].
-  pub const fn leading_coefficient(&self) -> F { *self.coefficients.last().unwrap() }
+  // pub const fn leading_coefficient(&self) -> F { *self.coefficients.last().unwrap() }
+  pub fn leading_coefficient(&self) -> F {
+    self.coefficients.iter().rev().find(|&&coeff| coeff != F::ZERO).copied().unwrap_or(F::ZERO)
+  }
 
   /// Evaluates the polynomial at a given [`FiniteField`] element `x` using the [`Monomial`] basis.
   /// This is not using Horner's method or any other optimization.
@@ -143,18 +143,16 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   /// [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) algorithm (to implement [`Div`] and [`Rem`] traits).
   ///
   /// ## Arguments:
+  /// - `const D2`: The degree of the term to multiply by, e.g., `D2==5` multiplies by `x^5`.
   /// - `coeff`: The scalar to multiply the polynomial by.
-  /// - `pow`: The power of the monomial to multiply the polynomial by.
   ///
   /// ## Returns:
   /// - A new polynomial in the [`Monomial`] [`Basis`] that is the result of multiplying the
   ///   polynomial by `coeff` times `x^pow`.
-  pub fn pow_mult(&self, coeff: F, pow: usize) -> Polynomial<Monomial, F> {
-    let mut coefficients = vec![F::ZERO; self.coefficients.len() + pow];
-    self.coefficients.iter().enumerate().for_each(|(i, c)| {
-      coefficients[i + pow] = *c * coeff;
-    });
-    Polynomial::<Monomial, F>::new(coefficients)
+  pub fn pow_mult<const D2: usize>(&self, coeff: F) -> Polynomial<Monomial, F, { D + D2 }> {
+    let coefficients: [F; D + D2] =
+      array::from_fn(|i| if i >= D2 { self.coefficients[i - D2] * coeff } else { F::ZERO });
+    Polynomial::<Monomial, F, { D + D2 }>::new(coefficients)
   }
 
   /// [Euclidean division](https://en.wikipedia.org/wiki/Euclidean_division) of two polynomials in [`Monomial`] basis.
@@ -168,33 +166,61 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   /// - A tuple of two polynomials in [`Monomial`] basis:
   ///   - The first element is the quotient polynomial.
   ///   - The second element is the remainder polynomial.
-  fn quotient_and_remainder(self, rhs: Self) -> (Self, Self) {
+  fn quotient_and_remainder<const D2: usize>(
+    self,
+    rhs: Polynomial<Monomial, F, D2>,
+  ) -> (Self, Self) {
     // Initial quotient value
-    let mut q = Self::new(vec![]);
+    let mut q_coeffs = vec![F::ZERO; D];
 
     // Initial remainder value is our numerator polynomial
-    let mut p = self.clone();
+    let mut p_coeffs = self.coefficients.to_vec();
 
     // Leading coefficient of the denominator
     let c = rhs.leading_coefficient();
 
-    // Create quotient polynomial
-    let mut diff = p.degree() as isize - rhs.degree() as isize;
-    if diff < 0 {
-      return (Self::new(vec![F::ZERO]), p);
-    }
-    let mut q_coeffs = vec![F::ZERO; diff as usize + 1];
-
     // Perform the repeated long division algorithm
-    while diff >= 0 {
-      let s = p.leading_coefficient() * c.inverse().unwrap();
-      q_coeffs[diff as usize] = s;
-      p -= rhs.pow_mult(s, diff as usize);
-      p.trim_zeros();
-      diff = p.degree() as isize - rhs.degree() as isize;
+    while p_coeffs.iter().filter(|&&x| x != F::ZERO).count() > 0
+      && p_coeffs.len() >= rhs.coefficients.len()
+    {
+      // find degree of dividend, divisor
+      let p_degree = p_coeffs.iter().rposition(|&x| x != F::ZERO).unwrap();
+      let rhs_degree = rhs.coefficients.iter().rposition(|&x| x != F::ZERO).unwrap();
+
+      if p_degree < rhs_degree {
+        break;
+      }
+
+      let diff = p_degree - rhs_degree;
+      let s = p_coeffs[p_degree] * c.inverse().unwrap();
+      q_coeffs[diff] = s;
+
+      for (i, &coeff) in rhs.coefficients.iter().enumerate() {
+        p_coeffs[diff + i] -= coeff * s;
+      }
+
+      Polynomial::<Monomial, F, D>::trim_zeros(&mut p_coeffs);
     }
-    q.coefficients = q_coeffs;
-    (q, p)
+
+    let quotient = Polynomial {
+      coefficients: q_coeffs.try_into().unwrap_or_else(|v: Vec<F>| {
+        let mut arr = [F::ZERO; D];
+        arr.copy_from_slice(&v[..D]);
+        arr
+      }),
+      basis:        self.basis,
+    };
+
+    let remainder = Polynomial {
+      coefficients: p_coeffs.try_into().unwrap_or_else(|v: Vec<F>| {
+        let mut arr = [F::ZERO; D];
+        arr[..v.len()].copy_from_slice(&v[..]);
+        arr
+      }),
+      basis:        self.basis,
+    };
+
+    (quotient, remainder)
   }
 
   /// Computes the [Discrete Fourier Transform](https://en.wikipedia.org/wiki/Discrete_Fourier_transform)
@@ -210,25 +236,28 @@ impl<F: FiniteField> Polynomial<Monomial, F> {
   /// ## Panics
   /// - This function will panic in calling [`FiniteField::primitive_root_of_unity`] if the field
   ///   does not have roots of unity for the degree of the polynomial.
-  pub fn dft(&self) -> Polynomial<Lagrange<F>, F> {
+  pub fn dft(&self) -> Polynomial<Lagrange<F>, F, D> {
     let n = self.num_terms();
     let primitive_root_of_unity = F::primitive_root_of_unity(n);
 
-    Polynomial::<Lagrange<F>, F>::new(
-      (0..n)
-        .map(|i| {
-          self
-            .coefficients
-            .iter()
-            .enumerate()
-            .fold(F::ZERO, |acc, (j, &coeff)| acc + coeff * primitive_root_of_unity.pow(i * j))
-        })
-        .collect(),
+    let coeffs: Vec<F> = (0..n)
+      .map(|i| {
+        self
+          .coefficients
+          .iter()
+          .enumerate()
+          .fold(F::ZERO, |acc, (j, &coeff)| acc + coeff * primitive_root_of_unity.pow(i * j))
+      })
+      .collect();
+    Polynomial::<Lagrange<F>, F, D>::new(
+      coeffs.try_into().unwrap_or_else(|v: Vec<F>| {
+        panic!("Expected a Vec of length {} but it was {}", D, v.len())
+      }),
     )
   }
 }
 
-impl<const P: usize> Display for Polynomial<Monomial, PrimeField<P>> {
+impl<const P: usize, const D: usize> Display for Polynomial<Monomial, PrimeField<P>, D> {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     let mut first = true;
     for (i, c) in self.coefficients.iter().enumerate() {
@@ -246,7 +275,7 @@ impl<const P: usize> Display for Polynomial<Monomial, PrimeField<P>> {
   }
 }
 
-impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
+impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
   /// Create a new polynomial in [`Lagrange`] basis by supplying a number of coefficients.
   /// Assumes that a field has a root of unity for the amount of terms given in the coefficients.
   ///
@@ -260,7 +289,7 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
   /// ## Panics
   /// - This function will panic if the field does not have roots of unity for the length of the
   ///   polynomial.
-  pub fn new(coefficients: Vec<F>) -> Self {
+  pub fn new(coefficients: [F; D]) -> Self {
     // Check that the polynomial degree divides the field order so that there are roots of unity.
     let n = coefficients.len();
     assert_eq!((F::ORDER - 1) % n, 0);
@@ -321,7 +350,9 @@ impl<F: FiniteField> Polynomial<Lagrange<F>, F> {
   }
 }
 
-impl<const P: usize> Display for Polynomial<Lagrange<PrimeField<P>>, PrimeField<P>> {
+impl<const P: usize, const D: usize> Display
+  for Polynomial<Lagrange<PrimeField<P>>, PrimeField<P>, D>
+{
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     let d = self.num_terms() - 1;
     for (idx, (coeff, node)) in self.coefficients.iter().zip(self.basis.nodes.iter()).enumerate() {
@@ -335,14 +366,23 @@ impl<const P: usize> Display for Polynomial<Lagrange<PrimeField<P>>, PrimeField<
   }
 }
 
-/// Convert from an array of field elements into a polynomial in the [`Monomial`] basis.
-impl<const N: usize, F: FiniteField> From<[F; N]> for Polynomial<Monomial, F> {
-  fn from(coeffs: [F; N]) -> Self { Self::new(coeffs.to_vec()) }
+impl<const N: usize, F: FiniteField, const D: usize> From<[F; N]> for Polynomial<Monomial, F, D> {
+  /// Convert from an array of field elements into a polynomial in the [`Monomial`] basis.
+  ///
+  /// **Note**: if new polynomial degree > old, then copy till old else pad new polynomial with zero
+  fn from(coeffs: [F; N]) -> Self {
+    let mut new_coeffs = [F::ZERO; D];
+
+    let copy_size = if N < D { N } else { D };
+    new_coeffs[..copy_size].copy_from_slice(&coeffs[..copy_size]);
+
+    Self { coefficients: new_coeffs, basis: Monomial }
+  }
 }
 
-/// Convert from an [`Ext`] field element into a polynomial in the [`Monomial`] basis.
-impl<const N: usize, const P: usize> From<GaloisField<N, P>>
-  for Polynomial<Monomial, PrimeField<P>>
+impl<const N: usize, const P: usize, const D: usize> From<GaloisField<N, P>>
+  for Polynomial<Monomial, PrimeField<P>, D>
 {
+  /// Convert from an [`GaloisField`] field element into a polynomial in the [`Monomial`] basis.
   fn from(ext: GaloisField<N, P>) -> Self { Self::from(ext.coeffs) }
 }

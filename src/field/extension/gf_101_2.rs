@@ -3,15 +3,15 @@
 //! in form: `a_0 + a_1*t`` where {a_0, a_1} \in \mathhbb{F}. Uses irreducible poly of the form:
 //! (X^2-K).
 //!
-//! The curve used in [`curves::g1_curve`] supports degree two extension field from GF(101) to have
-//! points in GF(101^2). This can be verified by finding out embedding degree of the curve, i.e.
-//! smallest k such that r|q^k-1.
+//! The curve used in [`curve::pluto_curve::PlutoBaseCurve`] supports degree two extension field
+//! [`curve::pluto_curve::PlutoExtendedCurve`] from GF(101) to have points in GF(101^2). This can be
+//! verified by finding out embedding degree of the curve, i.e. smallest k such that r|q^k-1.
 
 use super::*;
 
 impl ExtensionField<2, 101> for PlutoBaseFieldExtension {
   /// irreducible polynomial used to reduce field polynomials to second degree:
-  /// F[X]/(X^2+2)
+  /// `F[X]/(X^2+2)`
   const IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS: [PlutoBaseField; 3] =
     [PlutoBaseField::new(2), PlutoBaseField::ZERO, PlutoBaseField::ONE];
 }
@@ -81,7 +81,7 @@ impl PlutoBaseFieldExtension {
 impl FiniteField for PlutoBaseFieldExtension {
   const ONE: Self = Self::new([PlutoBaseField::ONE, PlutoBaseField::ZERO]);
   const ORDER: usize = PlutoExtensions::QuadraticBase as usize;
-  /// Retrieves a multiplicative generator for GF(101) inside of [`Ext<2, GF101>`].
+  /// Retrieves a multiplicative generator for GF(101) inside of [`GaloisField<2, GF101>`].
   /// This can be verified using sage script
   /// ```sage
   /// F = GF(101)
@@ -132,19 +132,20 @@ impl<const N: usize, const P: usize> Distribution<GaloisField<N, P>> for Standar
   }
 }
 
-/// Returns the multiplication of two [`Ext<2, GF101>`] elements by reducing result modulo
+/// Returns the multiplication of two [`GaloisField<2, GF101>`] elements by reducing result modulo
 /// irreducible polynomial.
 impl Mul for PlutoBaseFieldExtension {
   type Output = Self;
 
   fn mul(self, rhs: Self) -> Self::Output {
-    let poly_self = Polynomial::<Monomial, PlutoBaseField>::from(self);
-    let poly_rhs = Polynomial::<Monomial, PlutoBaseField>::from(rhs);
+    let poly_self = Polynomial::<Monomial, PlutoBaseField, 2>::from(self);
+    let poly_rhs = Polynomial::<Monomial, PlutoBaseField, 2>::from(rhs);
     let poly_irred =
-      Polynomial::<Monomial, PlutoBaseField>::from(Self::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS);
+      Polynomial::<Monomial, PlutoBaseField, 3>::from(Self::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS);
     let product = (poly_self * poly_rhs) % poly_irred;
     let res: [PlutoBaseField; 2] =
       array::from_fn(|i| product.coefficients.get(i).cloned().unwrap_or(PlutoBaseField::ZERO));
+
     Self::new(res)
   }
 }

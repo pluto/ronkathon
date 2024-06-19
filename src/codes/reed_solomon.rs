@@ -110,7 +110,9 @@ const fn assert_ge<const N: usize, const K: usize>() {
   assert!(N >= K, "Code size must be greater than or equal to K");
 }
 
-impl<const K: usize, const P: usize> From<Message<K, P>> for Polynomial<Monomial, PrimeField<P>> {
+impl<const K: usize, const P: usize> From<Message<K, P>>
+  for Polynomial<Monomial, PrimeField<P>, K>
+{
   fn from(message: Message<K, P>) -> Self { Polynomial::from(message.data) }
 }
 

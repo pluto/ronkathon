@@ -21,7 +21,7 @@ pub type PlutoBaseFieldExtension = GaloisField<2, 101>;
 
 /// The [`PlutoScalarFieldExtension`] is a specific instance of the [`GaloisField`] struct with the
 /// order set to the prime number `17^2`. This is the quadratic extension field over the
-/// [`PlutoScalarField`] used in the Pluto `ronkathon` system.
+/// [`field::prime::PlutoScalarField`] used in the Pluto `ronkathon` system.
 pub type PlutoScalarFieldExtension = GaloisField<2, { PlutoPrime::Scalar as usize }>;
 
 /// Sizes of the fields for extensions on the [`PlutoPrime`]s.
@@ -154,7 +154,8 @@ impl<const N: usize, const P: usize> GaloisField<N, P> {
   pub const fn new(coeffs: [PrimeField<P>; N]) -> Self { Self { coeffs } }
 }
 
-/// Convert from a [`FiniteField`] element into the [`Ext`] field element in the natural way.
+/// Convert from a [`FiniteField`] element into the [`GaloisField`] field element in the natural
+/// way.
 impl<const N: usize, const P: usize> From<PrimeField<P>> for GaloisField<N, P> {
   fn from(value: PrimeField<P>) -> Self {
     let mut coeffs = [PrimeField::<P>::ZERO; N];
@@ -163,17 +164,17 @@ impl<const N: usize, const P: usize> From<PrimeField<P>> for GaloisField<N, P> {
   }
 }
 
-/// Convert from a [`u32`] into the [`Ext`] field element in the natural way.
+/// Convert from a [`u32`] into the [`GaloisField`] field element in the natural way.
 impl<const N: usize, const P: usize> From<u32> for GaloisField<N, P> {
   fn from(val: u32) -> Self { Self::from(PrimeField::<P>::from(val)) }
 }
 
-/// Convert from a [`u64`] into the [`Ext`] field element in the natural way.
+/// Convert from a [`u64`] into the [`GaloisField`] field element in the natural way.
 impl<const N: usize, const P: usize> From<u64> for GaloisField<N, P> {
   fn from(val: u64) -> Self { Self::from(PrimeField::<P>::from(val)) }
 }
 
-/// Convert from a [`usize`] into the [`Ext`] field element in the natural way.
+/// Convert from a [`usize`] into the [`GaloisField`] field element in the natural way.
 impl<const N: usize, const P: usize> From<usize> for GaloisField<N, P> {
   fn from(val: usize) -> Self { Self::from(PrimeField::<P>::from(val)) }
 }
