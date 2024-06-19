@@ -7,6 +7,8 @@ use std::{
 use crate::field::FiniteField;
 
 pub mod extension;
+pub use extension::BinaryTowers;
+
 #[cfg(test)] mod tests;
 
 /// binary field containing element `{0,1}`

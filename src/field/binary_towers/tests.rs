@@ -1,6 +1,5 @@
 use std::array;
 
-use extension::BinaryFieldExtension;
 use rand::{thread_rng, Rng};
 use rstest::rstest;
 
@@ -175,10 +174,10 @@ fn num_digit(#[case] num: u64, #[case] digits: usize) {
 #[test]
 fn add_sub_neg() {
   let mut rng = thread_rng();
-  let a = rng.gen::<BinaryFieldExtension<3>>();
-  let b = rng.gen::<BinaryFieldExtension<3>>();
+  let a = rng.gen::<BinaryTowers<3>>();
+  let b = rng.gen::<BinaryTowers<3>>();
 
-  assert_eq!(a + a, BinaryFieldExtension::<3>::ZERO);
+  assert_eq!(a + a, BinaryTowers::<3>::ZERO);
   assert_eq!(a + a, b + b);
   assert_eq!(a + b, b + a);
   assert_eq!(a + b, a - b);
@@ -187,17 +186,13 @@ fn add_sub_neg() {
 }
 
 #[rstest]
-#[case(BinaryFieldExtension::<3>::from(160), BinaryFieldExtension::<3>::from(23), BinaryFieldExtension::<3>::from(90))]
-#[case(BinaryFieldExtension::<3>::from(217), BinaryFieldExtension::<3>::from(20), BinaryFieldExtension::<3>::from(151))]
-#[case(BinaryFieldExtension::<3>::from(19), BinaryFieldExtension::<3>::from(230), BinaryFieldExtension::<3>::from(3))]
-#[case(BinaryFieldExtension::<3>::from(203), BinaryFieldExtension::<3>::from(187), BinaryFieldExtension::<3>::from(4))]
-#[case(BinaryFieldExtension::<3>::from(145), BinaryFieldExtension::<3>::from(38), BinaryFieldExtension::<3>::from(152))]
-#[case(BinaryFieldExtension::<3>::from(209), BinaryFieldExtension::<3>::from(155), BinaryFieldExtension::<3>::from(71))]
-fn mul_div(
-  #[case] a: BinaryFieldExtension<3>,
-  #[case] b: BinaryFieldExtension<3>,
-  #[case] res: BinaryFieldExtension<3>,
-) {
+#[case(BinaryTowers::<3>::from(160), BinaryTowers::<3>::from(23), BinaryTowers::<3>::from(90))]
+#[case(BinaryTowers::<3>::from(217), BinaryTowers::<3>::from(20), BinaryTowers::<3>::from(151))]
+#[case(BinaryTowers::<3>::from(19), BinaryTowers::<3>::from(230), BinaryTowers::<3>::from(3))]
+#[case(BinaryTowers::<3>::from(203), BinaryTowers::<3>::from(187), BinaryTowers::<3>::from(4))]
+#[case(BinaryTowers::<3>::from(145), BinaryTowers::<3>::from(38), BinaryTowers::<3>::from(152))]
+#[case(BinaryTowers::<3>::from(209), BinaryTowers::<3>::from(155), BinaryTowers::<3>::from(71))]
+fn mul_div(#[case] a: BinaryTowers<3>, #[case] b: BinaryTowers<3>, #[case] res: BinaryTowers<3>) {
   let c = a * b;
   assert_eq!(a * b, res);
   assert_eq!(b * a, res);
@@ -205,20 +200,20 @@ fn mul_div(
   let d = a / b;
   assert_eq!(d * c, a.pow(2));
 
-  let e = BinaryFieldExtension::<3>::ONE / (a * b);
-  assert_eq!(a * b * e, BinaryFieldExtension::<3>::ONE);
+  let e = BinaryTowers::<3>::ONE / (a * b);
+  assert_eq!(a * b * e, BinaryTowers::<3>::ONE);
 }
 
 #[test]
 fn small_by_large_mul() {
   let mut rng = thread_rng();
   for _ in 0..100 {
-    let a = rng.gen::<BinaryFieldExtension<5>>();
+    let a = rng.gen::<BinaryTowers<5>>();
 
     let val = rng.gen_range(0..1 << (1 << 3));
 
-    let b = BinaryFieldExtension::<3>::from(val);
-    let d = BinaryFieldExtension::<5>::from(val);
+    let b = BinaryTowers::<3>::from(val);
+    let d = BinaryTowers::<5>::from(val);
 
     let small_by_large_res = a * b;
     let res = from_bool_vec(small_by_large_res.coefficients.to_vec());
@@ -236,11 +231,11 @@ fn small_by_large_mul() {
 #[test]
 fn efficient_embedding() {
   let mut rng = thread_rng();
-  let a = rng.gen::<BinaryFieldExtension<4>>();
+  let a = rng.gen::<BinaryTowers<4>>();
 
   let (a1, a2) = a.into();
 
-  let b: BinaryFieldExtension<4> = (a1, a2).into();
+  let b: BinaryTowers<4> = (a1, a2).into();
 
   assert_eq!(a, b);
 }

@@ -17,13 +17,13 @@ use crate::field::FiniteField;
 /// represented as vector of 2^K [`BinaryField`] components in multilinear basis,
 /// i.e. an element $b_v = \prod_{i=0}^{k-1}(v_i.X_i+(1-v_i))$ where $v_i$ is in GF(2).
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct BinaryFieldExtension<const K: usize>
+pub struct BinaryTowers<const K: usize>
 where [(); 1 << K]: {
   /// coefficient of field element
   pub coefficients: [BinaryField; 1 << K],
 }
 
-impl<const K: usize> BinaryFieldExtension<K>
+impl<const K: usize> BinaryTowers<K>
 where [(); 1 << K]:
 {
   /// create extension field element from coefficient vector of [`BinaryField`]
@@ -32,11 +32,11 @@ where [(); 1 << K]:
   const fn one() -> Self {
     let mut coefficients = [BinaryField::ZERO; 1 << K];
     coefficients[0] = BinaryField::ONE;
-    BinaryFieldExtension { coefficients }
+    BinaryTowers { coefficients }
   }
 }
 
-impl<const K: usize> FiniteField for BinaryFieldExtension<K>
+impl<const K: usize> FiniteField for BinaryTowers<K>
 where [(); 1 << K]:
 {
   const ONE: Self = Self::one();
@@ -46,7 +46,7 @@ where [(); 1 << K]:
   const ZERO: Self = Self::new([BinaryField::ZERO; 1 << K]);
 
   fn pow(self, power: usize) -> Self {
-    let mut result = BinaryFieldExtension::ONE;
+    let mut result = BinaryTowers::ONE;
     let mut base = self;
     let mut exp = power;
 
@@ -69,13 +69,13 @@ where [(); 1 << K]:
   }
 }
 
-impl<const K: usize> Default for BinaryFieldExtension<K>
+impl<const K: usize> Default for BinaryTowers<K>
 where [(); 1 << K]:
 {
   fn default() -> Self { Self::ZERO }
 }
 
-impl<const K: usize> Add for BinaryFieldExtension<K>
+impl<const K: usize> Add for BinaryTowers<K>
 where [(); 1 << K]:
 {
   type Output = Self;
@@ -95,13 +95,13 @@ where [(); 1 << K]:
   }
 }
 
-impl<const K: usize> AddAssign for BinaryFieldExtension<K>
+impl<const K: usize> AddAssign for BinaryTowers<K>
 where [(); 1 << K]:
 {
   fn add_assign(&mut self, rhs: Self) { *self = *self + rhs; }
 }
 
-impl<const K: usize> Sum for BinaryFieldExtension<K>
+impl<const K: usize> Sum for BinaryTowers<K>
 where [(); 1 << K]:
 {
   fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
@@ -109,7 +109,7 @@ where [(); 1 << K]:
   }
 }
 
-impl<const K: usize> Sub for BinaryFieldExtension<K>
+impl<const K: usize> Sub for BinaryTowers<K>
 where [(); 1 << K]:
 {
   type Output = Self;
@@ -118,32 +118,19 @@ where [(); 1 << K]:
   fn sub(self, rhs: Self) -> Self::Output { self + rhs }
 }
 
-impl<const K: usize> SubAssign for BinaryFieldExtension<K>
+impl<const K: usize> SubAssign for BinaryTowers<K>
 where [(); 1 << K]:
 {
   fn sub_assign(&mut self, rhs: Self) { *self = *self - rhs; }
 }
 
-// impl<const K: usize> Mul for BinaryFieldExtension<K>
-// where [(); 1 << K]:
-// {
-//   type Output = Self;
-
-//   fn mul(self, rhs: Self) -> Self::Output {
-//     let res = multiply(&self.coefficients, &rhs.coefficients, K).try_into().unwrap_or_else(
-//       |v: Vec<BinaryField>| panic!("expected vec of len: {}, but found: {}", 1 << K, v.len()),
-//     );
-//     BinaryFieldExtension::<K>::new(res)
-//   }
-// }
-
-impl<const K: usize> MulAssign for BinaryFieldExtension<K>
+impl<const K: usize> MulAssign for BinaryTowers<K>
 where [(); 1 << K]:
 {
   fn mul_assign(&mut self, rhs: Self) { *self = *self * rhs; }
 }
 
-impl<const K: usize> Product for BinaryFieldExtension<K>
+impl<const K: usize> Product for BinaryTowers<K>
 where [(); 1 << K]:
 {
   fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
@@ -151,26 +138,26 @@ where [(); 1 << K]:
   }
 }
 
-impl<const K: usize, const K2: usize> Mul<BinaryFieldExtension<K2>> for BinaryFieldExtension<K>
+impl<const K: usize, const K2: usize> Mul<BinaryTowers<K2>> for BinaryTowers<K>
 where
   [(); 1 << K]:,
   [(); 1 << K2]:,
 {
   type Output = Self;
 
-  /// multiplies a [`BinaryFieldExtension`]::<K> with [`BinaryFieldExtension`]::<K2> by efficient
+  /// multiplies a [`BinaryTowers`]::<K> with [`BinaryTowers`]::<K2> by efficient
   /// small-by-large field multiplication in binary extension fields. breaks down K into chunks of
   /// `1<<K2` and define K's basis in `K2`.
   ///
   /// **Note**: return self if K < K2.
   #[allow(clippy::suspicious_arithmetic_impl)]
-  fn mul(self, rhs: BinaryFieldExtension<K2>) -> Self::Output {
+  fn mul(self, rhs: BinaryTowers<K2>) -> Self::Output {
     match K.cmp(&K2) {
       Ordering::Equal => {
         let res = multiply(&self.coefficients, &rhs.coefficients, K).try_into().unwrap_or_else(
           |v: Vec<BinaryField>| panic!("expected vec of len: {}, but found: {}", 1 << K, v.len()),
         );
-        BinaryFieldExtension::<K>::new(res)
+        BinaryTowers::<K>::new(res)
       },
       Ordering::Less => self,
       Ordering::Greater => {
@@ -180,22 +167,22 @@ where
           .map(|v| {
             let coefficients: [BinaryField; 1 << K2] =
               v.try_into().expect("expected a vec of size");
-            BinaryFieldExtension::<K2>::new(coefficients) * rhs
+            BinaryTowers::<K2>::new(coefficients) * rhs
           })
-          .collect::<Vec<BinaryFieldExtension<K2>>>();
+          .collect::<Vec<BinaryTowers<K2>>>();
         let mut coefficients = [BinaryField::ZERO; 1 << K];
         for (i, value) in small_values.iter().enumerate() {
           let range_start = i * (1 << K2);
           coefficients[range_start..range_start + (1 << K2)]
             .copy_from_slice(&value.coefficients[..]);
         }
-        BinaryFieldExtension::<K>::new(coefficients)
+        BinaryTowers::<K>::new(coefficients)
       },
     }
   }
 }
 
-impl<const K: usize> Neg for BinaryFieldExtension<K>
+impl<const K: usize> Neg for BinaryTowers<K>
 where [(); 1 << K]:
 {
   type Output = Self;
@@ -203,7 +190,7 @@ where [(); 1 << K]:
   fn neg(self) -> Self::Output { self }
 }
 
-impl<const K: usize> Div for BinaryFieldExtension<K>
+impl<const K: usize> Div for BinaryTowers<K>
 where [(); 1 << K]:
 {
   type Output = Self;
@@ -212,13 +199,13 @@ where [(); 1 << K]:
   fn div(self, rhs: Self) -> Self::Output { self * rhs.inverse().unwrap() }
 }
 
-impl<const K: usize> DivAssign for BinaryFieldExtension<K>
+impl<const K: usize> DivAssign for BinaryTowers<K>
 where [(); 1 << K]:
 {
   fn div_assign(&mut self, rhs: Self) { *self = *self / rhs; }
 }
 
-impl<const K: usize> Rem for BinaryFieldExtension<K>
+impl<const K: usize> Rem for BinaryTowers<K>
 where [(); 1 << K]:
 {
   type Output = Self;
@@ -226,7 +213,7 @@ where [(); 1 << K]:
   fn rem(self, rhs: Self) -> Self::Output { self - (self / rhs) * rhs }
 }
 
-impl<const K: usize> From<usize> for BinaryFieldExtension<K>
+impl<const K: usize> From<usize> for BinaryTowers<K>
 where [(); 1 << K]:
 {
   fn from(value: usize) -> Self {
@@ -238,52 +225,50 @@ where [(); 1 << K]:
   }
 }
 
-impl<const K: usize> From<BinaryFieldExtension<K>>
-  for (BinaryFieldExtension<{ K - 1 }>, BinaryFieldExtension<{ K - 1 }>)
+impl<const K: usize> From<BinaryTowers<K>> for (BinaryTowers<{ K - 1 }>, BinaryTowers<{ K - 1 }>)
 where
   [(); 1 << K]:,
   [(); 1 << { K - 1 }]:,
 {
-  fn from(value: BinaryFieldExtension<K>) -> Self {
+  fn from(value: BinaryTowers<K>) -> Self {
     debug_assert!(K > 1, "K cannot be less than 1");
     let lhs: [BinaryField; 1 << (K - 1)] = value.coefficients[..1 << (K - 1)].try_into().unwrap();
     let rhs: [BinaryField; 1 << (K - 1)] = value.coefficients[1 << (K - 1)..].try_into().unwrap();
-    let lhs = BinaryFieldExtension::<{ K - 1 }>::new(lhs);
-    let rhs = BinaryFieldExtension::<{ K - 1 }>::new(rhs);
+    let lhs = BinaryTowers::<{ K - 1 }>::new(lhs);
+    let rhs = BinaryTowers::<{ K - 1 }>::new(rhs);
     (lhs, rhs)
   }
 }
 
-impl<const K: usize> From<(BinaryFieldExtension<K>, BinaryFieldExtension<K>)>
-  for BinaryFieldExtension<{ K + 1 }>
+impl<const K: usize> From<(BinaryTowers<K>, BinaryTowers<K>)> for BinaryTowers<{ K + 1 }>
 where
   [(); 1 << K]:,
   [(); 1 << { K + 1 }]:,
 {
-  fn from(value: (BinaryFieldExtension<{ K }>, BinaryFieldExtension<{ K }>)) -> Self {
+  fn from(value: (BinaryTowers<{ K }>, BinaryTowers<{ K }>)) -> Self {
     let mut result = [BinaryField::ZERO; 1 << (K + 1)];
     result[..1 << K].copy_from_slice(&value.0.coefficients);
     result[1 << K..].copy_from_slice(&value.1.coefficients);
-    BinaryFieldExtension::<{ K + 1 }>::new(result)
+    BinaryTowers::<{ K + 1 }>::new(result)
   }
 }
 
-impl<const K: usize> Distribution<BinaryFieldExtension<K>> for Standard
+impl<const K: usize> Distribution<BinaryTowers<K>> for Standard
 where [(); 1 << K]:
 {
   #[inline]
-  fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> BinaryFieldExtension<K> {
+  fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> BinaryTowers<K> {
     let num = rng.gen_range(1..1 << (1 << K));
     let coefficients = to_bool_vec(num, 1 << K).try_into().unwrap_or_else(|v: Vec<BinaryField>| {
       panic!("Expected a Vec of length {} but it was {}", 1 << K, v.len())
     });
-    BinaryFieldExtension::<K>::new(coefficients)
+    BinaryTowers::<K>::new(coefficients)
   }
 }
 
 /// Uses karatsuba style multiplication to multiply two elements of field extension.
 /// represents a field extension element in 2^K length vector of [`BinaryField`] coefficients to
-/// form [`BinaryFieldExtension`]. Elements are broken down into `a = a_1*X_{i-1}+a_0` and reduction
+/// form [`BinaryTowers`]. Elements are broken down into `a = a_1*X_{i-1}+a_0` and reduction
 /// rule: `$X_{i}^{2}=X_i*X_{i-1}+1$`
 /// - a*a' = (r1*X_{i-1}+l1)(r2*X_{i-1}+l2)
 /// - (l1l2) + r1r2*X_{i-1}^2 + (l1r2+l2r1)*X_{i-1}
