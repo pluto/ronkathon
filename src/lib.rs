@@ -22,6 +22,7 @@
 #![feature(generic_const_exprs)]
 #![warn(missing_docs)]
 
+pub mod cipher;
 pub mod codes;
 pub mod compiler;
 pub mod curve;
