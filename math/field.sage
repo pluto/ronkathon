@@ -1,4 +1,4 @@
-# Define a finite field, our `GF101` which is 
+# Define a finite field, our `GF101` which is
 # a field of 101 elements (101 being prime).
 F = GF(101)
 print(F)
@@ -108,3 +108,21 @@ denominator = F_2(62*t)
 # Compute the division of 50 by 60t in the extension field
 result = numerator / denominator
 print("The division of 50 by 60t in the extension field is:", result)
+
+######################################################################
+# Binary field extensions
+
+F = GF(2)
+Ft.<t> = F[]
+P = Ft(t^8+t^4+t^3+t+1)
+F_2_8 = GF(2^8, name="t", modulus=P)
+a = t^7+t^5 # 160
+b = 1+t+t^2+t^4 # 23
+a = F_2_8(a)
+b = F_2_8(b)
+print(a.additive_order(), (a*b).additive_order()) # 163()
+a = set()
+for point in F_2_8:
+	a.add(point.additive_order())
+one = F_2_8(0)
+print("primitive element:", F_2_8.primitive_element().order(), a, one.order())

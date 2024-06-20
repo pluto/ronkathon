@@ -2,6 +2,7 @@
 
 use super::*;
 
+pub mod binary_towers;
 pub mod extension;
 pub mod prime;
 
