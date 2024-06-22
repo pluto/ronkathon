@@ -28,6 +28,7 @@ pub mod field;
 pub mod hashes;
 pub mod kzg;
 pub mod polynomial;
+pub mod primitives;
 pub mod rsa;
 pub mod tree;
 
