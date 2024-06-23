@@ -15,7 +15,6 @@ fn exhaustive_key_search(
   for k in 0..(1u64 << 56) {
     let key = k.to_be_bytes();
     let des = DES::new(key);
-    // println!("attack keys {:?}", des.subkeys);
 
     let decrypted = des.decrypt(ciphertext);
     let decrypted2 = des.decrypt(ciphertext2);
@@ -35,10 +34,8 @@ fn known_plaintext_attack() {
   let plaintext2 = rng.gen();
 
   let key = 100000_u64.to_be_bytes();
-  let key2: [u8; 8] = [0, 0, 0, 0, 0, 0, 134, 160];
 
   let des = DES::new(key);
-  let des2 = DES::new(key2);
 
   let ciphertext = des.encrypt(&plaintext1);
   let ciphertext2 = des.encrypt(&plaintext2);
@@ -84,6 +81,8 @@ fn des_fuzz() {
 }
 
 #[test]
+/// DES has four weak keys where encryption and decryption are same.
+/// This is only possible when all round keys are same.
 fn weak_keys() {
   const WEAK_KEYS: [[u8; 8]; 4] = [
     [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
@@ -105,6 +104,7 @@ fn weak_keys() {
 }
 
 #[test]
+/// DES has a nice property where $y=ENC_k(x)$ and $y'=ENC_{k'}(x')$
 fn bit_complement() {
   let mut rng = thread_rng();
   let secret_key: u64 = rng.gen();

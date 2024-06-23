@@ -141,15 +141,23 @@ impl DES {
     result
   }
 
-  fn substitution(data: Block) -> HalfBlock {
+  // gets 8 6-bit elements from mixing and substitutes using [`S_BOXES`]
+  fn feistel_substitution(data: Block) -> HalfBlock {
     let mut output = [0u8; 4];
 
+    // perform 8 substitions
     for (i, entry) in data.iter().enumerate() {
+      // parse row as 6th and 1st bit
       let row = ((entry & 0b100000) >> 4) | (entry & 1);
+      // parse column as mid 4 bits
       let column = (entry >> 1) & 0b1111;
+
+      // s-box output is 4 bits
       let s_box_value = S_BOXES[i][row as usize][column as usize];
 
+      // bit position is ith substitution * 4 (s-box output)
       let bit_pos = i * 4;
+      // two 4 bits occupy a u8 with even s-boxes gets placed at higher position
       output[i / 2] |= s_box_value << (4 - (bit_pos % 8));
     }
 
@@ -159,7 +167,7 @@ impl DES {
   fn feistel_function(data: &HalfBlock, subkey: &Subkey) -> HalfBlock {
     let expanded = Self::permutation(data, &E);
     let mixed = Self::feistel_mix(expanded, subkey);
-    let substituted = Self::substitution(mixed);
+    let substituted = Self::feistel_substitution(mixed);
     Self::permutation(&substituted, &F_P)
   }
 
