@@ -1,6 +1,6 @@
 use super::*;
 
-impl<const P: usize> const Add for PrimeField<P> {
+impl<const P: usize> Add for PrimeField<P> {
   type Output = Self;
 
   fn add(self, rhs: Self) -> Self { Self { value: (self.value + rhs.value) % Self::ORDER } }
