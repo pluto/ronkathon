@@ -1,5 +1,8 @@
 //! Contains constants used during DES encryption and decryption functions
 
+/// Key schedule left shifts
+pub const SHIFTS: [usize; 16] = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1];
+
 /// Key Schedule's permutation choice-1
 #[rustfmt::skip]
 pub const PC1: [usize; 56] = [
@@ -59,9 +62,6 @@ pub const E: [usize; 48] = [
   25, 26, 27, 28, 29,
   28, 29, 30, 31, 32, 1,
 ];
-
-/// Key schedule left shifts
-pub const SHIFTS: [usize; 16] = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1];
 
 /// Fiestel function's per round substitution boxes
 pub const S_BOXES: [[[u8; 16]; 4]; 8] = [
