@@ -117,7 +117,7 @@ pub const S_BOXES: [[[u8; 16]; 4]; 8] = [
 
 /// Fiestel function's permutation table
 #[rustfmt::skip]
-pub const P_F: [usize; 32] = [
+pub const F_P: [usize; 32] = [
     16, 7, 20, 21, 29, 12, 28, 17,
     1, 15, 23, 26, 5, 18, 31, 10,
     2, 8, 24, 14, 32, 27, 3, 9,
