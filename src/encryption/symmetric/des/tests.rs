@@ -14,7 +14,7 @@ fn exhaustive_key_search(
 ) -> Option<[u8; 8]> {
   for k in 0..(1u64 << 56) {
     let key = k.to_be_bytes();
-    let subkeys = DES::new(key);
+    let subkeys = DES::setup(key);
 
     let decrypted = DES::decrypt(&subkeys, ciphertext);
     let decrypted2 = DES::decrypt(&subkeys, ciphertext2);
@@ -35,7 +35,7 @@ fn known_plaintext_attack() {
 
   let key = 100000_u64.to_be_bytes();
 
-  let subkeys = DES::new(key);
+  let subkeys = DES::setup(key);
 
   let ciphertext = DES::encrypt(&subkeys, &plaintext1);
   let ciphertext2 = DES::encrypt(&subkeys, &plaintext2);
@@ -51,7 +51,7 @@ fn des() {
     let mut rng = thread_rng();
     let secret_key = rng.gen();
 
-    let subkeys = DES::new(secret_key);
+    let subkeys = DES::setup(secret_key);
 
     let message = rng.gen();
     let encrypted = DES::encrypt(&subkeys, &message);
@@ -66,7 +66,7 @@ fn des_fuzz() {
   let mut rng = thread_rng();
   let key: [u8; 8] = rng.gen();
 
-  let subkeys = DES::new(key);
+  let subkeys = DES::setup(key);
   let des_fuzz = Des_fuzz::new_from_slice(&key).unwrap();
 
   let mut data: [u8; 8] = rng.gen();
@@ -92,7 +92,7 @@ fn weak_keys() {
   ];
 
   for key in WEAK_KEYS.into_iter() {
-    let subkeys = DES::new(key);
+    let subkeys = DES::setup(key);
 
     let message = b"weaktest";
 
@@ -109,7 +109,7 @@ fn bit_complement() {
   let mut rng = thread_rng();
   let secret_key: u64 = rng.gen();
 
-  let subkeys = DES::new(secret_key.to_be_bytes());
+  let subkeys = DES::setup(secret_key.to_be_bytes());
 
   let message: u64 = rng.gen();
   let encrypted = DES::encrypt(&subkeys, &message.to_be_bytes());
@@ -117,7 +117,7 @@ fn bit_complement() {
   let key_complement = u64::MAX ^ secret_key;
   let message_complement = u64::MAX ^ message;
 
-  let subkeys_complement = DES::new(key_complement.to_be_bytes());
+  let subkeys_complement = DES::setup(key_complement.to_be_bytes());
   let encrypted_complement = DES::encrypt(&subkeys_complement, &message_complement.to_be_bytes());
 
   assert_eq!(u64::MAX ^ u64::from_be_bytes(encrypted), u64::from_be_bytes(encrypted_complement));

@@ -1,5 +1,5 @@
 //! This module contains the definition of finite fields and their extension fields.
-#[doc = include_str!("./README.md")] use super::*;
+use super::*;
 pub mod binary_towers;
 pub mod extension;
 pub mod prime;

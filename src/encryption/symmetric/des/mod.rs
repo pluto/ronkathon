@@ -69,8 +69,8 @@ impl DES {
   /// let mut rng = thread_rng();
   /// let secret_key = rng.gen();
   ///
-  /// let subkeys = DES::new(secret_key);
-  pub fn new(secret_key: Block) -> SubKeys { Self::generate_subkeys(secret_key) }
+  /// let subkeys = DES::setup(secret_key);
+  pub fn setup(secret_key: Block) -> SubKeys { Self::generate_subkeys(secret_key) }
 
   fn permute(data: &[u8], permutation_table: &[usize]) -> Vec<u8> {
     permutation_table.iter().map(|&i| (data[(i - 1) / 8] >> (7 - (i - 1) % 8)) & 1).collect()
@@ -237,7 +237,7 @@ impl SymmetricEncryption for DES {
   /// let mut rng = thread_rng();
   /// let secret_key = rng.gen();
   ///
-  /// let subkeys = DES::new(secret_key);
+  /// let subkeys = DES::setup(secret_key);
   ///
   /// let message = rng.gen();
   /// let encrypted = DES::encrypt(&subkeys, &message);
@@ -255,7 +255,7 @@ impl SymmetricEncryption for DES {
   /// let mut rng = thread_rng();
   /// let secret_key = rng.gen();
   ///
-  /// let subkeys = DES::new(secret_key);
+  /// let subkeys = DES::setup(secret_key);
   ///
   /// let message = rng.gen();
   /// let encrypted = DES::encrypt(&subkeys, &message);
