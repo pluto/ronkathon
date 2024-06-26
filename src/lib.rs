@@ -24,6 +24,7 @@
 pub mod codes;
 pub mod curve;
 pub mod ecdsa;
+pub mod encryption;
 pub mod field;
 pub mod hashes;
 pub mod kzg;
