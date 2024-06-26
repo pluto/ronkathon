@@ -1,7 +1,9 @@
 //! KZG implementation for polynomial commitments
-pub mod setup;
-#[cfg(test)] mod tests;
+#[doc = include_str!("./README.md")]
+#[cfg(test)]
+mod tests;
 
+pub mod setup;
 pub use setup::*;
 
 use super::*;
