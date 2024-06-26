@@ -4,24 +4,25 @@
 pub mod tests;
 
 pub mod constants;
+
 use constants::*;
 
-/// Block represents 64-bit sized data
+use super::SymmetricEncryption;
+
+/// Block represents 64-bit sized message data
 pub type Block = [u8; 8];
-/// 32-bit sized half blocks
-pub type HalfBlock = [u8; 4];
+/// 32-bit sized word
+pub type Word = [u8; 4];
 
 /// Subkey represents 48-bit round keys used in each round of the encryption
 pub type Subkey = [u8; 6];
 
-// pub trait BlockCipher {}
+/// Subkeys represents 16-round subkey generated from secret key
+pub type SubKeys = [Subkey; 16];
 
 /// DES encryption
 #[derive(Debug)]
-pub struct DES {
-  /// round keys
-  subkeys: [Subkey; 16],
-}
+pub struct DES {}
 
 /// combine bits in first bit of `u8` into a u8
 #[inline(always)]
@@ -38,9 +39,11 @@ fn get_byte_from_bits(bits: &[u8]) -> u8 {
 }
 
 #[inline(always)]
-fn rotate_left_28(input: u32, shift: usize) -> u32 {
-  let mask = (1 << 28) - 1; // Mask to keep only the lowest 28 bits
-  ((input << shift) & mask) | (input >> (28 - shift))
+const fn rotate_left<const BITS: usize>(input: u32, shift: usize) -> u32 {
+  debug_assert!(BITS < 32);
+
+  let mask = (1 << BITS) - 1; // Mask to keep only the lowest 28 bits
+  ((input << shift) & mask) | (input >> (BITS - shift))
 }
 
 /// left shifts a 28-bit number represented in big-endian to left by `shift` positions
@@ -48,25 +51,26 @@ fn rotate_left_28(input: u32, shift: usize) -> u32 {
 /// - `100000025`: `00000101 11110101 11100001 00011001`
 /// - shift by 2 positions -> `00000111 11010111 10000100 01100101`
 #[inline(always)]
-fn left_shift(input: &[u8], shift: usize) -> [u8; 4] {
+const fn left_shift(input: &[u8], shift: usize) -> [u8; 4] {
   assert!(input.len() == 4);
 
   let input_u = u32::from_be_bytes([input[0], input[1], input[2], input[3]]);
 
-  rotate_left_28(input_u, shift).to_be_bytes()
+  rotate_left::<28>(input_u, shift).to_be_bytes()
 }
 
 impl DES {
-  /// create a DES encryption function with round subkeys
+  /// returns round subkeys based on secret key for DES encryption.
+  ///
   /// ## Example
   /// ```rust
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::primitives::symmetric::encryption::des::DES;
+  /// use ronkathon::encryption::symmetric::des::DES;
   /// let mut rng = thread_rng();
   /// let secret_key = rng.gen();
   ///
-  /// let des = DES::new(secret_key);
-  pub fn new(secret_key: Block) -> Self { Self { subkeys: Self::generate_subkeys(secret_key) } }
+  /// let subkeys = DES::new(secret_key);
+  pub fn new(secret_key: Block) -> SubKeys { Self::generate_subkeys(secret_key) }
 
   fn permute(data: &[u8], permutation_table: &[usize]) -> Vec<u8> {
     permutation_table.iter().map(|&i| (data[(i - 1) / 8] >> (7 - (i - 1) % 8)) & 1).collect()
@@ -142,7 +146,7 @@ impl DES {
   }
 
   // gets 8 6-bit elements from mixing and substitutes using [`S_BOXES`]
-  fn feistel_substitution(data: Block) -> HalfBlock {
+  fn feistel_substitution(data: Block) -> Word {
     let mut output = [0u8; 4];
 
     // perform 8 substitions
@@ -164,7 +168,7 @@ impl DES {
     output
   }
 
-  fn feistel_function(data: &HalfBlock, subkey: &Subkey) -> HalfBlock {
+  fn feistel_function(data: &Word, subkey: &Subkey) -> Word {
     let expanded = Self::permutation(data, &E);
     let mixed = Self::feistel_mix(expanded, subkey);
     let substituted = Self::feistel_substitution(mixed);
@@ -183,7 +187,7 @@ impl DES {
       .unwrap_or_else(|v: Vec<u8>| panic!("expected vec of len: {} but got: {}", N2, v.len()))
   }
 
-  fn mix(state: HalfBlock, subkey: HalfBlock) -> HalfBlock {
+  fn mix(state: Word, subkey: Word) -> Word {
     state
       .into_iter()
       .zip(subkey)
@@ -218,39 +222,46 @@ impl DES {
     // final permutation
     Self::permutation(&combined, &FP)
   }
+}
+
+impl SymmetricEncryption for DES {
+  type Block = Block;
+  type Key = SubKeys;
 
   /// Encrypt a message of size [`Block`]
   ///
   /// ## Example
   /// ```rust
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::primitives::symmetric::encryption::des::DES;
+  /// use ronkathon::encryption::symmetric::{des::DES, SymmetricEncryption};
   /// let mut rng = thread_rng();
   /// let secret_key = rng.gen();
   ///
-  /// let des = DES::new(secret_key);
+  /// let subkeys = DES::new(secret_key);
   ///
   /// let message = rng.gen();
-  /// let encrypted = des.encrypt(&message);
+  /// let encrypted = DES::encrypt(&subkeys, &message);
   /// ```
-  pub fn encrypt(&self, message: &Block) -> Block { Self::des(message, self.subkeys.iter()) }
+  fn encrypt(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
+    Self::des(plaintext, key.iter())
+  }
 
   /// Decrypt a ciphertext of size [`Block`]
   ///
   /// ## Example
   /// ```rust
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::primitives::symmetric::encryption::des::DES;
+  /// use ronkathon::encryption::symmetric::{des::DES, SymmetricEncryption};
   /// let mut rng = thread_rng();
   /// let secret_key = rng.gen();
   ///
-  /// let des = DES::new(secret_key);
+  /// let subkeys = DES::new(secret_key);
   ///
   /// let message = rng.gen();
-  /// let encrypted = des.encrypt(&message);
-  /// let decrypted = des.decrypt(&encrypted);
+  /// let encrypted = DES::encrypt(&subkeys, &message);
+  /// let decrypted = DES::decrypt(&subkeys, &encrypted);
   /// ```
-  pub fn decrypt(&self, ciphertext: &Block) -> Block {
-    Self::des(ciphertext, self.subkeys.iter().rev())
+  fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
+    Self::des(ciphertext, key.iter().rev())
   }
 }

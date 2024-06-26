@@ -14,10 +14,10 @@ fn exhaustive_key_search(
 ) -> Option<[u8; 8]> {
   for k in 0..(1u64 << 56) {
     let key = k.to_be_bytes();
-    let des = DES::new(key);
+    let subkeys = DES::new(key);
 
-    let decrypted = des.decrypt(ciphertext);
-    let decrypted2 = des.decrypt(ciphertext2);
+    let decrypted = DES::decrypt(&subkeys, ciphertext);
+    let decrypted2 = DES::decrypt(&subkeys, ciphertext2);
 
     if decrypted == *plaintext && decrypted2 == *plaintext2 {
       return Some(key);
@@ -35,10 +35,10 @@ fn known_plaintext_attack() {
 
   let key = 100000_u64.to_be_bytes();
 
-  let des = DES::new(key);
+  let subkeys = DES::new(key);
 
-  let ciphertext = des.encrypt(&plaintext1);
-  let ciphertext2 = des.encrypt(&plaintext2);
+  let ciphertext = DES::encrypt(&subkeys, &plaintext1);
+  let ciphertext2 = DES::encrypt(&subkeys, &plaintext2);
 
   let attack_key = exhaustive_key_search(&ciphertext, &plaintext1, &ciphertext2, &plaintext2);
 
@@ -51,11 +51,11 @@ fn des() {
     let mut rng = thread_rng();
     let secret_key = rng.gen();
 
-    let des = DES::new(secret_key);
+    let subkeys = DES::new(secret_key);
 
     let message = rng.gen();
-    let encrypted = des.encrypt(&message);
-    let decrypted = des.decrypt(&encrypted);
+    let encrypted = DES::encrypt(&subkeys, &message);
+    let decrypted = DES::decrypt(&subkeys, &encrypted);
 
     assert_eq!(message, decrypted);
   }
@@ -66,15 +66,15 @@ fn des_fuzz() {
   let mut rng = thread_rng();
   let key: [u8; 8] = rng.gen();
 
-  let des = DES::new(key);
+  let subkeys = DES::new(key);
   let des_fuzz = Des_fuzz::new_from_slice(&key).unwrap();
 
   let mut data: [u8; 8] = rng.gen();
 
-  let encrypted = des.encrypt(&data);
+  let encrypted = DES::encrypt(&subkeys, &data);
   des_fuzz.encrypt_block(GenericArray::from_mut_slice(&mut data));
 
-  let decrypted = des.decrypt(&encrypted);
+  let decrypted = DES::decrypt(&subkeys, &encrypted);
   des_fuzz.decrypt_block(GenericArray::from_mut_slice(&mut data));
 
   assert_eq!(decrypted, data);
@@ -92,12 +92,12 @@ fn weak_keys() {
   ];
 
   for key in WEAK_KEYS.into_iter() {
-    let des = DES::new(key);
+    let subkeys = DES::new(key);
 
     let message = b"weaktest";
 
-    let encrypted = des.encrypt(message);
-    let decrypted = des.decrypt(message);
+    let encrypted = DES::encrypt(&subkeys, message);
+    let decrypted = DES::decrypt(&subkeys, message);
 
     assert_eq!(encrypted, decrypted);
   }
@@ -109,16 +109,16 @@ fn bit_complement() {
   let mut rng = thread_rng();
   let secret_key: u64 = rng.gen();
 
-  let des = DES::new(secret_key.to_be_bytes());
+  let subkeys = DES::new(secret_key.to_be_bytes());
 
   let message: u64 = rng.gen();
-  let encrypted = des.encrypt(&message.to_be_bytes());
+  let encrypted = DES::encrypt(&subkeys, &message.to_be_bytes());
 
   let key_complement = u64::MAX ^ secret_key;
   let message_complement = u64::MAX ^ message;
 
-  let des_complement = DES::new(key_complement.to_be_bytes());
-  let encrypted_complement = des_complement.encrypt(&message_complement.to_be_bytes());
+  let subkeys_complement = DES::new(key_complement.to_be_bytes());
+  let encrypted_complement = DES::encrypt(&subkeys_complement, &message_complement.to_be_bytes());
 
   assert_eq!(u64::MAX ^ u64::from_be_bytes(encrypted), u64::from_be_bytes(encrypted_complement));
 }
