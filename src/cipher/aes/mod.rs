@@ -1,6 +1,8 @@
 //! This module contains the implementation for the Advanced Encryption Standard (AES) encryption
 //! and decryption.
 
+use std::ops::{Deref, DerefMut};
+
 use itertools::Itertools;
 
 use crate::cipher::{aes::sbox::SBox, Block, BlockCipher, Key, Word};
@@ -21,11 +23,24 @@ const ROUND_CONSTANTS: [[u8; 4]; 10] = [
   [0x36, 0x00, 0x00, 0x00],
 ];
 
+#[derive(Clone, Default)]
+struct ExpandedKey(Vec<Word>);
+
+impl Deref for ExpandedKey {
+  type Target = Vec<Word>;
+
+  fn deref(&self) -> &Self::Target { &self.0 }
+}
+
+impl DerefMut for ExpandedKey {
+  fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+}
+
 #[derive(Clone)]
 pub struct AES<const K: usize, const B: usize>
 where [(); K / 8]: {
   key:          Key<K>,
-  expanded_key: Vec<Word>,
+  expanded_key: ExpandedKey,
   state:        State,
   num_rounds:   usize,
   sbox:         SBox,
@@ -64,7 +79,7 @@ impl BlockCipher<128, 128> for AES<128, 128> {
     assert!(!self.key.is_empty(), "Key is not instantiated");
 
     let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
-    self.expanded_key = Vec::with_capacity(out_len);
+    self.expanded_key = ExpandedKey(Vec::with_capacity(out_len));
     self.key_expansion(Self::KEY_LEN_WORDS);
 
     self.state = State::from(plaintext);
@@ -99,7 +114,7 @@ impl BlockCipher<128, 192> for AES<192, 128> {
     assert!(!self.key.is_empty(), "Key is not instantiated");
 
     let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
-    self.expanded_key = Vec::with_capacity(out_len);
+    self.expanded_key = ExpandedKey(Vec::with_capacity(out_len));
     self.key_expansion(Self::KEY_LEN_WORDS);
 
     self.state = State::from(plaintext);
@@ -134,7 +149,7 @@ impl BlockCipher<128, 256> for AES<256, 128> {
     assert!(!self.key.is_empty(), "Key is not instantiated");
 
     let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
-    self.expanded_key = Vec::with_capacity(out_len);
+    self.expanded_key = ExpandedKey(Vec::with_capacity(out_len));
     self.key_expansion(Self::KEY_LEN_WORDS);
 
     self.state = State::from(plaintext);
@@ -178,7 +193,7 @@ where [(); K / 8]:
     Self {
       num_rounds,
       key: Key { inner: [0; K / 8] },
-      expanded_key: Vec::new(),
+      expanded_key: ExpandedKey::default(),
       state: State::default(),
       sbox: SBox::new(),
     }
@@ -272,13 +287,7 @@ where [(); K / 8]:
 
     let out_len = block_num_words * (self.num_rounds + 1);
 
-    let key_words: Vec<_> = self
-      .key
-      .chunks(4)
-      .map(|c| c.try_into().unwrap())
-      .collect::<Vec<[u8; 4]>>()
-      .try_into()
-      .unwrap();
+    let key_words: Vec<Word> = self.key.chunks(4).map(|c| c.try_into().unwrap()).collect();
 
     self.expanded_key.extend(key_words);
 
@@ -297,15 +306,14 @@ where [(); K / 8]:
         last = self.sub_word(last)
       }
 
-      self.expanded_key.push(
-        self.expanded_key[i - key_len]
-          .iter()
-          .zip(last.iter())
-          .map(|(w, l)| w ^ l)
-          .collect_vec()
-          .try_into()
-          .unwrap(),
-      );
+      let word = self.expanded_key[i - key_len]
+        .iter()
+        .zip(last.iter())
+        .map(|(w, l)| w ^ l)
+        .collect_vec()
+        .try_into()
+        .unwrap();
+      self.expanded_key.push(word);
     }
 
     assert_eq!(

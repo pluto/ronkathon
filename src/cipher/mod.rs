@@ -1,4 +1,4 @@
-//! This module contains the implementation of common ciphers
+//! This module contains the implementation of common ciphers.
 
 pub mod aes;
 
