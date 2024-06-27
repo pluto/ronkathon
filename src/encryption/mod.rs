@@ -1,2 +1,3 @@
-//! Contains implementation of symmetric encrpytion primitives.
+//! Contains cryptographic primitives like symmetric and asymmetric encryption.
+pub mod asymmetric;
 pub mod symmetric;
