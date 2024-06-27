@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use crate::cipher::{aes::sbox::SBox, Block, BlockCipher, Key, Word};
 
-mod sbox;
+pub mod sbox;
 
 /// https://en.wikipedia.org/wiki/AES_key_schedule#Round_constants
 const ROUND_CONSTANTS: [[u8; 4]; 10] = [
@@ -45,6 +45,12 @@ where [(); K / 8]: {
   state:        State,
   num_rounds:   usize,
   sbox:         SBox,
+}
+
+impl<const K: usize, const B: usize> Default for AES<K, B>
+where [(); K / 8]:
+{
+  fn default() -> Self { Self::new() }
 }
 
 /// Instead of arranging its bytes in a line (array),
@@ -183,7 +189,7 @@ where [(); K / 8]:
 {
   /// Instantiates a new `AES` instance according to `key_size` - this
   /// affects the number of rounds that the AES encryption will do.
-  fn new() -> Self {
+  pub fn new() -> Self {
     let num_rounds = match K {
       128 => 10,
       192 => 12,
@@ -256,8 +262,8 @@ where [(); K / 8]:
   /// a(x) = 3x^3 + x^2 + x + 2.
   fn mix_columns(&mut self) {
     for col in self.state.0.iter_mut() {
-      let tmp = col.clone();
-      let mut col_doubled = col.clone();
+      let tmp = *col;
+      let mut col_doubled = *col;
 
       for (i, c) in col_doubled.iter_mut().enumerate() {
         let hi_bit = col[i] >> 7;
@@ -296,7 +302,7 @@ where [(); K / 8]:
     // block size (Nb words)
     // num rounds (Nr)
     for i in key_len..(block_num_words * (self.num_rounds + 1)) {
-      let mut last = self.expanded_key.last().unwrap().clone();
+      let mut last = *self.expanded_key.last().unwrap();
 
       if i % key_len == 0 {
         self.rotate_word(&mut last);
