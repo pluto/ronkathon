@@ -81,36 +81,50 @@ impl From<[u8; 16]> for State {
   }
 }
 
+/// Performs the cipher, with key size of `K` (in bits), as seen in Figure 5 of the document
+/// linked in the front-page.
+fn aes_encrypt<const K: usize>(
+  aes: &mut AES<K>,
+  key: Key<K>,
+  plaintext: [u8; 16],
+  key_len: usize,
+) -> Block<128>
+where
+  [(); K / 8]:,
+{
+  aes.key = key;
+  assert!(!aes.key.is_empty(), "Key is not instantiated");
+
+  let out_len = key_len * (aes.num_rounds + 1);
+  aes.expanded_key = ExpandedKey(Vec::with_capacity(out_len));
+  aes.key_expansion(key_len);
+
+  aes.state = State::from(plaintext);
+  assert!(aes.state != State::default(), "State is not instantiated");
+
+  // Round 0 - add round key
+  aes.add_round_key(0);
+
+  // Rounds 1 to N - 1
+  for i in 1..aes.num_rounds {
+    aes.sub_bytes();
+    aes.shift_rows();
+    aes.mix_columns();
+    aes.add_round_key(i);
+  }
+
+  // Last round - we do not mix columns here.
+  aes.sub_bytes();
+  aes.shift_rows();
+  aes.add_round_key(aes.num_rounds);
+
+  Block([0; 128])
+}
+
 impl BlockCipher<128, 128> for AES<128> {
   /// Encryption
   fn encrypt(&mut self, key: Key<128>, plaintext: [u8; 16]) -> Block<128> {
-    self.key = key;
-    assert!(!self.key.is_empty(), "Key is not instantiated");
-
-    let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
-    self.expanded_key = ExpandedKey(Vec::with_capacity(out_len));
-    self.key_expansion(Self::KEY_LEN_WORDS);
-
-    self.state = State::from(plaintext);
-    assert!(self.state != State::default(), "State is not instantiated");
-
-    // Round 0 - add round key
-    self.add_round_key(0);
-
-    // Rounds 1 to N - 1
-    for i in 1..self.num_rounds {
-      self.sub_bytes();
-      self.shift_rows();
-      self.mix_columns();
-      self.add_round_key(i);
-    }
-
-    // Last round - we do not mix columns here.
-    self.sub_bytes();
-    self.shift_rows();
-    self.add_round_key(self.num_rounds);
-
-    Block([0; 128])
+    aes_encrypt::<128>(self, key, plaintext, Self::KEY_LEN_WORDS)
   }
 
   fn decrypt(self, _key: Key<128>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
@@ -119,33 +133,7 @@ impl BlockCipher<128, 128> for AES<128> {
 impl BlockCipher<128, 192> for AES<192> {
   /// Encryption
   fn encrypt(&mut self, key: Key<192>, plaintext: [u8; 16]) -> Block<128> {
-    self.key = key;
-    assert!(!self.key.is_empty(), "Key is not instantiated");
-
-    let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
-    self.expanded_key = ExpandedKey(Vec::with_capacity(out_len));
-    self.key_expansion(Self::KEY_LEN_WORDS);
-
-    self.state = State::from(plaintext);
-    assert!(self.state != State::default(), "State is not instantiated");
-
-    // Round 0 - add round key
-    self.add_round_key(0);
-
-    // Rounds 1 to N - 1
-    for i in 1..self.num_rounds {
-      self.sub_bytes();
-      self.shift_rows();
-      self.mix_columns();
-      self.add_round_key(i);
-    }
-
-    // Last round - we do not mix columns here.
-    self.sub_bytes();
-    self.shift_rows();
-    self.add_round_key(self.num_rounds);
-
-    Block([0; 128])
+    aes_encrypt::<192>(self, key, plaintext, Self::KEY_LEN_WORDS)
   }
 
   fn decrypt(self, _key: Key<192>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
@@ -154,33 +142,7 @@ impl BlockCipher<128, 192> for AES<192> {
 impl BlockCipher<128, 256> for AES<256> {
   /// Encryption
   fn encrypt(&mut self, key: Key<256>, plaintext: [u8; 16]) -> Block<128> {
-    self.key = key;
-    assert!(!self.key.is_empty(), "Key is not instantiated");
-
-    let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
-    self.expanded_key = ExpandedKey(Vec::with_capacity(out_len));
-    self.key_expansion(Self::KEY_LEN_WORDS);
-
-    self.state = State::from(plaintext);
-    assert!(self.state != State::default(), "State is not instantiated");
-
-    // Round 0 - add round key
-    self.add_round_key(0);
-
-    // Rounds 1 to N - 1
-    for i in 1..self.num_rounds {
-      self.sub_bytes();
-      self.shift_rows();
-      self.mix_columns();
-      self.add_round_key(i);
-    }
-
-    // Last round - we do not mix columns here.
-    self.sub_bytes();
-    self.shift_rows();
-    self.add_round_key(self.num_rounds);
-
-    Block([0; 128])
+    aes_encrypt::<256>(self, key, plaintext, Self::KEY_LEN_WORDS)
   }
 
   fn decrypt(self, _key: Key<256>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
