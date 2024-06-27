@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use crate::cipher::{Block, BlockCipher, Key, Word, BLOCK_LEN};
+use crate::cipher::{Block, BlockCipher, Key, Word};
 
 /// https://en.wikipedia.org/wiki/AES_key_schedule#Round_constants
 const ROUND_CONSTANTS: [[u8; 4]; 10] = [
@@ -54,16 +54,15 @@ impl From<[u8; 16]> for State {
 
 impl BlockCipher<128, 128> for AES<128, 128> {
   /// Encryption
-  fn encrypt(&mut self, key: Key<128>, plaintext: [u8; 16]) -> Block {
+  fn encrypt(&mut self, key: Key<128>, plaintext: [u8; 16]) -> Block<128> {
     self.key = key;
+    assert!(self.key.inner != [0; 16], "Key is not instantiated");
 
     let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
     self.expanded_key = Vec::with_capacity(out_len);
     self.key_expansion(Self::KEY_LEN_WORDS);
 
     self.state = State::from(plaintext);
-
-    assert!(self.key.inner != [0; 16], "Key is not instantiated");
     assert!(self.state != State::default(), "State is not instantiated");
 
     println!("*** START ROUND *** {}\n", Self::KEY_LEN_WORDS);
@@ -93,10 +92,10 @@ impl BlockCipher<128, 128> for AES<128, 128> {
     self.add_round_key(self.num_rounds);
 
     println!("self.st: {:?}", self.state);
-    [0; 128]
+    Block([0; 128])
   }
 
-  fn decrypt(self, _key: Key<128>, _ciphertext: Block) -> Block { unimplemented!() }
+  fn decrypt(self, _key: Key<128>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
 }
 
 /// A Rijndael S-box.
@@ -256,8 +255,8 @@ where [(); K / 8]:
   }
 
   fn key_expansion(&mut self, key_len: usize) {
-    println!("key: {:?}", self.key);
-    let block_num_words = BLOCK_LEN / 32;
+    println!("key: {:?}", key_len);
+    let block_num_words = 128 / 32;
 
     let out_len = (K / 32) * (self.num_rounds + 1);
 

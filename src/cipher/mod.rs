@@ -1,9 +1,7 @@
 mod aes;
 
 /// Block size in bits.
-pub const BLOCK_LEN: usize = 128;
-
-pub type Block = [u8; BLOCK_LEN];
+pub struct Block<const LEN: usize>([u8; LEN]);
 
 /// A generic N-bit key.
 #[derive(Debug, Copy, Clone)]
@@ -15,9 +13,8 @@ where [(); N / 8]: {
 impl<const N: usize> Key<N>
 where [(); N / 8]:
 {
+  /// Creates a new `Key` of `N` bits.
   pub fn new(bytes: [u8; N / 8]) -> Self { Self { inner: bytes } }
-
-  pub fn len() -> usize { N }
 }
 
 /// A 128-bit key
@@ -26,20 +23,13 @@ pub type Key128 = Key<128>;
 /// A 32-bit word
 pub type Word = [u8; 4];
 
-/// Typically:
+/// # How to construct a block cipher
 ///
-/// 10 rounds for 128-bit keys,
-/// 12 rounds for 196-bit keys,
-/// 14 rounds for 256-bit keys.
-pub const NUM_ROUNDS: usize = 10;
-
-/// # How to construct a block cipher:
-///
-/// 1) A block cipher used in practice is a repetition of rounds:
+/// A block cipher used in practice is a repetition of rounds:
 /// a short sequence of operations that is weak on its own but
 /// strong in numbers.
 ///
-/// 2) There are two main techniques:
+/// There are two main techniques:
 /// substitution-permutation networks (AES),
 /// and Feistal schemes (DES).
 ///
@@ -52,7 +42,7 @@ pub const NUM_ROUNDS: usize = 10;
 /// they might be susceptible to codebook attacks.
 pub trait BlockCipher<const B: usize, const K: usize>
 where [(); K / 8]: {
-  /// Block size
+  /// Block size in bits.
   const BLOCK_SIZE: usize = B;
 
   /// Key size in bits.
@@ -61,11 +51,11 @@ where [(); K / 8]: {
   /// Key size in 32-bit words.
   const KEY_LEN_WORDS: usize = K / 32;
 
-  /// Given a key and a plaintext block, produces a ciphertext block.
+  /// Produce a ciphertext block given a key and a plaintext block.
   /// This operation can be expressed as C = E(K, P)
-  fn encrypt(&mut self, key: Key<K>, plaintext: [u8; 16]) -> Block;
+  fn encrypt(&mut self, key: Key<K>, plaintext: [u8; 16]) -> Block<B>;
 
-  /// Given a key and a ciphertext block, produces the original plaintext block.
+  /// Produce the original plaintext block given a key and a ciphertext block.
   /// This operation can be expressed as P = D(K, C)
-  fn decrypt(self, key: Key<K>, ciphertext: Block) -> Block;
+  fn decrypt(self, key: Key<K>, ciphertext: Block<B>) -> Block<B>;
 }
