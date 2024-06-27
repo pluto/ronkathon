@@ -1,5 +1,7 @@
 //! This module contains the implementation for the Advanced Encryption Standard (AES) encryption
 //! and decryption.
+//!
+//! Source: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
 
 use std::ops::{Deref, DerefMut};
 
