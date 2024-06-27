@@ -61,7 +61,7 @@ impl BlockCipher<128, 128> for AES<128, 128> {
   /// Encryption
   fn encrypt(&mut self, key: Key<128>, plaintext: [u8; 16]) -> Block<128> {
     self.key = key;
-    assert!(self.key.inner != [0; 16], "Key is not instantiated");
+    assert!(self.key.inner != [0; Self::KEY_LEN_BYTES], "Key is not instantiated");
 
     let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
     self.expanded_key = Vec::with_capacity(out_len);
@@ -96,7 +96,7 @@ impl BlockCipher<128, 192> for AES<192, 128> {
   /// Encryption
   fn encrypt(&mut self, key: Key<192>, plaintext: [u8; 16]) -> Block<128> {
     self.key = key;
-    assert!(self.key.inner != [0; 24], "Key is not instantiated");
+    assert!(self.key.inner != [0; Self::KEY_LEN_BYTES], "Key is not instantiated");
 
     let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
     self.expanded_key = Vec::with_capacity(out_len);
@@ -131,7 +131,7 @@ impl BlockCipher<128, 256> for AES<256, 128> {
   /// Encryption
   fn encrypt(&mut self, key: Key<256>, plaintext: [u8; 16]) -> Block<128> {
     self.key = key;
-    assert!(self.key.inner != [0; 32], "Key is not instantiated");
+    assert!(self.key.inner != [0; Self::KEY_LEN_BYTES], "Key is not instantiated");
 
     let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
     self.expanded_key = Vec::with_capacity(out_len);

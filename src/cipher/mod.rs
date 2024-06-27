@@ -50,6 +50,9 @@ where [(); K / 8]: {
   /// Key size in bits.
   const KEY_SIZE: usize = K;
 
+  /// Key size in bytes.
+  const KEY_LEN_BYTES: usize = K / 8;
+
   /// Key size in 32-bit words.
   const KEY_LEN_WORDS: usize = K / 32;
 
