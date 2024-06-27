@@ -1,5 +1,5 @@
-//! The Rijndael S-box is a substitution box (lookup table) used in
-//! the Rjindael cipher, on which AES is based.
+//! The [`Rijndael S-box`] is a substitution box (lookup table) used in
+//! the Rijndael cipher, on which AES is based.
 //!
 //! A substitution box is a basic component of symmetric key algorithms
 //! which performs substitution. It is used to obscure the relationship
@@ -12,9 +12,10 @@
 //! necessarily equal to `m`. An `m` x `n` S-box can be implemented as a lookup table with `2^m`
 //! words of `n` bits each.
 //!
+//! [`Rijndael S-box`]: https://en.wikipedia.org/wiki/Rijndael_S-box
 //! [`confusion`]: https://en.wikipedia.org/wiki/Confusion_and_diffusion
 
-/// A substitution box for [`AES`](super::AES).
+/// A substitution box for an instance of [`AES`](super::AES).
 ///
 /// Since substitution involves mapping a single byte (m = 8) into another (n = 8), we have a
 /// lookup table of size 2^8 = 256 of 8 bits per index, implemented as a linear array.
