@@ -331,6 +331,7 @@ where [(); K / 8]:
   }
 }
 
+/// Test vectors from: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
 #[cfg(test)]
 mod tests {
   use pretty_assertions::assert_eq;
@@ -338,7 +339,6 @@ mod tests {
   use super::{BlockCipher, *};
 
   #[test]
-  // Test vector from: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
   fn test_aes_128() {
     const KEY_LEN: usize = 128;
     let key = Key::<KEY_LEN>::new([
@@ -363,7 +363,6 @@ mod tests {
   }
 
   #[test]
-  // Test vector from: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
   fn test_aes_192() {
     const KEY_LEN: usize = 192;
     let key = Key::<KEY_LEN>::new([
@@ -388,7 +387,6 @@ mod tests {
   }
 
   #[test]
-  // Test vector from: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
   fn test_aes_256() {
     const KEY_LEN: usize = 256;
     let key = Key::<KEY_LEN>::new([
