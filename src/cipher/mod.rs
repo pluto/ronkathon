@@ -27,9 +27,6 @@ where [(); N / 8]:
   pub fn new(bytes: [u8; N / 8]) -> Self { Self { inner: bytes } }
 }
 
-/// A 128-bit key
-pub type Key128 = Key<128>;
-
 /// A 32-bit word
 pub type Word = [u8; 4];
 
