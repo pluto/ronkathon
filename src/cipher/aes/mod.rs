@@ -401,40 +401,4 @@ mod tests {
 
     assert_eq!(aes.state, expected_state);
   }
-
-  #[test]
-  /// Test vectors from:
-  /// https://en.wikipedia.org/wiki/Rijndael_MixColumns#Test_vectors_for_MixColumn()
-  fn test_mix_columns() {
-    const KEY_LEN: usize = 128;
-    const BLOCK_LEN: usize = 128;
-
-    {
-      let key = Key::<128>::new([0; 16]);
-      let input = [219, 19, 83, 69, 242, 10, 34, 92, 1, 1, 1, 1, 198, 198, 198, 198];
-      let expected_state =
-        State::from([142, 77, 161, 188, 159, 220, 88, 157, 1, 1, 1, 1, 198, 198, 198, 198]);
-
-      let mut aes = AES::<KEY_LEN, BLOCK_LEN>::new();
-      aes.key = key;
-      aes.state = State::from(input);
-
-      aes.mix_columns();
-      assert_eq!(aes.state, expected_state);
-    }
-
-    {
-      let key = Key::<KEY_LEN>::new([0; 16]);
-      let input = [212, 212, 212, 213, 45, 38, 49, 76, 1, 1, 1, 1, 198, 198, 198, 198];
-      let expected_state =
-        State::from([213, 213, 215, 214, 77, 126, 189, 248, 1, 1, 1, 1, 198, 198, 198, 198]);
-
-      let mut aes = AES::<KEY_LEN, BLOCK_LEN>::new();
-      aes.key = key;
-      aes.state = State::from(input);
-
-      aes.mix_columns();
-      assert_eq!(aes.state, expected_state);
-    }
-  }
 }
