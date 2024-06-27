@@ -37,6 +37,7 @@ impl DerefMut for ExpandedKey {
 }
 
 #[derive(Clone)]
+/// A struct containing an instance of an AES encryption/decryption.
 pub struct AES<const K: usize, const B: usize>
 where [(); K / 8]: {
   key:          Key<K>,
