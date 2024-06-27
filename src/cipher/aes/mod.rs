@@ -38,7 +38,7 @@ impl DerefMut for ExpandedKey {
 
 #[derive(Clone)]
 /// A struct containing an instance of an AES encryption/decryption.
-pub struct AES<const K: usize, const B: usize>
+pub struct AES<const K: usize>
 where [(); K / 8]: {
   key:          Key<K>,
   expanded_key: ExpandedKey,
@@ -47,7 +47,7 @@ where [(); K / 8]: {
   sbox:         SBox,
 }
 
-impl<const K: usize, const B: usize> Default for AES<K, B>
+impl<const K: usize> Default for AES<K>
 where [(); K / 8]:
 {
   fn default() -> Self { Self::new() }
@@ -79,7 +79,7 @@ impl From<[u8; 16]> for State {
   }
 }
 
-impl BlockCipher<128, 128> for AES<128, 128> {
+impl BlockCipher<128, 128> for AES<128> {
   /// Encryption
   fn encrypt(&mut self, key: Key<128>, plaintext: [u8; 16]) -> Block<128> {
     self.key = key;
@@ -114,7 +114,7 @@ impl BlockCipher<128, 128> for AES<128, 128> {
   fn decrypt(self, _key: Key<128>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
 }
 
-impl BlockCipher<128, 192> for AES<192, 128> {
+impl BlockCipher<128, 192> for AES<192> {
   /// Encryption
   fn encrypt(&mut self, key: Key<192>, plaintext: [u8; 16]) -> Block<128> {
     self.key = key;
@@ -149,7 +149,7 @@ impl BlockCipher<128, 192> for AES<192, 128> {
   fn decrypt(self, _key: Key<192>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
 }
 
-impl BlockCipher<128, 256> for AES<256, 128> {
+impl BlockCipher<128, 256> for AES<256> {
   /// Encryption
   fn encrypt(&mut self, key: Key<256>, plaintext: [u8; 16]) -> Block<128> {
     self.key = key;
@@ -184,7 +184,7 @@ impl BlockCipher<128, 256> for AES<256, 128> {
   fn decrypt(self, _key: Key<256>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
 }
 
-impl<const K: usize, const B: usize> AES<K, B>
+impl<const K: usize> AES<K>
 where [(); K / 8]:
 {
   /// Instantiates a new `AES` instance according to `key_size` - this
@@ -341,7 +341,6 @@ mod tests {
   // Test vector from: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
   fn test_aes_128() {
     const KEY_LEN: usize = 128;
-    const BLOCK_LEN: usize = 128;
     let key = Key::<KEY_LEN>::new([
       0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
       0x0f,
@@ -352,7 +351,7 @@ mod tests {
       0xff,
     ];
 
-    let mut aes = AES::<KEY_LEN, BLOCK_LEN>::new();
+    let mut aes = AES::<KEY_LEN>::new();
     aes.encrypt(key, plaintext);
 
     let expected_state = State::from([
@@ -367,7 +366,6 @@ mod tests {
   // Test vector from: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
   fn test_aes_192() {
     const KEY_LEN: usize = 192;
-    const BLOCK_LEN: usize = 128;
     let key = Key::<KEY_LEN>::new([
       0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
       0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
@@ -378,7 +376,7 @@ mod tests {
       0xff,
     ];
 
-    let mut aes = AES::<KEY_LEN, BLOCK_LEN>::new();
+    let mut aes = AES::<KEY_LEN>::new();
     aes.encrypt(key, plaintext);
 
     let expected_state = State::from([
@@ -393,7 +391,6 @@ mod tests {
   // Test vector from: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
   fn test_aes_256() {
     const KEY_LEN: usize = 256;
-    const BLOCK_LEN: usize = 128;
     let key = Key::<KEY_LEN>::new([
       0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
       0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d,
@@ -405,7 +402,7 @@ mod tests {
       0xff,
     ];
 
-    let mut aes = AES::<KEY_LEN, BLOCK_LEN>::new();
+    let mut aes = AES::<KEY_LEN>::new();
     aes.encrypt(key, plaintext);
 
     let expected_state = State::from([
