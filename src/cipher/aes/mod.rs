@@ -38,8 +38,8 @@ impl DerefMut for ExpandedKey {
   fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
 }
 
-#[derive(Clone)]
 /// A struct containing an instance of an AES encryption/decryption.
+#[derive(Clone)]
 pub struct AES<const K: usize>
 where [(); K / 8]: {
   key:          Key<K>,
