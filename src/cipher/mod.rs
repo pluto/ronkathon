@@ -1,15 +1,23 @@
 //! This module contains the implementation of common ciphers
 
-mod aes;
+pub mod aes;
 
 /// Block size in bits.
 pub struct Block<const LEN: usize>([u8; LEN]);
 
 /// A generic N-bit key.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Key<const N: usize>
 where [(); N / 8]: {
   inner: [u8; N / 8],
+}
+
+impl<const N: usize> std::ops::Deref for Key<N>
+where [(); N / 8]:
+{
+  type Target = [u8; N / 8];
+
+  fn deref(&self) -> &Self::Target { &self.inner }
 }
 
 impl<const N: usize> Key<N>
