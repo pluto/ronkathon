@@ -1,3 +1,5 @@
+//! This module contains the implementation of common ciphers
+
 mod aes;
 
 /// Block size in bits.
