@@ -24,11 +24,11 @@
 pub mod codes;
 pub mod curve;
 pub mod ecdsa;
+pub mod encryption;
 pub mod field;
 pub mod hashes;
 pub mod kzg;
 pub mod polynomial;
-pub mod rsa;
 pub mod tree;
 
 use core::{
