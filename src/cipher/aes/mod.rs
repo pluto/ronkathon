@@ -65,22 +65,12 @@ impl BlockCipher<128, 128> for AES<128, 128> {
     self.state = State::from(plaintext);
     assert!(self.state != State::default(), "State is not instantiated");
 
-    println!("*** START ROUND *** {}\n", Self::KEY_LEN_WORDS);
     // Round 0 - add round key
     self.add_round_key(0);
 
     // Rounds 1 to N - 1
     for i in 1..self.num_rounds {
       self.sub_bytes();
-      println!("After Sub bytes: {:?}\n", self.state);
-      print!("round {}:", i);
-      for s in self.state.0.iter() {
-        for i in s {
-          print!("{:02x}", i);
-        }
-      }
-      println!();
-
       self.shift_rows();
       self.mix_columns();
       self.add_round_key(i);
@@ -91,11 +81,80 @@ impl BlockCipher<128, 128> for AES<128, 128> {
     self.shift_rows();
     self.add_round_key(self.num_rounds);
 
-    println!("self.st: {:?}", self.state);
     Block([0; 128])
   }
 
   fn decrypt(self, _key: Key<128>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
+}
+
+impl BlockCipher<128, 192> for AES<192, 128> {
+  /// Encryption
+  fn encrypt(&mut self, key: Key<192>, plaintext: [u8; 16]) -> Block<128> {
+    self.key = key;
+    assert!(self.key.inner != [0; 24], "Key is not instantiated");
+
+    let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
+    self.expanded_key = Vec::with_capacity(out_len);
+    self.key_expansion(Self::KEY_LEN_WORDS);
+
+    self.state = State::from(plaintext);
+    assert!(self.state != State::default(), "State is not instantiated");
+
+    // Round 0 - add round key
+    self.add_round_key(0);
+
+    // Rounds 1 to N - 1
+    for i in 1..self.num_rounds {
+      self.sub_bytes();
+      self.shift_rows();
+      self.mix_columns();
+      self.add_round_key(i);
+    }
+
+    // Last round - we do not mix columns here.
+    self.sub_bytes();
+    self.shift_rows();
+    self.add_round_key(self.num_rounds);
+
+    Block([0; 128])
+  }
+
+  fn decrypt(self, _key: Key<192>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
+}
+
+impl BlockCipher<128, 256> for AES<256, 128> {
+  /// Encryption
+  fn encrypt(&mut self, key: Key<256>, plaintext: [u8; 16]) -> Block<128> {
+    self.key = key;
+    assert!(self.key.inner != [0; 32], "Key is not instantiated");
+
+    let out_len = Self::KEY_LEN_WORDS * (self.num_rounds + 1);
+    self.expanded_key = Vec::with_capacity(out_len);
+    self.key_expansion(Self::KEY_LEN_WORDS);
+
+    self.state = State::from(plaintext);
+    assert!(self.state != State::default(), "State is not instantiated");
+
+    // Round 0 - add round key
+    self.add_round_key(0);
+
+    // Rounds 1 to N - 1
+    for i in 1..self.num_rounds {
+      self.sub_bytes();
+      self.shift_rows();
+      self.mix_columns();
+      self.add_round_key(i);
+    }
+
+    // Last round - we do not mix columns here.
+    self.sub_bytes();
+    self.shift_rows();
+    self.add_round_key(self.num_rounds);
+
+    Block([0; 128])
+  }
+
+  fn decrypt(self, _key: Key<256>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
 }
 
 /// A Rijndael S-box.
@@ -145,12 +204,17 @@ where [(); K / 8]:
   /// Instantiates a new `AES` instance according to `key_size` - this
   /// affects the number of rounds that the AES encryption will do.
   fn new() -> Self {
-    let num_rounds = determine_num_rounds(K);
+    let num_rounds = match K {
+      128 => 10,
+      192 => 12,
+      256 => 14,
+      _ => unimplemented!(),
+    };
 
     Self {
       num_rounds,
       key: Key { inner: [0; K / 8] },
-      expanded_key: Vec::with_capacity(num_rounds + 1),
+      expanded_key: Vec::new(),
       state: State::default(),
       sbox: SBox::new(),
     }
@@ -158,32 +222,22 @@ where [(); K / 8]:
 
   /// XOR a round key to its internal state.
   fn add_round_key(&mut self, round_num: usize) {
-    println!("Before ARC: {:?}", self.state);
     let words = &self.expanded_key[round_num * 4..(round_num + 1) * 4];
     for (col, word) in self.state.0.iter_mut().zip(words.iter()) {
       for (c, w) in col.iter_mut().zip(word.iter()) {
         *c ^= w;
       }
     }
-    println!("After ARC: {:?}\n", self.state);
   }
 
   /// Substitutes each byte [s_0, s_1, ..., s_15] with another byte according to a substitution box
   /// (usually referred to as an S-box).
   fn sub_bytes(&mut self) {
-    println!("Before Sub bytes: {:?}", self.state);
-
     for i in 0..4 {
       for j in 0..4 {
-        println!(
-          "Subbing: {:x} for {:x}",
-          self.state.0[i][j], self.sbox.0[self.state.0[i][j] as usize]
-        );
         self.state.0[i][j] = self.sbox.0[self.state.0[i][j] as usize];
       }
     }
-
-    println!("After Sub bytes: {:?}\n", self.state);
   }
 
   /// Shift i-th row of i positions, for i ranging from 0 to 3.
@@ -193,7 +247,6 @@ where [(); K / 8]:
   /// Note that since our state is in column-major form, we transpose the state to a
   /// row-major form to make this step simpler.
   fn shift_rows(&mut self) {
-    println!("before shift rows: {:?}", self.state.0);
     let len = self.state.0.len();
     let mut iters: Vec<_> = self.state.0.into_iter().map(|n| n.into_iter()).collect();
 
@@ -213,8 +266,6 @@ where [(); K / 8]:
       .try_into()
       .unwrap();
     self.state.0 = new_state;
-
-    println!("After shift rows: {:?}\n", self.state.0);
   }
 
   /// Applies the same linear transformation to each of the four columns of the state.
@@ -224,7 +275,6 @@ where [(); K / 8]:
   /// Each column of bytes is treated as a 4-term polynomial, multiplied by a fixed polynomial
   /// a(x) = 3x^3 + x^2 + x + 2.
   fn mix_columns(&mut self) {
-    println!("Mix columns: {:?}", self.state);
     for col in self.state.0.iter_mut() {
       let tmp = col.clone();
       let mut col_doubled = col.clone();
@@ -240,7 +290,6 @@ where [(); K / 8]:
       col[2] = col_doubled[2] ^ tmp[1] ^ tmp[0] ^ col_doubled[3] ^ tmp[3];
       col[3] = col_doubled[3] ^ tmp[2] ^ tmp[1] ^ col_doubled[0] ^ tmp[0];
     }
-    println!("Mix columns: {:?}", self.state);
   }
 
   /// In AES, rotword() is just a one-byte left circular shift.
@@ -255,10 +304,9 @@ where [(); K / 8]:
   }
 
   fn key_expansion(&mut self, key_len: usize) {
-    println!("key: {:?}", key_len);
     let block_num_words = 128 / 32;
 
-    let out_len = (K / 32) * (self.num_rounds + 1);
+    let out_len = block_num_words * (self.num_rounds + 1);
 
     let key_words: Vec<_> = self
       .key
@@ -274,10 +322,7 @@ where [(); K / 8]:
     // key len (Nk words)
     // block size (Nb words)
     // num rounds (Nr)
-    println!("Nk = {}, Nr = {}", key_len, self.num_rounds);
-    println!("for {}", block_num_words * self.num_rounds + 1);
     for i in key_len..(block_num_words * (self.num_rounds + 1)) {
-      println!("i: {} {}", i, i / key_len);
       let mut last = self.expanded_key.last().unwrap().clone();
 
       if i % key_len == 0 {
@@ -308,15 +353,6 @@ where [(); K / 8]:
   }
 }
 
-fn determine_num_rounds(size: usize) -> usize {
-  match size {
-    128 => 10,
-    192 => 12,
-    256 => 14,
-    _ => unimplemented!(),
-  }
-}
-
 #[cfg(test)]
 mod tests {
   use pretty_assertions::assert_eq;
@@ -325,7 +361,7 @@ mod tests {
 
   #[test]
   // Test vector from: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
-  fn test_aes() {
+  fn test_aes_128() {
     const KEY_LEN: usize = 128;
     const BLOCK_LEN: usize = 128;
     let key = Key::<KEY_LEN>::new([
@@ -344,6 +380,59 @@ mod tests {
     let expected_state = State::from([
       0x69, 0xc4, 0xe0, 0xd8, 0x6a, 0x7b, 0x04, 0x30, 0xd8, 0xcd, 0xb7, 0x80, 0x70, 0xb4, 0xc5,
       0x5a,
+    ]);
+
+    assert_eq!(aes.state, expected_state);
+  }
+
+  #[test]
+  // Test vector from: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
+  fn test_aes_192() {
+    const KEY_LEN: usize = 192;
+    const BLOCK_LEN: usize = 128;
+    let key = Key::<KEY_LEN>::new([
+      0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
+      0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+    ]);
+
+    let plaintext = [
+      0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee,
+      0xff,
+    ];
+
+    let mut aes = AES::<KEY_LEN, BLOCK_LEN>::new();
+    aes.encrypt(key, plaintext);
+
+    let expected_state = State::from([
+      0xdd, 0xa9, 0x7c, 0xa4, 0x86, 0x4c, 0xdf, 0xe0, 0x6e, 0xaf, 0x70, 0xa0, 0xec, 0x0d, 0x71,
+      0x91,
+    ]);
+
+    assert_eq!(aes.state, expected_state);
+  }
+
+  #[test]
+  // Test vector from: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
+  fn test_aes_256() {
+    const KEY_LEN: usize = 256;
+    const BLOCK_LEN: usize = 128;
+    let key = Key::<KEY_LEN>::new([
+      0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
+      0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d,
+      0x1e, 0x1f,
+    ]);
+
+    let plaintext = [
+      0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee,
+      0xff,
+    ];
+
+    let mut aes = AES::<KEY_LEN, BLOCK_LEN>::new();
+    aes.encrypt(key, plaintext);
+
+    let expected_state = State::from([
+      0x8e, 0xa2, 0xb7, 0xca, 0x51, 0x67, 0x45, 0xbf, 0xea, 0xfc, 0x49, 0x90, 0x4b, 0x49, 0x60,
+      0x89,
     ]);
 
     assert_eq!(aes.state, expected_state);
