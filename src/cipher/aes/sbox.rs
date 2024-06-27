@@ -3,7 +3,7 @@
 //!
 //! A substitution box is a basic component of symmetric key algorithms
 //! which performs substitution. It is used to obscure the relationship
-//! between the key and the ciphertext as part of the [`confusion`](https://en.wikipedia.org/wiki/Confusion_and_diffusion)
+//! between the key and the ciphertext as part of the [`confusion`]
 //! property.
 //!
 //! # Usage
@@ -11,7 +11,13 @@
 //! An S-box takes `m` input bits and maps them into `n` bits, where `n` is not
 //! necessarily equal to `m`. An `m` x `n` S-box can be implemented as a lookup table with `2^m`
 //! words of `n` bits each.
+//!
+//! [`confusion`]: https://en.wikipedia.org/wiki/Confusion_and_diffusion
 
+/// A substitution box for [`AES`](super::AES).
+///
+/// Since substitution involves mapping a single byte (m = 8) into another (n = 8), we have a
+/// lookup table of size 2^8 = 256 of 8 bits per index, implemented as a linear array.
 #[derive(Copy, Clone)]
 pub struct SBox([u8; 256]);
 
@@ -22,17 +28,20 @@ impl std::ops::Deref for SBox {
 }
 
 impl SBox {
-  /// # Filling the entries of the SBox
+  /// Creates a new instance of a substitution box ([`SBox`]) to transform the
+  /// [`AES`](crate::mod::AES)'s [`State`](super::State).
   ///
-  /// The high level description is as follows:
-  /// 1. Invert in GF(2^8),
-  /// 2. Multiply by a matrix `L`,
-  /// 3. Add a constant `c`.
+  /// # How to populate the SBox
   ///
-  /// For convenience, we use the calculated version.
+  /// For an input `y`,
+  /// 1) take its inverse in GF(2^8), then
+  /// 2) Apply the following affine transformation (over GF(2)):
   ///
-  /// Source: https://www.johndcook.com/blog/2019/05/25/aes-s-box/
-  pub(crate) fn new() -> Self {
+  ///    b'_i = b_i ^ b_((i+4)%8) ^ b_((i+5)%8) ^ b_((i+6)%8) ^ b_((i+7)%8) ^ c_i
+  ///
+  ///    for 0 <= i < 8, where b_i is the i-th bit of the byte, and c_i is the i-th bit
+  ///    of a byte c with the value 0x63 or 0b01100011.
+  pub const fn new() -> Self {
     Self([
       0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab,
       0x76, 0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4,
