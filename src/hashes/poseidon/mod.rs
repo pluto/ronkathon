@@ -1,5 +1,5 @@
 //! Contains implementation of Poseidon Hash function.
-#![doc = include_str!("./README.md")]
+#![cfg_attr(not(doctest), doc = include_str!("./README.md"))]
 #[cfg(test)] mod tests;
 
 pub mod sponge;
