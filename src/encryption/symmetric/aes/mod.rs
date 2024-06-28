@@ -25,13 +25,6 @@ where [(); N / 8]: {
   inner: [u8; N / 8],
 }
 
-impl<const N: usize> Key<N>
-where [(); N / 8]:
-{
-  /// Creates a new `Key` of `N` bits.
-  pub fn new(bytes: [u8; N / 8]) -> Self { Self { inner: bytes } }
-}
-
 impl<const N: usize> std::ops::Deref for Key<N>
 where [(); N / 8]:
 {
@@ -46,19 +39,26 @@ where [(); K / 8]:
   type Block = Block;
   type Key = Key<K>;
 
-  /// Encrypt a message of size [`Block`]
+  /// Encrypt a message of size [`Block`] with a [`Key`] of size `K`-bits.
   ///
   /// ## Example
   /// ```rust
-  /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{des::DES, SymmetricEncryption};
-  /// let mut rng = thread_rng();
-  /// let secret_key = rng.gen();
+  /// use ronkathon::encryption::symmetric::{aes::AES, SymmetricEncryption};
   ///
-  /// let subkeys = DES::setup(secret_key);
-  ///
-  /// let message = rng.gen();
-  /// let encrypted = DES::encrypt(&subkeys, &message);
+  /// let key = Key::<128> {
+  ///    inner: [
+  ///      0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
+  ///      0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d,
+  ///      0x1e, 0x1f,
+  ///    ],
+  ///  };
+
+  ///  let plaintext = [
+  ///    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee,
+  ///    0xff,
+  ///  ];
+
+  ///  let encrypted = AES::encrypt(&key, &plaintext);
   /// ```
   fn encrypt(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
     let num_rounds = match K {
@@ -71,21 +71,6 @@ where [(); K / 8]:
     Self::aes_encrypt(plaintext, key, num_rounds)
   }
 
-  /// Decrypt a ciphertext of size [`Block`]
-  ///
-  /// ## Example
-  /// ```rust
-  /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{des::DES, SymmetricEncryption};
-  /// let mut rng = thread_rng();
-  /// let secret_key = rng.gen();
-  ///
-  /// let subkeys = DES::setup(secret_key);
-  ///
-  /// let message = rng.gen();
-  /// let encrypted = DES::encrypt(&subkeys, &message);
-  /// let decrypted = DES::decrypt(&subkeys, &encrypted);
-  /// ```
   fn decrypt(_key: &Self::Key, _ciphertext: &Self::Block) -> Self::Block { unimplemented!() }
 }
 
@@ -103,6 +88,7 @@ const ROUND_CONSTANTS: [[u8; 4]; 10] = [
   [0x36, 0x00, 0x00, 0x00],
 ];
 
+///
 #[derive(Clone, Default)]
 struct ExpandedKey(Vec<Word>);
 
@@ -133,19 +119,6 @@ pub struct AES<const K: usize> {}
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 struct State([[u8; 4]; 4]);
 
-impl From<[u8; 16]> for State {
-  fn from(plaintext: [u8; 16]) -> Self {
-    Self(
-      plaintext
-        .chunks(4)
-        .map(|c| c.try_into().unwrap())
-        .collect::<Vec<[u8; 4]>>()
-        .try_into()
-        .unwrap(),
-    )
-  }
-}
-
 impl<const K: usize> AES<K>
 where [(); K / 8]:
 {
@@ -154,12 +127,19 @@ where [(); K / 8]:
   fn aes_encrypt(plaintext: &[u8; 16], key: &Key<K>, num_rounds: usize) -> Block {
     assert!(!key.is_empty(), "Key is not instantiated");
 
-    let key_len = K / 32;
-    let mut expanded_key = ExpandedKey(Vec::with_capacity(key_len * (num_rounds + 1)));
-    Self::key_expansion(*key, &mut expanded_key, key_len, num_rounds);
+    let key_len_words = K / 32;
+    let mut expanded_key = ExpandedKey(Vec::with_capacity(key_len_words * (num_rounds + 1)));
+    Self::key_expansion(*key, &mut expanded_key, key_len_words, num_rounds);
     let mut expanded_key_chunks = expanded_key.chunks_exact(4);
 
-    let mut state = State::from(*plaintext);
+    let mut state = State(
+      plaintext
+        .chunks(4)
+        .map(|c| c.try_into().unwrap())
+        .collect::<Vec<[u8; 4]>>()
+        .try_into()
+        .unwrap(),
+    );
     assert!(state != State::default(), "State is not instantiated");
 
     // Round 0 - add round key
