@@ -2,7 +2,7 @@
 //! and decryption.
 //!
 //! Source: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
-
+#[doc = include_str!("./README.md")]
 use std::ops::{Deref, DerefMut};
 
 use itertools::Itertools;
