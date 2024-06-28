@@ -160,8 +160,8 @@ where [(); K / 8]:
     Self::add_round_key(&mut state, expanded_key_chunks.next().unwrap());
 
     assert!(
-      expanded_key_chunks.next().is_none(),
-      "Expanded key is too large - check key expansion"
+      expanded_key_chunks.remainder().len() == 0,
+      "Expanded key not fully consumed - perhaps check key expansion?"
     );
 
     state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap()
