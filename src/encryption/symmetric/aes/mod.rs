@@ -15,6 +15,7 @@ use crate::encryption::symmetric::aes::sbox::SBOX;
 /// A block in AES represents a 128-bit sized message data.
 pub type Block = [u8; 16];
 
+///  A word in AES represents a 32-bit array of data.
 pub type Word = [u8; 4];
 
 /// A generic N-bit key.
@@ -144,31 +145,6 @@ impl From<[u8; 16]> for State {
     )
   }
 }
-
-// impl BlockCipher<128, 128> for AES<128> {
-//  /// Encryption
-//  fn encrypt(&mut self, key: Key<128>, plaintext: [u8; 16]) -> Block<128> {
-//    aes_encrypt::<128>(self, key, plaintext, Self::KEY_LEN_WORDS)
-//  }
-//
-//  fn decrypt(self, _key: Key<128>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
-//}
-// impl BlockCipher<128, 192> for AES<192> {
-//  /// Encryption
-//  fn encrypt(&mut self, key: Key<192>, plaintext: [u8; 16]) -> Block<128> {
-//    aes_encrypt::<192>(self, key, plaintext, Self::KEY_LEN_WORDS)
-//  }
-//
-//  fn decrypt(self, _key: Key<192>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
-//}
-// impl BlockCipher<128, 256> for AES<256> {
-//  /// Encryption
-//  fn encrypt(&mut self, key: Key<256>, plaintext: [u8; 16]) -> Block<128> {
-//    aes_encrypt::<256>(self, key, plaintext, Self::KEY_LEN_WORDS)
-//  }
-//
-//  fn decrypt(self, _key: Key<256>, _ciphertext: Block<128>) -> Block<128> { unimplemented!() }
-//}
 
 impl<const K: usize> AES<K>
 where [(); K / 8]:
