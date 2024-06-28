@@ -1,8 +1,16 @@
 //! Test vectors from: https://datatracker.ietf.org/doc/html/rfc8439
 
-use itertools::Itertools;
+use chacha20::{
+  cipher::{KeyIvInit, StreamCipher, StreamCipherSeek},
+  ChaCha20,
+};
+use des::cipher::KeyInit;
+use hex::FromHex;
+use rand::{thread_rng, Rng};
+use rstest::rstest;
 
-use super::{block, quarter_round, ChaCha};
+use super::{block, quarter_round, ChaCha, Counter};
+use crate::encryption::symmetric::chacha::IETFChaCha20;
 
 #[test]
 fn test_quarter_round() {
@@ -24,9 +32,10 @@ fn chacha_block() {
   let key = [
     0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c, 0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c,
   ];
-  let nonce = [0x09000000, 0x4a000000, 0x00000000];
-  let counter = [0x00000001];
-  let state = block(key, counter, nonce, 20);
+
+  let nonce = [0x09000000, 0x4a000000, 0];
+  let counter = Counter::new([1]);
+  let state = block(&key, &counter, &nonce, 20);
 
   assert_eq!(state, [
     0x10, 0xf1, 0xe7, 0xe4, 0xd1, 0x3b, 0x59, 0x15, 0x50, 0x0f, 0xdd, 0x1f, 0xa3, 0x20, 0x71, 0xc4,
@@ -37,17 +46,32 @@ fn chacha_block() {
 }
 
 #[test]
+fn chacha_block_2() {
+  let key = [0u32; 8];
+  let nonce = [0u32; 3];
+  let counter = Counter::new([0]);
+  let state = block(&key, &counter, &nonce, 20);
+
+  assert_eq!(state, [
+    0x76, 0xb8, 0xe0, 0xad, 0xa0, 0xf1, 0x3d, 0x90, 0x40, 0x5d, 0x6a, 0xe5, 0x53, 0x86, 0xbd, 0x28,
+    0xbd, 0xd2, 0x19, 0xb8, 0xa0, 0x8d, 0xed, 0x1a, 0xa8, 0x36, 0xef, 0xcc, 0x8b, 0x77, 0x0d, 0xc7,
+    0xda, 0x41, 0x59, 0x7c, 0x51, 0x57, 0x48, 0x8d, 0x77, 0x24, 0xe0, 0x3f, 0xb8, 0xd8, 0x4a, 0x37,
+    0x6a, 0x43, 0xb8, 0xf4, 0x15, 0x18, 0xa1, 0x1c, 0xc3, 0x87, 0xb6, 0x69, 0xb2, 0xee, 0x65, 0x86
+  ]);
+}
+
+#[test]
 fn chacha_encrypt() {
   let key = [
     0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c, 0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c,
   ];
-  let nonce = [0x00000000, 0x4a000000, 0x00000000];
-  let counter = [0x00000001];
+  let nonce = [0, 0x4a000000, 0];
+  let counter = Counter::new([1]);
 
   let plaintext = b"Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it.";
 
-  let chacha = ChaCha::<20>::new(20);
-  let ciphertext = chacha.encrypt(key, counter, nonce, plaintext);
+  let chacha = ChaCha::<20, 3, 1>::new(&key, &nonce);
+  let ciphertext = chacha.encrypt(&counter, plaintext).unwrap();
 
   assert_eq!(ciphertext, [
     0x6e, 0x2e, 0x35, 0x9a, 0x25, 0x68, 0xf9, 0x80, 0x41, 0xba, 0x07, 0x28, 0xdd, 0x0d, 0x69, 0x81,
@@ -60,7 +84,58 @@ fn chacha_encrypt() {
     0x87, 0x4d,
   ]);
 
-  let decrypt = chacha.decrypt(key, counter, nonce, &ciphertext);
+  let decrypt = chacha.decrypt(&counter, &ciphertext).unwrap();
 
   assert_eq!(decrypt, plaintext.to_vec());
+}
+
+#[rstest]
+#[case([0, 10], [0, 11])]
+#[case([1, u32::MAX], [2, 0])]
+#[should_panic]
+#[case([u32::MAX, u32::MAX, u32::MAX], [0, 0, 0])]
+fn counter<const C: usize>(#[case] a: [u32; C], #[case] b: [u32; C]) {
+  let mut counter = Counter::new(a);
+  let val = counter.increment();
+  assert!(val.is_ok());
+
+  assert_eq!(counter.value, b);
+}
+
+#[test]
+fn chacha_fuzz() {
+  let mut rng = thread_rng();
+
+  let key: [u32; 8] = rng.gen();
+  let nonce: [u32; 3] = rng.gen();
+  let plaintext = <[u8; 16]>::from_hex("000102030405060708090A0B0C0D0E0F").unwrap();
+
+  // ronk chacha cipher
+  let ronk_chacha = IETFChaCha20::new(&key, &nonce);
+  let counter = Counter::new([0]);
+  let ronk_ciphertext = ronk_chacha.encrypt(&counter, &plaintext).unwrap();
+  let decrypted = ronk_chacha.decrypt(&counter, &ronk_ciphertext).unwrap();
+
+  // Key and IV must be references to the `GenericArray` type.
+  // Here we use the `Into` trait to convert arrays into it.
+  let flat_key: [u8; 32] =
+    key.iter().flat_map(|val| val.to_le_bytes()).collect::<Vec<u8>>().try_into().expect("err");
+  let flat_nonce: [u8; 12] =
+    nonce.iter().flat_map(|val| val.to_le_bytes()).collect::<Vec<u8>>().try_into().expect("err");
+  let mut cipher = ChaCha20::new(&flat_key.into(), &flat_nonce.into());
+
+  let mut buffer = plaintext.clone();
+  cipher.apply_keystream(&mut buffer);
+
+  let ciphertext = buffer.clone();
+
+  assert_eq!(ronk_ciphertext, ciphertext.to_vec());
+
+  // ChaCha ciphers support seeking
+  cipher.seek(0u32);
+
+  // decrypt ciphertext by applying keystream again
+  cipher.apply_keystream(&mut buffer);
+  assert_eq!(buffer, plaintext);
+  assert_eq!(buffer.to_vec(), decrypted);
 }
