@@ -4,7 +4,6 @@ use chacha20::{
   cipher::{KeyIvInit, StreamCipher, StreamCipherSeek},
   ChaCha20,
 };
-use des::cipher::KeyInit;
 use hex::FromHex;
 use rand::{thread_rng, Rng};
 use rstest::rstest;

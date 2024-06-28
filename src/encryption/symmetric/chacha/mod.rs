@@ -1,4 +1,14 @@
-//! Contains implementation of ChaCha stream cipher algorithm.
+//! Contains implementation of [`ChaCha`] [`StreamCipher`] algorithm with [`Counter`].
+//!
+//! Provides implementation of variants:
+//! - [`ChaCha20`]: [Original](https://cr.yp.to/chacha/chacha-20080128.pdf) ChaCha variant with 20
+//!   rounds
+//! - [`ChaCha12`]: [Original](https://cr.yp.to/chacha/chacha-20080128.pdf) ChaCha variant with 12
+//!   rounds
+//! - [`ChaCha8`]: [Original](https://cr.yp.to/chacha/chacha-20080128.pdf) ChaCha variant with 8
+//!   rounds
+//! - [`IETFChaCha20`],[`IETFChaCha12`],[`IETFChaCha8`]: [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439)
+//!   with 20, 12, 8 rounds
 
 use super::StreamCipher;
 
