@@ -173,9 +173,7 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   ///   for [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439) variant.
   ///
   /// *Note*: same nonce value shouldn't be used with a key as stream ciphers are malleable.
-  pub fn new(key: &Key, nonce: &Nonce<N>) -> Self {
-    Self { key: key.clone(), nonce: nonce.clone() }
-  }
+  pub fn new(key: &Key, nonce: &Nonce<N>) -> Self { Self { key: *key, nonce: *nonce } }
 
   /// Encrypts a plaintext of maximum length $2^{32*C}$ by performing $ENC_k(m) = m ⨁ B(k)$, where
   /// B(k) is pseudoranom keystream calculated using ChaCha block function.
@@ -209,7 +207,7 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
 
     let mut ciphertext: Vec<u8> = Vec::new();
 
-    let mut counter_iter = counter.clone();
+    let mut counter_iter = *counter;
 
     // parse inputs in chunks of 64 bytes
     let chunks = plaintext.chunks_exact(64);
