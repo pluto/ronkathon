@@ -1,6 +1,4 @@
 /// Test vectors from: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
-use pretty_assertions::assert_eq;
-
 use super::*;
 
 #[test]
