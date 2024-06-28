@@ -5,9 +5,8 @@
 //! - The implementation is secure if the modulus is the product of two large random primes (they
 //!   are not random or big in these tests).
 //! - The size of the modulus should be at least 2048 bits.
-#[doc = include_str!("./README.md")]
-#[cfg(test)]
-mod tests;
+#![doc = include_str!("./README.md")]
+#[cfg(test)] mod tests;
 
 #[allow(dead_code)]
 /// Computes the modular inverse of e mod totient

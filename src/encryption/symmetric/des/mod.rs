@@ -1,7 +1,6 @@
 //! Contains implementation of DES encryption
-#[doc = include_str!("./README.md")]
-#[cfg(test)]
-pub mod tests;
+#![doc = include_str!("./README.md")]
+#[cfg(test)] pub mod tests;
 
 pub mod constants;
 
