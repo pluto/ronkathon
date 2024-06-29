@@ -118,9 +118,9 @@ where [(); N / 8]:
     assert!(!key.is_empty(), "Key is not instantiated");
 
     let key_len_words = N / 32;
-    let mut expanded_key = Vec::with_capacity(key_len_words * (num_rounds + 1));
-    Self::key_expansion(*key, &mut expanded_key, key_len_words, num_rounds);
-    let mut expanded_key_chunks = expanded_key.chunks_exact(4);
+    let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
+    Self::key_expansion(*key, &mut round_keys_words, key_len_words, num_rounds);
+    let mut round_keys = round_keys_words.chunks_exact(4);
 
     let mut state = State(
       plaintext
@@ -133,24 +133,24 @@ where [(); N / 8]:
     assert!(state != State::default(), "State is not instantiated");
 
     // Round 0 - add round key
-    Self::add_round_key(&mut state, expanded_key_chunks.next().unwrap());
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
 
     // Rounds 1 to N - 1
     for _ in 1..num_rounds {
       Self::sub_bytes(&mut state);
       Self::shift_rows(&mut state);
       Self::mix_columns(&mut state);
-      Self::add_round_key(&mut state, expanded_key_chunks.next().unwrap());
+      Self::add_round_key(&mut state, round_keys.next().unwrap());
     }
 
     // Last round - we do not mix columns here.
     Self::sub_bytes(&mut state);
     Self::shift_rows(&mut state);
-    Self::add_round_key(&mut state, expanded_key_chunks.next().unwrap());
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
 
     assert!(
-      expanded_key_chunks.remainder().is_empty(),
-      "Expanded key not fully consumed - perhaps check key expansion?"
+      round_keys.remainder().is_empty(),
+      "Round keys not fully consumed - perhaps check key expansion?"
     );
 
     state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap()
@@ -252,15 +252,20 @@ where [(); N / 8]:
   ///
   /// Key expansion ensures that each key used per round is different, introducing additional
   /// complexity and diffusion.
-  fn key_expansion(key: Key<N>, expanded_key: &mut Vec<Word>, key_len: usize, num_rounds: usize) {
+  fn key_expansion(
+    key: Key<N>,
+    round_keys_words: &mut Vec<Word>,
+    key_len: usize,
+    num_rounds: usize,
+  ) {
     let block_num_words = 128 / 32;
 
     let out_len = block_num_words * (num_rounds + 1);
     let key_words: Vec<Word> = key.chunks(4).map(|c| c.try_into().unwrap()).collect();
-    expanded_key.extend(key_words);
+    round_keys_words.extend(key_words);
 
     for i in key_len..(block_num_words * (num_rounds + 1)) {
-      let mut last = *expanded_key.last().unwrap();
+      let mut last = *round_keys_words.last().unwrap();
 
       if i % key_len == 0 {
         Self::rotate_word(&mut last);
@@ -271,16 +276,20 @@ where [(); N / 8]:
         last = Self::sub_word(last)
       }
 
-      let round_key = expanded_key[i - key_len]
+      let round_key = round_keys_words[i - key_len]
         .iter()
         .zip(last.iter())
         .map(|(w, l)| w ^ l)
         .collect_vec()
         .try_into()
         .unwrap();
-      expanded_key.push(round_key);
+      round_keys_words.push(round_key);
     }
 
-    assert_eq!(expanded_key.len(), out_len, "Wrong number of words output during key expansion");
+    assert_eq!(
+      round_keys_words.len(),
+      out_len,
+      "Wrong number of words output during key expansion"
+    );
   }
 }

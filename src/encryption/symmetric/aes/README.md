@@ -98,8 +98,7 @@ the key and the ciphertext as part of the *confusion* property.
 During substitution, a byte is interpreted as a polynomial and
 mapped to its multiplicative inverse in [Rijndael's finite field][Rijndael ff]: GF(2^8) = GF(2)[x]/(x^8 + x^4 + x^3 + x + 1).
 
-The inverse
-is then transformed using an affine transformation which is the sum of multiple rotations of the byte as a vector, where addition is the XOR operation. The result is an 8-bit output array which is used to substitute the original byte.
+The inverse is then transformed using an affine transformation which is the sum of multiple rotations of the byte as a vector, where addition is the XOR operation. The result is an 8-bit output array which is used to substitute the original byte.
 
 ## Security
 
