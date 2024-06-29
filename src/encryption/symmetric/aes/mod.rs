@@ -78,20 +78,6 @@ const ROUND_CONSTANTS: [[u8; 4]; 10] = [
   [0x36, 0x00, 0x00, 0x00],
 ];
 
-///
-#[derive(Clone, Default)]
-struct ExpandedKey(Vec<Word>);
-
-impl Deref for ExpandedKey {
-  type Target = Vec<Word>;
-
-  fn deref(&self) -> &Self::Target { &self.0 }
-}
-
-impl DerefMut for ExpandedKey {
-  fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
-}
-
 /// A struct containing an instance of an AES encryption/decryption.
 #[derive(Clone)]
 pub struct AES<const K: usize> {}
@@ -118,7 +104,7 @@ where [(); K / 8]:
     assert!(!key.is_empty(), "Key is not instantiated");
 
     let key_len_words = K / 32;
-    let mut expanded_key = ExpandedKey(Vec::with_capacity(key_len_words * (num_rounds + 1)));
+    let mut expanded_key = Vec::with_capacity(key_len_words * (num_rounds + 1));
     Self::key_expansion(*key, &mut expanded_key, key_len_words, num_rounds);
     let mut expanded_key_chunks = expanded_key.chunks_exact(4);
 
@@ -237,7 +223,7 @@ where [(); K / 8]:
     word
   }
 
-  fn key_expansion(key: Key<K>, expanded_key: &mut ExpandedKey, key_len: usize, num_rounds: usize) {
+  fn key_expansion(key: Key<K>, expanded_key: &mut Vec<Word>, key_len: usize, num_rounds: usize) {
     let block_num_words = 128 / 32;
 
     let out_len = block_num_words * (num_rounds + 1);
