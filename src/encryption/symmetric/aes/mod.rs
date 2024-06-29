@@ -237,6 +237,13 @@ where [(); N / 8]:
     word
   }
 
+  /// Generates a key schedule based on a given cipher key `Key`, generating a total of
+  /// `Nb * (Nr + 1)` words, where Nb = size of block (in words), and Nr = number of rounds.
+  /// Nr is determined by the size `N` of the key. Every 4-word chunk from this output
+  /// is used as a round key.
+  ///
+  /// Key expansion ensures that each key used per round is different, introducing additional
+  /// complexity and diffusion.
   fn key_expansion(key: Key<N>, expanded_key: &mut Vec<Word>, key_len: usize, num_rounds: usize) {
     let block_num_words = 128 / 32;
 
