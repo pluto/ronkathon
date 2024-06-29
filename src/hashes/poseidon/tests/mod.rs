@@ -36,7 +36,7 @@ where rand::distributions::Standard: rand::distributions::Distribution<F> {
   }
   (rc, mds)
 }
-
+#[allow(unused_braces)]
 #[fixture]
 fn rate() -> usize { 6 }
 
