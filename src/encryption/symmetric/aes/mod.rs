@@ -206,22 +206,30 @@ where [(); N / 8]:
   ///
   /// Mix columns is done as such:
   ///
-  /// Each column of bytes is treated as a 4-term polynomial, multiplied by a fixed polynomial
-  /// a(x) = 3x^3 + x^2 + x + 2.
+  /// Each column of bytes is treated as a 4-term polynomial, multiplied modulo x^4 + 1 with a fixed
+  /// polynomial a(x) = 3x^3 + x^2 + x + 2. This is done using matrix multiplication.
   fn mix_columns(state: &mut State) {
     for col in state.0.iter_mut() {
       let tmp = *col;
       let mut col_doubled = *col;
 
+      // Perform the matrix multiplication in GF(2^8).
+      // We process the multiplications first, so we can just do additions later.
       for (i, c) in col_doubled.iter_mut().enumerate() {
         let hi_bit = col[i] >> 7;
         *c = col[i] << 1;
-        *c ^= hi_bit * 0x1B;
+        *c ^= hi_bit * 0x1B; // This XOR brings the column back into the field if an
+                             // overflow occurs (ie. hi_bit == 1)
       }
 
+      // Do all additions (XORs) here.
+      // 2a0 + 3a1 + a2 + a3
       col[0] = col_doubled[0] ^ tmp[3] ^ tmp[2] ^ col_doubled[1] ^ tmp[1];
+      // a0 + 2a1 + 3a2 + a3
       col[1] = col_doubled[1] ^ tmp[0] ^ tmp[3] ^ col_doubled[2] ^ tmp[2];
+      // a0 + a1 + 2a2 + 3a3
       col[2] = col_doubled[2] ^ tmp[1] ^ tmp[0] ^ col_doubled[3] ^ tmp[3];
+      // 3a0 + a1 + a2 + 2a3
       col[3] = col_doubled[3] ^ tmp[2] ^ tmp[1] ^ col_doubled[0] ^ tmp[0];
     }
   }

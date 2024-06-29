@@ -79,8 +79,10 @@ Shift i-th row of i positions, for i ranging from 0 to 3, eg. Row 0: no shift oc
 
 #### MixColumns
 
-Each column of bytes is treated as a 4-term polynomial, multiplied by a fixed polynomial
-a(x) = 3x^3 + x^2 + x + 2.
+Each column of bytes is treated as a 4-term polynomial, multiplied modulo x^4 + 1 with a fixed polynomial
+a(x) = 3x^3 + x^2 + x + 2. This is done using matrix multiplication.
+
+More details can be found [here][mixcolumns].
 
 
 ### Decryption
@@ -116,6 +118,7 @@ In production-level AES code, fast AES software uses special techniques called t
 [des]: ../des/README.md
 [spn]: https://en.wikipedia.org/wiki/Substitution%E2%80%93permutation_network
 [slide attacks]: https://en.wikipedia.org/wiki/Slide_attack
+[mixcolumns]: https://en.wikipedia.org/wiki/Rijndael_MixColumns
 [Rijndael ff]: https://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael's_(AES)_finite_field
 [fips197]: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197-upd1.pdf
 [seriouscrypto]:https://nostarch.com/seriouscrypto
