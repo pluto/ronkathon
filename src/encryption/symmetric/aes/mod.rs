@@ -1,7 +1,6 @@
 //! This module contains the implementation for the Advanced Encryption Standard (AES) encryption
 //! and decryption.
 #![doc = include_str!("./README.md")]
-use std::ops::{Deref, DerefMut};
 
 use itertools::Itertools;
 
@@ -135,7 +134,7 @@ where [(); K / 8]:
     Self::add_round_key(&mut state, expanded_key_chunks.next().unwrap());
 
     assert!(
-      expanded_key_chunks.remainder().len() == 0,
+      expanded_key_chunks.remainder().is_empty(),
       "Expanded key not fully consumed - perhaps check key expansion?"
     );
 
