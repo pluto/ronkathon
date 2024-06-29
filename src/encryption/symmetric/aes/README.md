@@ -113,7 +113,7 @@ In production-level AES code, fast AES software uses special techniques called t
 - [Serious Cryptography - A Practical Introduction to Modern Cryptography](seriouscrypto)
 
 [aes]: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
-[des]: ../des/index.html
+[des]: ../des/README.md
 [spn]: https://en.wikipedia.org/wiki/Substitution%E2%80%93permutation_network
 [slide attacks]: https://en.wikipedia.org/wiki/Slide_attack
 [Rijndael ff]: https://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael's_(AES)_finite_field
