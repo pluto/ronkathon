@@ -1,8 +1,6 @@
 //! This module contains the implementation for the Advanced Encryption Standard (AES) encryption
 //! and decryption.
-//!
-//! Source: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
-#[doc = include_str!("./README.md")]
+#![doc = include_str!("./README.md")]
 use std::ops::{Deref, DerefMut};
 
 use itertools::Itertools;
@@ -243,9 +241,7 @@ where [(); K / 8]:
     let block_num_words = 128 / 32;
 
     let out_len = block_num_words * (num_rounds + 1);
-
     let key_words: Vec<Word> = key.chunks(4).map(|c| c.try_into().unwrap()).collect();
-
     expanded_key.extend(key_words);
 
     // key len (Nk words)
@@ -263,14 +259,14 @@ where [(); K / 8]:
         last = Self::sub_word(last)
       }
 
-      let word = expanded_key[i - key_len]
+      let round_key = expanded_key[i - key_len]
         .iter()
         .zip(last.iter())
         .map(|(w, l)| w ^ l)
         .collect_vec()
         .try_into()
         .unwrap();
-      expanded_key.push(word);
+      expanded_key.push(round_key);
     }
 
     assert_eq!(expanded_key.len(), out_len, "Wrong number of words output during key expansion");
