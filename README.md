@@ -9,7 +9,8 @@
 <div align="center">
   <a href="https://github.com/pluto/ronkathon/actions">
     <!-- ![](https://github.com/pluto/ronkathon/actions/workflows/ci.yml/badge.svg) -->
-    <img src="https://github.com/pluto/ronkathon/actions/workflows/ci.yml/badge.svg" />
+    <img src="https://github.com/pluto/ronkathon/actions/workflows/test.yaml/badge.svg" />
+    <img src="https://github.com/pluto/ronkathon/actions/workflows/lint.yaml/badge.svg" />
   </a>
   <!-- [![crates.io](https://img.shields.io/crates/v/ronkathon.svg)](https://crates.io/crates/ronkathon) -->
   <!-- [![Documentation](https://docs.rs/ronkathon/badge.svg)](https://docs.rs/ronkathon) -->
