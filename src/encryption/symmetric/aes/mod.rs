@@ -66,7 +66,7 @@ where [(); N / 8]:
       128 => 10,
       192 => 12,
       256 => 14,
-      _ => unimplemented!(),
+      _ => panic!("AES only supports key sizes 128, 192 and 256 bits. You provided: {N}"),
     };
 
     Self::aes_encrypt(plaintext, key, num_rounds)
