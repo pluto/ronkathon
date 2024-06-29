@@ -1,12 +1,12 @@
 # AES encryption
 
-[Advanced Encryption Standard](aes) (AES) is a symmetric-key algorithm and is a variant of the Rijndael (pronounced 'rain-dull') block cipher. AES supersedes the [Data Encryption Standard](des) (DES).
+[Advanced Encryption Standard][aes] (AES) is a symmetric-key algorithm and is a variant of the Rijndael (pronounced 'rain-dull') block cipher. AES supersedes the [Data Encryption Standard][des] (DES).
 
 ## Overview
 
 AES supports a block size of 128 bits, and three different key lengths: 128, 192, and 256 bits. It manipulates _bytes_ instead of _individual bits_ or _64-bit words_, and views a 16-byte plaintext as a 2D column-major grid of bytes.
 
-AES uses [Substitution-Permutation Network (SPN)](spn) which makes use of two main properties: _confusion_ and _diffusion_. Confusion means that the input undergoes complex transformations, and diffusion means that these transformations depend equally on all bits of the input.
+AES uses [Substitution-Permutation Network (SPN)][spn] which makes use of two main properties: _confusion_ and _diffusion_. Confusion means that the input undergoes complex transformations, and diffusion means that these transformations depend equally on all bits of the input.
 
 Unlike DES, it does not use a Feistel network, and most AES calculations are done in a particular finite field.
 
@@ -94,7 +94,7 @@ performs substitution. It is used to obscure the relationship
 the key and the ciphertext as part of the *confusion* property.
 
 During substitution, a byte is interpreted as a polynomial and
-mapped to its multiplicative inverse in [Rijndael's finite field](Rijndael ff): GF(2^8) = GF(2)[x]/(x^8 + x^4 + x^3 + x + 1).
+mapped to its multiplicative inverse in [Rijndael's finite field][Rijndael ff]: GF(2^8) = GF(2)[x]/(x^8 + x^4 + x^3 + x + 1).
 
 The inverse
 is then transformed using an affine transformation which is the sum of multiple rotations of the byte as a vector, where addition is the XOR operation. The result is an 8-bit output array which is used to substitute the original byte.
@@ -113,7 +113,7 @@ In production-level AES code, fast AES software uses special techniques called t
 - [Serious Cryptography - A Practical Introduction to Modern Cryptography](seriouscrypto)
 
 [aes]: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
-[des]: ../des/README.md
+[des]: ../des/index.html
 [spn]: https://en.wikipedia.org/wiki/Substitution%E2%80%93permutation_network
 [slide attacks]: https://en.wikipedia.org/wiki/Slide_attack
 [Rijndael ff]: https://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael's_(AES)_finite_field
