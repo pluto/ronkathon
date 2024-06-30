@@ -17,7 +17,8 @@ jobs:
       - name: install rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: 1.80.0
+          override: true
           components: rustfmt
       - name: cargo fmt
         run: cargo +nightly fmt --all -- --check
@@ -32,7 +33,8 @@ jobs:
       - name: install rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: 1.80.0
+          override: true
           components: clippy
       - name: cargo clippy
         run: cargo +nightly clippy --all
@@ -45,7 +47,8 @@ jobs:
       - name: install rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: 1.80.0
+          override: true
           components: rustfmt
 
       - name: install udeps

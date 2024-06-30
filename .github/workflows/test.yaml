@@ -19,7 +19,7 @@ jobs:
     - name: Set up Rust
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
+        toolchain: 1.80.0
         override: true
 
     - name: Install dependencies
