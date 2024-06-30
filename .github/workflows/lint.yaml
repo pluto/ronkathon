@@ -14,8 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: install rust toolchain
-        run: rustup toolchain install nightly-2024-06-10
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
 
       - name: cargo fmt
         run: cargo +nightly fmt --all -- --check
@@ -29,6 +32,9 @@ jobs:
 
       - name: install rust toolchain
         run: rustup toolchain install nightly-2024-06-10
+
+      - name: Install Clippy
+        run: rustup component add --toolchain nightly-2024-06-10 clippy
       
       - name: cargo clippy
         run: cargo clippy --all
