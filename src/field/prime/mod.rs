@@ -213,6 +213,17 @@ impl From<PlutoPrime> for usize {
   }
 }
 
+impl<const P: usize> From<i32> for PrimeField<P> {
+  fn from(value: i32) -> Self {
+    let abs = Self::new(value.unsigned_abs() as usize);
+    if value.is_positive() {
+      abs
+    } else {
+      -abs
+    }
+  }
+}
+
 impl<const P: usize> FromStr for PrimeField<P> {
   type Err = ();
 

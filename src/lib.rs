@@ -11,6 +11,7 @@
 //!   operations such as addition, multiplication, and division.
 //! - Elliptic curves: Implementations of elliptic curves over finite fields, with support for
 //!   operations such as point addition, scalar multiplication, and pairing operations.
+//! - Compiler: Simple DSL to write circuits which can be compiled to polynomials used in PLONK.
 
 #![allow(incomplete_features)]
 #![feature(effects)]
@@ -22,6 +23,7 @@
 #![warn(missing_docs)]
 
 pub mod codes;
+pub mod compiler;
 pub mod curve;
 pub mod ecdsa;
 pub mod encryption;
