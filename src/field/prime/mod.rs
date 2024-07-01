@@ -45,6 +45,30 @@ impl<const P: usize> PrimeField<P> {
 
   /// Computes euler criterion of the field element, i.e. Returns true if the element is a quadratic
   /// residue (a square number) in the field.
+  ///
+  /// ## NOTES
+  /// By fermat's little theorem, (assume `is_congruent_to` is =)
+  ///     x^(p-1) - 1 = 0 mod P
+  ///
+  /// All primes > 2 are odd, a.k.a P is odd, hence (P-1) is even.
+  /// So, we can split as follows:
+  ///     (x^(p-1)/2 - 1)(x^(p-1)/2 + 1) = 0 mod P
+  /// or       L        *     R          = 0 mod P
+  ///
+  /// All quadratic residues are of the form (g^(2k)) where `g` is the
+  /// multiplicative generator and k is some natural number. All non-residues
+  /// on the other hand are of the form (g^(2k+1)).
+  ///
+  /// In case of QR, substitute x = g^2k
+  ///     g^(2k)((p-1)/2) = 1 mod P
+  ///     g^(p-1) = 1 mod P
+  /// which is true by fermat's little theorem
+  ///
+  /// In the other case, the same doesn't hold.
+  /// Hence, the case `L` should hold for all quadratic residues and is the
+  /// test for quadratic residuosity.
+  ///
+  /// More info here: https://www.youtube.com/watch?v=2IBPOI43jek
   pub fn euler_criterion(&self) -> bool { self.pow((P - 1) / 2).value == 1 }
 
   /// Computes the square root of a field element using the [Tonelli-Shanks algorithm](https://en.wikipedia.org/wiki/Tonelli–Shanks_algorithm).
