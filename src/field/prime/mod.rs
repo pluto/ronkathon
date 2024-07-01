@@ -114,19 +114,12 @@ impl<const P: usize> const FiniteField for PrimeField<P> {
     if self.value == 0 {
       return None;
     }
-    let exponent = Self::ORDER - 2;
-    let mut result = Self::ONE;
-    let mut base = *self;
-    let mut power = exponent;
 
-    while power > 0 {
-      if power & 1 == 1 {
-        result *= base;
-      }
-      base = base * base;
-      power >>= 1;
-    }
-    Some(result)
+    // By fermat's little theorem, in any prime field P, for any elem:
+    //    e^(P-1) = 1 mod P
+    // So,
+    //    e^(P-2) = e^-1 mod P
+    Some(self.pow(Self::ORDER - 2))
   }
 
   fn pow(self, power: usize) -> Self {
