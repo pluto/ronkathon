@@ -21,14 +21,22 @@ Ronkathon is a rust implementation of a collection of cryptographic primitives. 
 
 ## Primitives
 - [Fields and Their Extensions](src/field/README.md)
+  - [Binary Fields](src/field/binary_towers/README.md)
 - [Curves and Their Pairings](src/curve/README.md)
 - [Polynomials](src/polynomial/mod.rs)
 - [KZG Commitments](src/kzg/README.md)
 - [Reed-Solomon Codes](src/codes/README.md)
-- [Tiny ECDSA](src/ecdsa.rs)
-- [RSA](src/rsa/README.md)
-- [Sha256 Hash](src/hashes/README.md)
 - [Merkle Proofs](src/tree/README.md)
+
+### Signatures
+- [Tiny ECDSA](src/ecdsa.rs)
+
+### Encryption
+- [RSA](src/encryption/asymmetric/rsa/README.md)
+- [DES](src/encryption/symmetric/des/README.md)
+
+### Hash
+- [Sha256 Hash](src/hashes/README.md)
 - [Poseidon Hash](src/hashes/poseidon/README.md)
 
 ## In Progress
