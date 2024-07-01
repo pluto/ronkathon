@@ -6,7 +6,7 @@
 - using permutation $P$, a pseudorandom function $F$ is constructed that takes a 256 bit key and 128-bit input to 512-bit output with a 128-bit *constant*.
 
 $$
-F_{k}(x)\xlongequal{def} P(\text{const} \parallel k \parallel x)\boxplus \text{const} \parallel k \parallel x
+F_{k}(x)\xlongequal{def} P(\operatorname{const} \parallel k \parallel x)\boxplus \operatorname{const} \parallel k \parallel x
 $$
 
 Then, chacha stream cipher's internal state is defined using $F$ with a 256-bit seed $s$ and 64-bit initialisation vector $IV$ and 64-bit nonce that is used only once for a seed. Often defined as a 4x4 matrix with each cell containing 4 bytes:

@@ -12,8 +12,8 @@ TODO
 
 $$
 \begin{align*}
-\text{Enc}(s,m)=c=G(s)\oplus m \\
-\text{Dec}(s,c)=m=c \oplus G(s)
+\operatorname{Enc}(s,m)=c=G(s)\oplus m \\
+\operatorname{Dec}(s,c)=m=c \oplus G(s)
 \end{align*}
 $$
 
