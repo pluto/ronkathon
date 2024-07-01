@@ -64,7 +64,7 @@ mod tests {
   fn program_error() {
     let constraints =
       &["a public", "d === 9", "b <== a * a + 5", "b public", "c <== -2 * b - a * b"];
-    let program = Program::new(constraints, 5).unwrap();
+    let program = Program::<5>::new(constraints).unwrap();
 
     let public_vars = program.public_assignments();
 
