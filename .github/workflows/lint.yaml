@@ -14,11 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: install rust toolchain
+      - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           components: rustfmt
+
       - name: cargo fmt
         run: cargo +nightly fmt --all -- --check
 
@@ -30,26 +31,25 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: install rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          components: clippy
+        run: rustup toolchain install nightly-2024-06-10
+
+      - name: Install Clippy
+        run: rustup component add --toolchain nightly-2024-06-10 clippy
+      
       - name: cargo clippy
-        run: cargo +nightly clippy --all
+        run: cargo clippy --all
 
   udeps:
     name: udeps
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: install rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          components: rustfmt
+        run: rustup toolchain install nightly-2024-06-10
 
       - name: install udeps
         run: cargo install --git https://github.com/est31/cargo-udeps --locked
 
       - name: cargo udeps
-        run: cargo +nightly udeps
+        run: cargo udeps
