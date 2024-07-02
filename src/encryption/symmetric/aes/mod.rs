@@ -8,7 +8,7 @@ pub mod sbox;
 #[cfg(test)] pub mod tests;
 
 use super::SymmetricEncryption;
-use crate::encryption::symmetric::aes::sbox::SBOX;
+use crate::encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX};
 
 /// A block in AES represents a 128-bit sized message data.
 pub type Block = [u8; 16];
@@ -72,7 +72,16 @@ where [(); N / 8]:
     Self::aes_encrypt(plaintext, key, num_rounds)
   }
 
-  fn decrypt(_key: &Self::Key, _ciphertext: &Self::Block) -> Self::Block { unimplemented!() }
+  fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
+    let num_rounds = match N {
+      128 => 10,
+      192 => 12,
+      256 => 14,
+      _ => panic!("AES only supports key sizes 128, 192 and 256 bits. You provided: {N}"),
+    };
+
+    Self::aes_decrypt(ciphertext, key, num_rounds)
+  }
 }
 
 /// Contains the values given by [x^(i-1), {00}, {00}, {00}], with x^(i-1)
@@ -156,11 +165,65 @@ where [(); N / 8]:
     state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap()
   }
 
+  /// Performs the cipher, with key size of `N` (in bits), as seen in Figure 5 of the document
+  /// linked in the front-page.
+  fn aes_decrypt(ciphertext: &[u8; 16], key: &Key<N>, num_rounds: usize) -> Block {
+    assert!(!key.is_empty(), "Key is not instantiated");
+
+    let key_len_words = N / 32;
+    let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
+    Self::key_expansion(*key, &mut round_keys_words, key_len_words, num_rounds);
+    let mut round_keys = round_keys_words.chunks_exact(4).rev();
+
+    let mut state = State(
+      ciphertext
+        .chunks(4)
+        .map(|c| c.try_into().unwrap())
+        .collect::<Vec<[u8; 4]>>()
+        .try_into()
+        .unwrap(),
+    );
+    assert!(state != State::default(), "State is not instantiated");
+
+    // Round 0 - add round key
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    // Rounds 1 to N - 1
+    for _ in 1..num_rounds {
+      Self::inv_shift_rows(&mut state);
+      Self::inv_sub_bytes(&mut state);
+      Self::add_round_key(&mut state, round_keys.next().unwrap());
+      Self::inv_mix_columns(&mut state);
+    }
+
+    // Last round - we do not mix columns here.
+    Self::inv_shift_rows(&mut state);
+    Self::inv_sub_bytes(&mut state);
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    assert!(
+      round_keys.next().is_none(),
+      "Round keys not fully consumed - perhaps check key expansion?"
+    );
+
+    state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap()
+  }
+
   /// XOR a round key to its internal state.
   fn add_round_key(state: &mut State, round_key: &[[u8; 4]]) {
     for (col, word) in state.0.iter_mut().zip(round_key.iter()) {
       for (c, w) in col.iter_mut().zip(word.iter()) {
         *c ^= w;
+      }
+    }
+  }
+
+  /// Substitutes each byte [s_0, s_1, ..., s_15] with another byte according to a substitution box
+  /// (usually referred to as an S-box).
+  fn inv_sub_bytes(state: &mut State) {
+    for i in 0..4 {
+      for j in 0..4 {
+        state.0[i][j] = INVERSE_SBOX[state.0[i][j] as usize];
       }
     }
   }
@@ -190,8 +253,35 @@ where [(); N / 8]:
       (0..len).map(|_| iters.iter_mut().map(|n| n.next().unwrap()).collect::<Vec<_>>()).collect();
 
     for (r, i) in transposed.iter_mut().zip(0..4) {
-      let (left, right) = r.split_at(i);
-      *r = [right.to_vec(), left.to_vec()].concat();
+      r.rotate_left(i);
+    }
+    let mut iters: Vec<_> = transposed.into_iter().map(|n| n.into_iter()).collect();
+
+    state.0 = (0..len)
+      .map(|_| iters.iter_mut().map(|n| n.next().unwrap()).collect::<Vec<_>>().try_into().unwrap())
+      .collect::<Vec<_>>()
+      .try_into()
+      .unwrap();
+  }
+
+  /// The inverse of [`Self::shift_rows`].
+  ///
+  /// Shift i-th row of i positions, for i ranging from 0 to 3.
+  ///
+  /// For row 0, no shifting occurs, for row 1, a right shift of 1 index occurs, ..
+  ///
+  /// Note that since our state is in column-major form, we transpose the state to a
+  /// row-major form to make this step simpler.
+  fn inv_shift_rows(state: &mut State) {
+    let len = state.0.len();
+    let mut iters: Vec<_> = state.0.into_iter().map(|n| n.into_iter()).collect();
+
+    // Transpose to row-major form
+    let mut transposed: Vec<_> =
+      (0..len).map(|_| iters.iter_mut().map(|n| n.next().unwrap()).collect::<Vec<_>>()).collect();
+
+    for (r, i) in transposed.iter_mut().zip(0..4) {
+      r.rotate_right(i);
     }
     let mut iters: Vec<_> = transposed.into_iter().map(|n| n.into_iter()).collect();
 
@@ -211,27 +301,74 @@ where [(); N / 8]:
   fn mix_columns(state: &mut State) {
     for col in state.0.iter_mut() {
       let tmp = *col;
-      let mut col_doubled = *col;
-
-      // Perform the matrix multiplication in GF(2^8).
-      // We process the multiplications first, so we can just do additions later.
-      for (i, c) in col_doubled.iter_mut().enumerate() {
-        let hi_bit = col[i] >> 7;
-        *c = col[i] << 1;
-        *c ^= hi_bit * 0x1B; // This XOR brings the column back into the field if an
-                             // overflow occurs (ie. hi_bit == 1)
-      }
 
       // Do all additions (XORs) here.
       // 2a0 + 3a1 + a2 + a3
-      col[0] = col_doubled[0] ^ tmp[3] ^ tmp[2] ^ col_doubled[1] ^ tmp[1];
+      col[0] = Self::multiply(tmp[0], 2) ^ tmp[3] ^ tmp[2] ^ Self::multiply(tmp[1], 3);
       // a0 + 2a1 + 3a2 + a3
-      col[1] = col_doubled[1] ^ tmp[0] ^ tmp[3] ^ col_doubled[2] ^ tmp[2];
+      col[1] = Self::multiply(tmp[1], 2) ^ tmp[0] ^ tmp[3] ^ Self::multiply(tmp[2], 3);
       // a0 + a1 + 2a2 + 3a3
-      col[2] = col_doubled[2] ^ tmp[1] ^ tmp[0] ^ col_doubled[3] ^ tmp[3];
+      col[2] = Self::multiply(tmp[2], 2) ^ tmp[1] ^ tmp[0] ^ Self::multiply(tmp[3], 3);
       // 3a0 + a1 + a2 + 2a3
-      col[3] = col_doubled[3] ^ tmp[2] ^ tmp[1] ^ col_doubled[0] ^ tmp[0];
+      col[3] = Self::multiply(tmp[3], 2) ^ tmp[2] ^ tmp[1] ^ Self::multiply(tmp[0], 3);
     }
+  }
+
+  /// The inverse of [`Self::mix_columns`].
+  ///
+  /// Applies the same linear transformation to each of the four columns of the state.
+  ///
+  /// Mix columns is done as such:
+  ///
+  /// Each column of bytes is treated as a 4-term polynomial, multiplied modulo x^4 + 1 with a
+  /// fixed polynomial a(x) = 3x^3 + x^2 + x + 2. This is done using matrix multiplication.
+  fn inv_mix_columns(state: &mut State) {
+    for col in state.0.iter_mut() {
+      let tmp = *col;
+
+      // Do all additions (XORs) here.
+      // 2a0 + 3a1 + a2 + a3
+      col[0] = Self::multiply(tmp[0], 0x0e)
+        ^ Self::multiply(tmp[3], 0x09)
+        ^ Self::multiply(tmp[2], 0x0d)
+        ^ Self::multiply(tmp[1], 0x0b);
+      // a0 + 2a1 + 3a2 + a3
+      col[1] = Self::multiply(tmp[1], 0x0e)
+        ^ Self::multiply(tmp[0], 0x09)
+        ^ Self::multiply(tmp[3], 0x0d)
+        ^ Self::multiply(tmp[2], 0x0b);
+      // a0 + a1 + 2a2 + 3a3
+      col[2] = Self::multiply(tmp[2], 0x0e)
+        ^ Self::multiply(tmp[1], 0x09)
+        ^ Self::multiply(tmp[0], 0x0d)
+        ^ Self::multiply(tmp[3], 0x0b);
+      // 3a0 + a1 + a2 + 2a3
+      col[3] = Self::multiply(tmp[3], 0x0e)
+        ^ Self::multiply(tmp[2], 0x09)
+        ^ Self::multiply(tmp[1], 0x0d)
+        ^ Self::multiply(tmp[0], 0x0b);
+    }
+  }
+
+  fn multiply(col: u8, multiplicant: usize) -> u8 {
+    let mut product = 0;
+    let mut col = col;
+    let mut mult = multiplicant;
+
+    for _ in 0..8 {
+      if mult & 1 == 1 {
+        product ^= col;
+      }
+
+      let hi_bit = col & 0x80;
+      col <<= 1;
+      if hi_bit == 0x80 {
+        col ^= 0x1B;
+      }
+
+      mult >>= 1;
+    }
+    return product & 0xFF;
   }
 
   /// In AES, rotword() is just a one-byte left circular shift.
