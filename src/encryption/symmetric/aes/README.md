@@ -103,9 +103,6 @@ Substitutes each byte in the `State` with another byte according to a [substitut
 
 Do a **right** shift i-th row of i positions, for i ranging from 0 to 3, eg. Row 0: no shift occurs, row 1: a right shift of 1 position occurs.
 
-Substitutes each byte in the `State` with another byte according to a [substitution box](#substitution-box). Note that the only difference here is that the substitution box used in decryption is derived differently from the version used in encryption.
-
-
 #### InvMixColumns
 
 Each column of bytes is treated as a 4-term polynomial, multiplied modulo x^4 + 1 with the inverse of the fixed polynomial
