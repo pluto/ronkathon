@@ -106,9 +106,7 @@ Do a **right** shift i-th row of i positions, for i ranging from 0 to 3, eg. Row
 #### InvMixColumns
 
 Each column of bytes is treated as a 4-term polynomial, multiplied modulo x^4 + 1 with the inverse of the fixed polynomial
-a(x) = 3x^3 + x^2 + x + 2 found in the [MixColumns] step. The inverse of a(x) is a^-1(x) = 11x^3 + 13x^2 + 9x + 14.
-
-This is multiplication is done using matrix multiplication.
+a(x) = 3x^3 + x^2 + x + 2 found in the [MixColumns] step. The inverse of a(x) is a^-1(x) = 11x^3 + 13x^2 + 9x + 14. This multiplication is done using matrix multiplication.
 
 More details can be found [here][mixcolumns].
 
