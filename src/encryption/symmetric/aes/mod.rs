@@ -379,26 +379,26 @@ where [(); N / 8]:
     for col in state.0.iter_mut() {
       let tmp = *col;
 
-      // {0e}a0 + {0b}a1 + {0d}a2 + {09}a3
-      col[0] = galois_multiplication(tmp[0], 0x0e)
-        ^ galois_multiplication(tmp[3], 0x09)
-        ^ galois_multiplication(tmp[2], 0x0d)
-        ^ galois_multiplication(tmp[1], 0x0b);
-      // {09}a0 + {0e}a1 + {0b}a2 + {0d}a3
-      col[1] = galois_multiplication(tmp[1], 0x0e)
-        ^ galois_multiplication(tmp[0], 0x09)
-        ^ galois_multiplication(tmp[3], 0x0d)
-        ^ galois_multiplication(tmp[2], 0x0b);
-      // {0d}a0 + {09}a1 + {0e}a2 + {0b}a3
-      col[2] = galois_multiplication(tmp[2], 0x0e)
-        ^ galois_multiplication(tmp[1], 0x09)
-        ^ galois_multiplication(tmp[0], 0x0d)
-        ^ galois_multiplication(tmp[3], 0x0b);
-      // {0b}3a0 + {0d}a1 + {09}a2 + {0e}a3
-      col[3] = galois_multiplication(tmp[3], 0x0e)
-        ^ galois_multiplication(tmp[2], 0x09)
-        ^ galois_multiplication(tmp[1], 0x0d)
-        ^ galois_multiplication(tmp[0], 0x0b);
+      // 14a0 + 11a1 + 13a2 + 9a3
+      col[0] = galois_multiplication(tmp[0], 14)
+        ^ galois_multiplication(tmp[3], 9)
+        ^ galois_multiplication(tmp[2], 13)
+        ^ galois_multiplication(tmp[1], 11);
+      // 9a0 + 14a1 + 11a2 + 13a3
+      col[1] = galois_multiplication(tmp[1], 14)
+        ^ galois_multiplication(tmp[0], 9)
+        ^ galois_multiplication(tmp[3], 13)
+        ^ galois_multiplication(tmp[2], 11);
+      // 13a0 + 9a1 + 14a2 + 11a3
+      col[2] = galois_multiplication(tmp[2], 14)
+        ^ galois_multiplication(tmp[1], 9)
+        ^ galois_multiplication(tmp[0], 13)
+        ^ galois_multiplication(tmp[3], 11);
+      // 11a0 + 13a1 + 9a2 + 14a3
+      col[3] = galois_multiplication(tmp[3], 14)
+        ^ galois_multiplication(tmp[2], 9)
+        ^ galois_multiplication(tmp[1], 13)
+        ^ galois_multiplication(tmp[0], 11);
     }
   }
 
