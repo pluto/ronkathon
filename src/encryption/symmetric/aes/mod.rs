@@ -72,6 +72,24 @@ where [(); N / 8]:
     Self::aes_encrypt(plaintext, key, num_rounds)
   }
 
+  /// Decrypt a ciphertext of size [`Block`] with a [`Key`] of size `N`-bits.
+  ///
+  /// ## Example
+  /// ```rust
+  /// #![feature(generic_const_exprs)]
+  ///
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::symmetric::{
+  ///   aes::{Key, AES},
+  ///   SymmetricEncryption,
+  /// };
+  ///
+  /// let mut rng = thread_rng();
+  /// let key = Key::<128>::new(rng.gen());
+  /// let plaintext = rng.gen();
+  /// let encrypted = AES::encrypt(&key, &plaintext);
+  /// let decrypted = AES::decrypt(&key, &plaintext);
+  /// ```
   fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
     let num_rounds = match N {
       128 => 10,
@@ -165,14 +183,15 @@ where [(); N / 8]:
     state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap()
   }
 
-  /// Performs the cipher, with key size of `N` (in bits), as seen in Figure 5 of the document
-  /// linked in the front-page.
+  /// Deciphers a given `ciphertext`, with key size of `N` (in bits), as seen in Figure 5 of the
+  /// document linked in the front-page.
   fn aes_decrypt(ciphertext: &[u8; 16], key: &Key<N>, num_rounds: usize) -> Block {
     assert!(!key.is_empty(), "Key is not instantiated");
 
     let key_len_words = N / 32;
     let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
     Self::key_expansion(*key, &mut round_keys_words, key_len_words, num_rounds);
+    // For decryption; we use the round keys from the back, so we iterate from the back here.
     let mut round_keys = round_keys_words.chunks_exact(4).rev();
 
     let mut state = State(
@@ -220,16 +239,6 @@ where [(); N / 8]:
 
   /// Substitutes each byte [s_0, s_1, ..., s_15] with another byte according to a substitution box
   /// (usually referred to as an S-box).
-  fn inv_sub_bytes(state: &mut State) {
-    for i in 0..4 {
-      for j in 0..4 {
-        state.0[i][j] = INVERSE_SBOX[state.0[i][j] as usize];
-      }
-    }
-  }
-
-  /// Substitutes each byte [s_0, s_1, ..., s_15] with another byte according to a substitution box
-  /// (usually referred to as an S-box).
   fn sub_bytes(state: &mut State) {
     for i in 0..4 {
       for j in 0..4 {
@@ -238,9 +247,22 @@ where [(); N / 8]:
     }
   }
 
+  /// Substitutes each byte [s_0, s_1, ..., s_15] with another byte according to a substitution box
+  /// (usually referred to as an S-box).
+  ///
+  /// Note that the only difference here from [`Self::sub_bytes`] is that we use a different
+  /// substitution box [`INVERSE_SBOX`], which is derived differently.
+  fn inv_sub_bytes(state: &mut State) {
+    for i in 0..4 {
+      for j in 0..4 {
+        state.0[i][j] = INVERSE_SBOX[state.0[i][j] as usize];
+      }
+    }
+  }
+
   /// Shift i-th row of i positions, for i ranging from 0 to 3.
   ///
-  /// For row 0, no shifting occurs, for row 1, a left shift of 1 index occurs, ..
+  /// For row 0, no shifting occurs, for row 1, a **left** shift of 1 index occurs, ..
   ///
   /// Note that since our state is in column-major form, we transpose the state to a
   /// row-major form to make this step simpler.
@@ -268,7 +290,7 @@ where [(); N / 8]:
   ///
   /// Shift i-th row of i positions, for i ranging from 0 to 3.
   ///
-  /// For row 0, no shifting occurs, for row 1, a right shift of 1 index occurs, ..
+  /// For row 0, no shifting occurs, for row 1, a **right** shift of 1 index occurs, ..
   ///
   /// Note that since our state is in column-major form, we transpose the state to a
   /// row-major form to make this step simpler.
@@ -302,7 +324,6 @@ where [(); N / 8]:
     for col in state.0.iter_mut() {
       let tmp = *col;
 
-      // Do all additions (XORs) here.
       // 2a0 + 3a1 + a2 + a3
       col[0] = Self::multiply(tmp[0], 2) ^ tmp[3] ^ tmp[2] ^ Self::multiply(tmp[1], 3);
       // a0 + 2a1 + 3a2 + a3
@@ -321,28 +342,32 @@ where [(); N / 8]:
   /// Mix columns is done as such:
   ///
   /// Each column of bytes is treated as a 4-term polynomial, multiplied modulo x^4 + 1 with a
-  /// fixed polynomial a(x) = 3x^3 + x^2 + x + 2. This is done using matrix multiplication.
+  /// fixed polynomial a^-1(x) = {0b}x^3 + {0d}x^2 + {09}x + {0e}, where {xy} represents a
+  /// hexadecimal number, x being the higher 4 bits, and y being the lower 4 bits.
+  ///
+  /// eg: {0b} == 0000_1011 == 11
+  ///
+  /// This is done using matrix multiplication.
   fn inv_mix_columns(state: &mut State) {
     for col in state.0.iter_mut() {
       let tmp = *col;
 
-      // Do all additions (XORs) here.
-      // 2a0 + 3a1 + a2 + a3
+      // {0e}a0 + {0b}a1 + {0d}a2 + {09}a3
       col[0] = Self::multiply(tmp[0], 0x0e)
         ^ Self::multiply(tmp[3], 0x09)
         ^ Self::multiply(tmp[2], 0x0d)
         ^ Self::multiply(tmp[1], 0x0b);
-      // a0 + 2a1 + 3a2 + a3
+      // {09}a0 + {0e}a1 + {0b}a2 + {0d}a3
       col[1] = Self::multiply(tmp[1], 0x0e)
         ^ Self::multiply(tmp[0], 0x09)
         ^ Self::multiply(tmp[3], 0x0d)
         ^ Self::multiply(tmp[2], 0x0b);
-      // a0 + a1 + 2a2 + 3a3
+      // {0d}a0 + {09}a1 + {0e}a2 + {0b}a3
       col[2] = Self::multiply(tmp[2], 0x0e)
         ^ Self::multiply(tmp[1], 0x09)
         ^ Self::multiply(tmp[0], 0x0d)
         ^ Self::multiply(tmp[3], 0x0b);
-      // 3a0 + a1 + a2 + 2a3
+      // {0b}3a0 + {0d}a1 + {09}a2 + {0e}a3
       col[3] = Self::multiply(tmp[3], 0x0e)
         ^ Self::multiply(tmp[2], 0x09)
         ^ Self::multiply(tmp[1], 0x0d)
