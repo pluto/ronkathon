@@ -141,13 +141,11 @@ struct State([[u8; 4]; 4]);
 /// element is treated as a polynomial.
 ///
 /// NOTE: this multiplication is not commutative - ie. A * B may not equal B * A.
-fn galois_multiplication(col: u8, multiplicant: usize) -> u8 {
+fn galois_multiplication(mut col: u8, mut multiplicant: usize) -> u8 {
   let mut product = 0;
-  let mut col = col;
-  let mut mult = multiplicant;
 
   for _ in 0..8 {
-    if mult & 1 == 1 {
+    if multiplicant & 1 == 1 {
       product ^= col;
     }
 
@@ -158,7 +156,7 @@ fn galois_multiplication(col: u8, multiplicant: usize) -> u8 {
                    // (ie. hi_bit is set)
     }
 
-    mult >>= 1;
+    multiplicant >>= 1;
   }
   product
 }
