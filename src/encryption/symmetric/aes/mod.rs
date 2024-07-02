@@ -136,6 +136,33 @@ pub struct AES<const N: usize> {}
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 struct State([[u8; 4]; 4]);
 
+/// Multiplies a 8-bit number in the Galois field GF(2^8). This is done using "carry-less
+/// multiplication" or "bitwise multiplication", where the binary representation of each
+/// element is treated as a polynomial.
+///
+/// NOTE: this multiplication is not commutative - ie. A * B may not equal B * A.
+fn galois_multiplication(col: u8, multiplicant: usize) -> u8 {
+  let mut product = 0;
+  let mut col = col;
+  let mut mult = multiplicant;
+
+  for _ in 0..8 {
+    if mult & 1 == 1 {
+      product ^= col;
+    }
+
+    let hi_bit = col & 0x80;
+    col <<= 1;
+    if hi_bit == 0x80 {
+      col ^= 0x1B; // This XOR brings the value back into the field if an overflow occurs
+                   // (ie. hi_bit is set)
+    }
+
+    mult >>= 1;
+  }
+  product
+}
+
 impl<const N: usize> AES<N>
 where [(); N / 8]:
 {
@@ -325,13 +352,17 @@ where [(); N / 8]:
       let tmp = *col;
 
       // 2a0 + 3a1 + a2 + a3
-      col[0] = Self::multiply(tmp[0], 2) ^ tmp[3] ^ tmp[2] ^ Self::multiply(tmp[1], 3);
+      col[0] =
+        galois_multiplication(tmp[0], 2) ^ tmp[3] ^ tmp[2] ^ galois_multiplication(tmp[1], 3);
       // a0 + 2a1 + 3a2 + a3
-      col[1] = Self::multiply(tmp[1], 2) ^ tmp[0] ^ tmp[3] ^ Self::multiply(tmp[2], 3);
+      col[1] =
+        galois_multiplication(tmp[1], 2) ^ tmp[0] ^ tmp[3] ^ galois_multiplication(tmp[2], 3);
       // a0 + a1 + 2a2 + 3a3
-      col[2] = Self::multiply(tmp[2], 2) ^ tmp[1] ^ tmp[0] ^ Self::multiply(tmp[3], 3);
+      col[2] =
+        galois_multiplication(tmp[2], 2) ^ tmp[1] ^ tmp[0] ^ galois_multiplication(tmp[3], 3);
       // 3a0 + a1 + a2 + 2a3
-      col[3] = Self::multiply(tmp[3], 2) ^ tmp[2] ^ tmp[1] ^ Self::multiply(tmp[0], 3);
+      col[3] =
+        galois_multiplication(tmp[3], 2) ^ tmp[2] ^ tmp[1] ^ galois_multiplication(tmp[0], 3);
     }
   }
 
@@ -349,25 +380,25 @@ where [(); N / 8]:
       let tmp = *col;
 
       // {0e}a0 + {0b}a1 + {0d}a2 + {09}a3
-      col[0] = Self::multiply(tmp[0], 0x0e)
-        ^ Self::multiply(tmp[3], 0x09)
-        ^ Self::multiply(tmp[2], 0x0d)
-        ^ Self::multiply(tmp[1], 0x0b);
+      col[0] = galois_multiplication(tmp[0], 0x0e)
+        ^ galois_multiplication(tmp[3], 0x09)
+        ^ galois_multiplication(tmp[2], 0x0d)
+        ^ galois_multiplication(tmp[1], 0x0b);
       // {09}a0 + {0e}a1 + {0b}a2 + {0d}a3
-      col[1] = Self::multiply(tmp[1], 0x0e)
-        ^ Self::multiply(tmp[0], 0x09)
-        ^ Self::multiply(tmp[3], 0x0d)
-        ^ Self::multiply(tmp[2], 0x0b);
+      col[1] = galois_multiplication(tmp[1], 0x0e)
+        ^ galois_multiplication(tmp[0], 0x09)
+        ^ galois_multiplication(tmp[3], 0x0d)
+        ^ galois_multiplication(tmp[2], 0x0b);
       // {0d}a0 + {09}a1 + {0e}a2 + {0b}a3
-      col[2] = Self::multiply(tmp[2], 0x0e)
-        ^ Self::multiply(tmp[1], 0x09)
-        ^ Self::multiply(tmp[0], 0x0d)
-        ^ Self::multiply(tmp[3], 0x0b);
+      col[2] = galois_multiplication(tmp[2], 0x0e)
+        ^ galois_multiplication(tmp[1], 0x09)
+        ^ galois_multiplication(tmp[0], 0x0d)
+        ^ galois_multiplication(tmp[3], 0x0b);
       // {0b}3a0 + {0d}a1 + {09}a2 + {0e}a3
-      col[3] = Self::multiply(tmp[3], 0x0e)
-        ^ Self::multiply(tmp[2], 0x09)
-        ^ Self::multiply(tmp[1], 0x0d)
-        ^ Self::multiply(tmp[0], 0x0b);
+      col[3] = galois_multiplication(tmp[3], 0x0e)
+        ^ galois_multiplication(tmp[2], 0x09)
+        ^ galois_multiplication(tmp[1], 0x0d)
+        ^ galois_multiplication(tmp[0], 0x0b);
     }
   }
 
