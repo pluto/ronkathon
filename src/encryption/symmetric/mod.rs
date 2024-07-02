@@ -1,4 +1,5 @@
 //! Contains implementation of symmetric encryption primitives.
+pub mod aes;
 pub mod chacha;
 pub mod des;
 
