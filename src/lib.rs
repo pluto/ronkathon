@@ -25,7 +25,7 @@
 pub mod codes;
 pub mod compiler;
 pub mod curve;
-pub mod ecdsa;
+pub mod ecc;
 pub mod encryption;
 pub mod field;
 pub mod hashes;
