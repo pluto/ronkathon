@@ -88,7 +88,7 @@ where [(); N / 8]:
   /// let key = Key::<128>::new(rng.gen());
   /// let plaintext = rng.gen();
   /// let encrypted = AES::encrypt(&key, &plaintext);
-  /// let decrypted = AES::decrypt(&key, &plaintext);
+  /// let decrypted = AES::decrypt(&key, &encrypted);
   /// ```
   fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
     let num_rounds = match N {
