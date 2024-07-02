@@ -342,12 +342,8 @@ where [(); N / 8]:
   /// Mix columns is done as such:
   ///
   /// Each column of bytes is treated as a 4-term polynomial, multiplied modulo x^4 + 1 with a
-  /// fixed polynomial a^-1(x) = {0b}x^3 + {0d}x^2 + {09}x + {0e}, where {xy} represents a
-  /// hexadecimal number, x being the higher 4 bits, and y being the lower 4 bits.
-  ///
-  /// eg: {0b} == 0000_1011 == 11
-  ///
-  /// This is done using matrix multiplication.
+  /// fixed polynomial a^-1(x) = 11x^3 + 13x^2 + 9x + 14, which is the inverse of the polynomial
+  /// used in [`Self::mix_columns`]. This is done using matrix multiplication.
   fn inv_mix_columns(state: &mut State) {
     for col in state.0.iter_mut() {
       let tmp = *col;
@@ -373,27 +369,6 @@ where [(); N / 8]:
         ^ Self::multiply(tmp[1], 0x0d)
         ^ Self::multiply(tmp[0], 0x0b);
     }
-  }
-
-  fn multiply(col: u8, multiplicant: usize) -> u8 {
-    let mut product = 0;
-    let mut col = col;
-    let mut mult = multiplicant;
-
-    for _ in 0..8 {
-      if mult & 1 == 1 {
-        product ^= col;
-      }
-
-      let hi_bit = col & 0x80;
-      col <<= 1;
-      if hi_bit == 0x80 {
-        col ^= 0x1B;
-      }
-
-      mult >>= 1;
-    }
-    return product & 0xFF;
   }
 
   /// In AES, rotword() is just a one-byte left circular shift.
