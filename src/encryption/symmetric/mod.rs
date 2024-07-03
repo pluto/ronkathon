@@ -2,6 +2,7 @@
 pub mod aes;
 pub mod chacha;
 pub mod des;
+pub mod modes;
 
 /// Trait for symmetric encryption primitive
 pub trait SymmetricEncryption {
