@@ -55,3 +55,24 @@ pub trait StreamCipher {
     ciphertext: &[u8],
   ) -> Result<Vec<u8>, Self::Error>;
 }
+
+/// Trait for block ciphers that works on bytes of specific sizes
+pub trait BlockCipher {
+  /// Block size for cipher operations
+  // const BLOCK_SIZE: usize;
+  type Block: AsRef<[u8]> + AsMut<[u8]> + From<Vec<u8>> + Copy;
+  /// Secret key for encryption/decryption
+  type Key;
+
+  /// Creates a new block cipher object
+  // fn new(key: &Self::Key) -> Self;
+
+  /// Encrypt a plaintext of arbitrary length and returns ciphertext of same length as plaintext.
+  ///
+  /// Note: correct padding scheme should be used as per the mode of operation of cipher.
+  fn encrypt(key: &Self::Key, plaintext: &Self::Block) -> Self::Block;
+  /// Decrypt a ciphertext of arbitrary length and returns plaintext.
+  ///
+  /// Note: any padded bytes should be removed
+  fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block;
+}
