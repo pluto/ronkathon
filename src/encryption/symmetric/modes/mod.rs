@@ -4,3 +4,4 @@
 //! - [`ctr::CTR`]: Counter mode
 //! - [`gcm::GCM`]: Galois Counter mode
 pub mod cbc;
+pub mod ctr;

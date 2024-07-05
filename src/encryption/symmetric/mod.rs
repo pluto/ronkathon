@@ -1,6 +1,7 @@
 //! Contains implementation of symmetric encryption primitives.
 pub mod aes;
 pub mod chacha;
+pub mod counter;
 pub mod des;
 pub mod modes;
 
@@ -58,6 +59,8 @@ pub trait StreamCipher {
 
 /// Trait for block ciphers that works on bytes of specific sizes
 pub trait BlockCipher {
+  /// Block size in bytes for cipher oprations
+  const BLOCK_SIZE: usize;
   /// Block acted upon by the cipher
   type Block: AsRef<[u8]> + AsMut<[u8]> + From<Vec<u8>> + Copy;
   /// Secret key for encryption/decryption

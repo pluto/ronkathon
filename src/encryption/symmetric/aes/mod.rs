@@ -467,6 +467,8 @@ where [(); N / 8]:
   type Block = Block;
   type Key = Key<N>;
 
+  const BLOCK_SIZE: usize = 16;
+
   fn encrypt_block(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
     Self::encrypt(key, plaintext)
   }
