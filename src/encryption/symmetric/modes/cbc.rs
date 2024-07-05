@@ -7,15 +7,47 @@ pub struct CBC<C: BlockCipher> {
   iv: C::Block,
 }
 
-fn xor_blocks<'a>(a: &mut [u8], b: &[u8]) {
+fn xor_blocks(a: &mut [u8], b: &[u8]) {
   for (x, y) in a.iter_mut().zip(b) {
     *x ^= *y;
   }
 }
 
 impl<C: BlockCipher> CBC<C> {
+  /// creates a new [`CBC`] mode of operation for [`BlockCipher`]
+  /// ## Arguments
+  /// - `iv`: initialisation vector for randomising the state.
+  ///
+  /// Note: IV shouldn't be reused for different encryptions
   pub fn new(iv: C::Block) -> Self { Self { iv } }
 
+  /// Encrypt arbitrary length of bytes.
+  ///
+  /// ## Arguments
+  /// - `key`: cipher's secret key
+  /// - `plaintext`: data to encrypt
+  ///
+  /// ## Usage
+  /// ```
+  /// #![feature(generic_const_exprs)]
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::symmetric::{
+  ///   aes::{Block, Key, AES},
+  ///   modes::cbc::CBC,
+  /// };
+  ///
+  /// let mut rng = thread_rng();
+  /// let rand_key: [u8; 16] = rng.gen();
+  /// let key = Key::<128>::new(rand_key);
+  /// let iv = Block(rng.gen());
+  /// let plaintext = b"Hello World!";
+  ///
+  /// let cbc = CBC::<AES<128>>::new(iv);
+  ///
+  /// let ciphertext = cbc.encrypt(&key, plaintext);
+  /// ```
+  ///
+  /// **Note**: plaintext is padded with zero bytes, if not a multiple of [`BlockCipher::Block`].
   pub fn encrypt(&self, key: &C::Key, plaintext: &[u8]) -> Vec<u8> {
     let block_size = self.iv.as_ref().len();
     let mut ciphertext = Vec::new();
@@ -23,16 +55,49 @@ impl<C: BlockCipher> CBC<C> {
 
     // pad plaintext by adding nul bytes if not a multiple of blocks
     let mut plaintext = plaintext.to_vec();
-    plaintext.extend(std::iter::repeat(b"\0"[0]).take(block_size - (plaintext.len() % block_size)));
+    if plaintext.len() % block_size != 0 {
+      plaintext.extend(std::iter::repeat(0u8).take(block_size - (plaintext.len() % block_size)));
+    }
 
     for chunk in plaintext.chunks(block_size) {
       xor_blocks(prev_ciphertext.as_mut(), chunk);
-      prev_ciphertext = C::encrypt(key, &C::Block::from(chunk.to_vec()));
+      prev_ciphertext = C::encrypt_block(key, &prev_ciphertext);
       ciphertext.extend_from_slice(prev_ciphertext.as_ref());
     }
     ciphertext
   }
 
+  /// Decrypt ciphertext using CBC mode.
+  ///
+  /// ## Arguments
+  /// - `key`: secret key used during encryption
+  /// - `ciphertext`: plaintext encrypted using key and iv
+  ///
+  /// ## Usage
+  /// ```
+  /// #![feature(generic_const_exprs)]
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::symmetric::{
+  ///   aes::{Block, Key, AES},
+  ///   modes::cbc::CBC,
+  /// };
+  ///
+  /// let mut rng = thread_rng();
+  /// let rand_key: [u8; 16] = rng.gen();
+  /// let key = Key::<128>::new(rand_key);
+  /// let iv = Block(rng.gen());
+  /// let plaintext = b"Hello World!";
+  ///
+  /// let cbc = CBC::<AES<128>>::new(iv);
+  ///
+  /// let ciphertext = cbc.encrypt(&key, plaintext);
+  /// let decrypted = cbc.decrypt(&key, &ciphertext);
+  ///
+  /// assert_eq!(*plaintext, decrypted[..plaintext.len()]);
+  /// ```
+  ///
+  /// **Note**: decrypted plaintext will be multiple of [`BlockCipher::Block`]. It's user's
+  /// responsibility to truncate to original plaintext's length
   pub fn decrypt(&self, key: &C::Key, ciphertext: &[u8]) -> Vec<u8> {
     let block_size = self.iv.as_ref().len();
 
@@ -42,7 +107,7 @@ impl<C: BlockCipher> CBC<C> {
     let mut plaintext = Vec::new();
 
     for chunk in ciphertext.chunks(block_size) {
-      let mut decrypted = C::decrypt(key, &C::Block::from(chunk.to_vec()));
+      let mut decrypted = C::decrypt_block(key, &C::Block::from(chunk.to_vec()));
       xor_blocks(decrypted.as_mut(), &prev_ciphertext);
       prev_ciphertext = chunk.to_vec();
 
@@ -56,26 +121,66 @@ impl<C: BlockCipher> CBC<C> {
 #[cfg(test)]
 mod tests {
   use rand::{thread_rng, Rng};
+  use rstest::{fixture, rstest};
 
   use super::*;
   use crate::encryption::symmetric::aes::{Block, Key, AES};
 
-  #[test]
-  fn cbc() {
+  #[fixture]
+  fn rand_key() -> Key<128> {
     let mut rng = thread_rng();
     let rand_key: [u8; 16] = rng.gen();
-    let key: Key<128> = Key::new(rand_key);
+    Key::new(rand_key)
+  }
 
-    let iv: [u8; 16] = rng.gen();
+  #[fixture]
+  fn rand_iv() -> Block {
+    let mut rng = thread_rng();
+    Block(rng.gen())
+  }
 
-    let cbc = CBC::<AES<128>>::new(Block(iv));
+  fn rand_message(length: usize) -> Vec<u8> {
+    let mut rng = thread_rng();
 
-    let plaintext = b"hello world!";
+    (0..length).map(|_| rng.gen::<u8>()).collect()
+  }
 
-    let ciphertext = cbc.encrypt(&key, plaintext);
+  #[rstest]
+  fn cbc(rand_key: Key<128>, rand_iv: Block) {
+    let cbc = CBC::<AES<128>>::new(rand_iv);
 
-    let decrypted = cbc.decrypt(&key, &ciphertext);
+    for _ in 0..10 {
+      let mut rng = thread_rng();
+      let plaintext = rand_message(rng.gen_range(1000..100000));
+      let ciphertext = cbc.encrypt(&rand_key, &plaintext);
 
-    println!("plaintext: {:?}\nciphertext: {:?}", plaintext, decrypted);
+      let decrypted = cbc.decrypt(&rand_key, &ciphertext);
+
+      assert_eq!(plaintext, decrypted[..plaintext.len()].to_vec());
+    }
+  }
+
+  #[rstest]
+  fn different_iv(rand_key: Key<128>, rand_iv: Block) {
+    let cbc = CBC::<AES<128>>::new(rand_iv);
+
+    let mut rand_iv = rand_iv;
+    rand_iv.0[0] += 1;
+
+    let cbc2 = CBC::<AES<128>>::new(rand_iv);
+
+    let mut rng = thread_rng();
+    let plaintext = rand_message(rng.gen_range(1000..100000));
+
+    let ciphertext = cbc.encrypt(&rand_key, &plaintext);
+    let ciphertext2 = cbc2.encrypt(&rand_key, &plaintext);
+
+    assert_ne!(ciphertext, ciphertext2);
+
+    let decrypted = cbc.decrypt(&rand_key, &ciphertext);
+    let decrypted2 = cbc2.decrypt(&rand_key, &ciphertext2);
+
+    assert_eq!(plaintext, decrypted[..plaintext.len()].to_vec());
+    assert_eq!(decrypted, decrypted2);
   }
 }

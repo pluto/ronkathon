@@ -7,7 +7,7 @@ use itertools::Itertools;
 pub mod sbox;
 #[cfg(test)] pub mod tests;
 
-use super::BlockCipher;
+use super::{BlockCipher, SymmetricEncryption};
 use crate::encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX};
 
 /// A block in AES represents a 128-bit sized message data.
@@ -56,42 +56,52 @@ where [(); N / 8]:
 
   fn deref(&self) -> &Self::Target { &self.inner }
 }
-// impl<const N: usize> SymmetricEncryption for AES<N>
-// where [(); N / 8]:
-// {
-//   type Block = Block;
-//   type Key = Key<N>;
-//
-//   /// Encrypt a message of size [`Block`] with a [`Key`] of size `N`-bits.
-//   ///
-//   /// ## Example
-//   /// ```rust
-//   /// #![feature(generic_const_exprs)]
-//   ///
-//   /// use rand::{thread_rng, Rng};
-//   /// use ronkathon::encryption::symmetric::{
-//   ///   aes::{Key, AES},
-//   ///   SymmetricEncryption,
-//   /// };
-//   ///
-//   /// let mut rng = thread_rng();
-//   /// let key = Key::<128>::new(rng.gen());
-//   /// let plaintext = rng.gen();
-//   /// let encrypted = AES::encrypt(&key, &plaintext);
-//   /// ```
-//   fn encrypt(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
-//     let num_rounds = match N {
-//       128 => 10,
-//       192 => 12,
-//       256 => 14,
-//       _ => panic!("AES only supports key sizes 128, 192 and 256 bits. You provided: {N}"),
-//     };
-//
-//     Self::aes_encrypt(plaintext, key, num_rounds)
-//   }
-//
-//   fn decrypt(_key: &Self::Key, _ciphertext: &Self::Block) -> Self::Block { unimplemented!() }
-// }
+
+impl<const N: usize> SymmetricEncryption for AES<N>
+where [(); N / 8]:
+{
+  type Block = Block;
+  type Key = Key<N>;
+
+  /// Encrypt a message of size [`Block`] with a [`Key`] of size `N`-bits.
+  ///
+  /// ## Example
+  /// ```rust
+  /// #![feature(generic_const_exprs)]
+  ///
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::symmetric::{
+  ///   aes::{Key, AES},
+  ///   SymmetricEncryption,
+  /// };
+  ///
+  /// let mut rng = thread_rng();
+  /// let key = Key::<128>::new(rng.gen());
+  /// let plaintext = rng.gen();
+  /// let encrypted = AES::encrypt(&key, &plaintext);
+  /// ```
+  fn encrypt(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
+    let num_rounds = match N {
+      128 => 10,
+      192 => 12,
+      256 => 14,
+      _ => panic!("AES only supports key sizes 128, 192 and 256 bits. You provided: {N}"),
+    };
+
+    Self::aes_encrypt(&plaintext.0, key, num_rounds)
+  }
+
+  fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
+    let num_rounds = match N {
+      128 => 10,
+      192 => 12,
+      256 => 14,
+      _ => panic!("AES only supports key sizes 128, 192 and 256 bits. You provided: {N}"),
+    };
+
+    Self::aes_decrypt(&ciphertext.0, key, num_rounds)
+  }
+}
 
 /// Contains the values given by [x^(i-1), {00}, {00}, {00}], with x^(i-1)
 /// being powers of x in the field GF(2^8).
@@ -241,7 +251,7 @@ where [(); N / 8]:
       "Round keys not fully consumed - perhaps check key expansion?"
     );
 
-    state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap()
+    state.0.into_iter().flatten().collect::<Vec<_>>().into()
   }
 
   /// XOR a round key to its internal state.
@@ -454,37 +464,14 @@ where [(); N / 8]:
 impl<const N: usize> BlockCipher for AES<N>
 where [(); N / 8]:
 {
-  // const BLOCK_SIZE: usize = 16;
   type Block = Block;
   type Key = Key<N>;
 
-  /// Encrypt a message of size [`Block`] with a [`Key`] of size `N`-bits.
-  ///
-  /// ## Example
-  /// ```rust
-  /// #![feature(generic_const_exprs)]
-  ///
-  /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Key, AES},
-  ///   SymmetricEncryption,
-  /// };
-  ///
-  /// let mut rng = thread_rng();
-  /// let key = Key::<128>::new(rng.gen());
-  /// let plaintext = rng.gen();
-  /// let encrypted = AES::encrypt(&key, &plaintext);
-  /// ```
-  fn encrypt(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
-    let num_rounds = match N {
-      128 => 10,
-      192 => 12,
-      256 => 14,
-      _ => panic!("AES only supports key sizes 128, 192 and 256 bits. You provided: {N}"),
-    };
-
-    Self::aes_encrypt(&plaintext.0, key, num_rounds)
+  fn encrypt_block(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
+    Self::encrypt(key, plaintext)
   }
 
-  fn decrypt(_key: &Self::Key, _ciphertext: &Self::Block) -> Self::Block { unimplemented!() }
+  fn decrypt_block(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
+    Self::decrypt(key, ciphertext)
+  }
 }

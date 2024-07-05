@@ -123,10 +123,10 @@ fn chacha_fuzz() {
     nonce.iter().flat_map(|val| val.to_le_bytes()).collect::<Vec<u8>>().try_into().expect("err");
   let mut cipher = ChaCha20::new(&flat_key.into(), &flat_nonce.into());
 
-  let mut buffer = plaintext.clone();
+  let mut buffer = plaintext;
   cipher.apply_keystream(&mut buffer);
 
-  let ciphertext = buffer.clone();
+  let ciphertext = buffer;
 
   assert_eq!(ronk_ciphertext, ciphertext.to_vec());
 
