@@ -71,14 +71,14 @@ where [(); N / 8]:
   ///
   /// use rand::{thread_rng, Rng};
   /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Key, AES},
+  ///   aes::{Block, Key, AES},
   ///   SymmetricEncryption,
   /// };
   ///
   /// let mut rng = thread_rng();
   /// let key = Key::<128>::new(rng.gen());
   /// let plaintext = rng.gen();
-  /// let encrypted = AES::encrypt(&key, &plaintext);
+  /// let encrypted = AES::encrypt(&key, &Block(plaintext));
   /// ```
   fn encrypt(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
     let num_rounds = match N {
