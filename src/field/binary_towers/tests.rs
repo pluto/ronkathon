@@ -133,7 +133,7 @@ pub(super) fn num_digits(n: u64) -> usize {
 fn from_bool_vec(num: Vec<BinaryField>) -> u64 {
   let mut result: u64 = 0;
   for (i, &bit) in num.iter().rev().enumerate() {
-    if bit.0 == 1 {
+    if bit == BinaryField::One {
       result |= 1 << (num.len() - 1 - i);
     }
   }
@@ -146,20 +146,20 @@ fn from_bool_vec(num: Vec<BinaryField>) -> u64 {
 #[should_panic]
 #[case(1, 0)]
 fn binary_field_arithmetic(#[case] a: usize, #[case] b: usize) {
-  let arg1 = BinaryField::new(a as u8);
-  let arg2 = BinaryField::new(b as u8);
+  let arg1 = BinaryField::from(a);
+  let arg2 = BinaryField::from(b);
   let a_test = TestBinaryField::new(a);
   let b_test = TestBinaryField::new(b);
 
-  assert_eq!((arg1 + arg2).0, (a_test + b_test).value as u8);
+  assert_eq!((arg1 + arg2), BinaryField::from((a_test + b_test).value));
   assert_eq!(arg1 - arg2, arg1 + arg2);
-  assert_eq!((arg1 * arg2).0, (a_test * b_test).value as u8);
+  assert_eq!((arg1 * arg2), BinaryField::from((a_test * b_test).value));
 
   let inv_res = arg2.inverse();
   assert!(inv_res.is_some());
   assert_eq!(inv_res.unwrap(), arg2);
 
-  assert_eq!((arg1 / arg2).0, (a_test / b_test).value as u8);
+  assert_eq!((arg1 / arg2), BinaryField::from((a_test / b_test).value));
 }
 
 #[rstest]
