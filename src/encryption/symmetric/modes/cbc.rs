@@ -47,19 +47,19 @@ impl<C: BlockCipher> CBC<C> {
   /// let ciphertext = cbc.encrypt(&key, plaintext);
   /// ```
   ///
-  /// **Note**: plaintext is padded with zero bytes, if not a multiple of [`BlockCipher::Block`].
+  /// **Note**: plaintext is padded using PKCS#7, if not a multiple of [`BlockCipher::BLOCK_SIZE`].
   pub fn encrypt(&self, key: &C::Key, plaintext: &[u8]) -> Vec<u8> {
-    let block_size = self.iv.as_ref().len();
     let mut ciphertext = Vec::new();
     let mut prev_ciphertext = self.iv;
 
-    // pad plaintext by adding nul bytes if not a multiple of blocks
+    // pad plaintext using PKCS#7 padding scheme
     let mut plaintext = plaintext.to_vec();
-    if plaintext.len() % block_size != 0 {
-      plaintext.extend(std::iter::repeat(0u8).take(block_size - (plaintext.len() % block_size)));
+    if plaintext.len() % C::BLOCK_SIZE != 0 {
+      let length = C::BLOCK_SIZE - (plaintext.len() % C::BLOCK_SIZE);
+      plaintext.extend(std::iter::repeat(length as u8).take(length));
     }
 
-    for chunk in plaintext.chunks(block_size) {
+    for chunk in plaintext.chunks(C::BLOCK_SIZE) {
       xor_blocks(prev_ciphertext.as_mut(), chunk);
       prev_ciphertext = C::encrypt_block(key, &prev_ciphertext);
       ciphertext.extend_from_slice(prev_ciphertext.as_ref());
@@ -99,19 +99,23 @@ impl<C: BlockCipher> CBC<C> {
   /// **Note**: decrypted plaintext will be multiple of [`BlockCipher::Block`]. It's user's
   /// responsibility to truncate to original plaintext's length
   pub fn decrypt(&self, key: &C::Key, ciphertext: &[u8]) -> Vec<u8> {
-    let block_size = self.iv.as_ref().len();
-
-    assert!(ciphertext.len() % block_size == 0, "ciphertext is not a multiple of block size");
+    assert!(ciphertext.len() % C::BLOCK_SIZE == 0, "ciphertext is not a multiple of block size");
 
     let mut prev_ciphertext: Vec<u8> = self.iv.as_ref().to_vec();
     let mut plaintext = Vec::new();
 
-    for chunk in ciphertext.chunks(block_size) {
+    for chunk in ciphertext.chunks(C::BLOCK_SIZE) {
       let mut decrypted = C::decrypt_block(key, &C::Block::from(chunk.to_vec()));
       xor_blocks(decrypted.as_mut(), &prev_ciphertext);
       prev_ciphertext = chunk.to_vec();
 
       plaintext.extend_from_slice(decrypted.as_ref());
+    }
+
+    // remove PKCS#7 padding by checking the last byte and removing all intermediate bytes
+    let last_byte = plaintext[plaintext.len() - 1];
+    if plaintext[plaintext.len() - last_byte as usize] == last_byte {
+      plaintext.truncate(plaintext.len() - last_byte as usize);
     }
 
     plaintext
@@ -156,7 +160,8 @@ mod tests {
 
       let decrypted = cbc.decrypt(&rand_key, &ciphertext);
 
-      assert_eq!(plaintext, decrypted[..plaintext.len()].to_vec());
+      assert_eq!(plaintext.len(), decrypted.len());
+      assert_eq!(plaintext, decrypted);
     }
   }
 
@@ -180,7 +185,7 @@ mod tests {
     let decrypted = cbc.decrypt(&rand_key, &ciphertext);
     let decrypted2 = cbc2.decrypt(&rand_key, &ciphertext2);
 
-    assert_eq!(plaintext, decrypted[..plaintext.len()].to_vec());
+    assert_eq!(plaintext, decrypted);
     assert_eq!(decrypted, decrypted2);
   }
 }
