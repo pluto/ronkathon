@@ -1,7 +1,7 @@
 //! This module contains an implementation of the quadratic extension field GF(101^2).
 //! Elements represented as coefficients of a [`Polynomial`] in the [`Monomial`] basis of degree 1
-//! in form: `a_0 + a_1*t`` where {a_0, a_1} \in \mathhbb{F}. Uses irreducible poly of the form:
-//! (X^2-K).
+//! in form: `a_0 + a_1*t` where ${a_0, a_1} \in \mathhbb{F}$. Uses irreducible poly of the form:
+//! $(X^2-K)$.
 //!
 //! The curve used in [`curve::pluto_curve::PlutoBaseCurve`] supports degree two extension field
 //! [`curve::pluto_curve::PlutoExtendedCurve`] from GF(101) to have points in GF(101^2). This can be

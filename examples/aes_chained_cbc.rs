@@ -4,6 +4,7 @@
 //!
 //! But this scheme is not Chosen-Plaintext Attack secure and any
 //! attacker can detect which original message was used in the ciphertext which is shown here.
+#![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 use rand::{thread_rng, Rng};
 use ronkathon::encryption::symmetric::{

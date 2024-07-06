@@ -3,5 +3,6 @@
 //! - [`cbc::CBC`]: Cipher Block Chaining
 //! - [`ctr::CTR`]: Counter mode
 //! - [`gcm::GCM`]: Galois Counter mode
+#![doc = include_str!("./README.md")]
 pub mod cbc;
 pub mod ctr;

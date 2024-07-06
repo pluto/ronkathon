@@ -35,6 +35,11 @@ IV4["IV||2"]-->Fk2[F_k]-->xor2["⨁"]-->c2
 m2-->xor2
 ```
 
+## Next Steps
+Implement more modes, and subsequent attacks/vulnerabilities:
+- [ ] CFB
+- [ ] OFB
+
 ## References
 
 - [Understanding Cryptography by Cristof Paar & Jan Pelzl & Tim Güneysu: Chapter 3, 4](https://www.cryptography-textbook.com/)
