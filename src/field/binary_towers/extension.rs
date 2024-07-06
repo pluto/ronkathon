@@ -300,7 +300,7 @@ pub(super) fn multiply(a: &[BinaryField], b: &[BinaryField], k: usize) -> Vec<Bi
 
   // r1r2*X_{i-2}
   // X_{i-2}: a+b*x where a, b are vectors of length K/4, with a = 0, b = 1
-  let mut x_i_high = vec![BinaryField::new(0); 1 << (k - 1)];
+  let mut x_i_high = vec![BinaryField::Zero; 1 << (k - 1)];
   x_i_high[quarterlen] = BinaryField::ONE;
   let r1r2_high = multiply(&x_i_high, &r1r2, k - 1);
 
@@ -321,9 +321,12 @@ fn add_vec(lhs: &[BinaryField], rhs: &[BinaryField]) -> Vec<BinaryField> {
 pub(super) fn to_bool_vec(mut num: u64, length: usize) -> Vec<BinaryField> {
   let mut result = Vec::new();
   while num > 0 {
-    result.push(BinaryField::new(((num & 1) != 0) as u8));
+    result.push(match num & 1 {
+      0 => BinaryField::Zero,
+      _ => BinaryField::One,
+    });
     num >>= 1;
   }
-  result.extend(std::iter::repeat(BinaryField::new(0)).take(length - result.len()));
+  result.extend(std::iter::repeat(BinaryField::Zero).take(length - result.len()));
   result
 }
