@@ -97,7 +97,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   pub fn new(coefficients: [F; D]) -> Self { Self { coefficients, basis: Monomial } }
 
   /// Helper method to remove leading zeros from coefficients
-  pub fn trim_zeros(coefficients: &mut Vec<F>) {
+  fn trim_zeros(coefficients: &mut Vec<F>) {
     while coefficients.last().cloned() == Some(F::ZERO) {
       coefficients.pop();
     }
