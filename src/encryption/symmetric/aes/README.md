@@ -14,15 +14,20 @@ Unlike DES, it does not use a Feistel network, and most AES calculations are don
 ## Algorithm 
 
 The core encryption algorithm consists of the following routines:
-- [KeyExpansion](#KeyExpansion)
-- [AddRoundKey](#AddRoundKey)
+
+- [KeyExpansion][keyexp]
+- [AddRoundKey][arc]
 - [SubBytes](#SubBytes)
 - [ShiftRows](#ShiftRows)
 - [MixColumns](#MixColumns)
 
-For decryption, we take the inverses of these routines:
+For decryption, we take the inverses of these following routines:
 
-TODO
+- [InvSubBytes](#InvSubBytes)
+- [InvShiftRows](#InvShiftRows)
+- [InvMixColumns](#InvMixColumns)
+
+Note that we do not need the inverses of [KeyExpansion][keyexp] or [AddRoundKey][arc], since for decryption we're simply using the round keys from the last to the first, and [AddRoundKey][arc] is its own inverse.
 
 ### Encryption
 
@@ -75,7 +80,7 @@ Substitutes each byte in the `State` with another byte according to a [substitut
 
 #### ShiftRow
 
-Shift i-th row of i positions, for i ranging from 0 to 3, eg. Row 0: no shift occurs, row 1: a left shift of 1 position occurs.
+Do a **left** shift i-th row of i positions, for i ranging from 0 to 3, eg. Row 0: no shift occurs, row 1: a left shift of 1 position occurs.
 
 #### MixColumns
 
@@ -87,7 +92,24 @@ More details can be found [here][mixcolumns].
 
 ### Decryption
 
-TODO
+For decryption, we use the inverses of some of the above routines to decrypt a ciphertext. To reiterate, we do not need the inverses of [KeyExpansion][keyexp] or [AddRoundKey][arc], since for decryption we're simply using the round keys from the last to the first, and [AddRoundKey][arc] is its own inverse.
+
+
+#### InvSubBytes
+
+Substitutes each byte in the `State` with another byte according to a [substitution box](#substitution-box). Note that the only difference here is that the substitution box used in decryption is derived differently from the version used in encryption.
+
+#### InvShiftRows
+
+Do a **right** shift i-th row of i positions, for i ranging from 0 to 3, eg. Row 0: no shift occurs, row 1: a right shift of 1 position occurs.
+
+#### InvMixColumns
+
+Each column of bytes is treated as a 4-term polynomial, multiplied modulo x^4 + 1 with the inverse of the fixed polynomial
+a(x) = 3x^3 + x^2 + x + 2 found in the [MixColumns] step. The inverse of a(x) is a^-1(x) = 11x^3 + 13x^2 + 9x + 14. This multiplication is done using matrix multiplication.
+
+More details can be found [here][mixcolumns].
+
 
 ## Substitution Box
 
@@ -117,6 +139,8 @@ In production-level AES code, fast AES software uses special techniques called t
 [des]: ../des/README.md
 [spn]: https://en.wikipedia.org/wiki/Substitution%E2%80%93permutation_network
 [slide attacks]: https://en.wikipedia.org/wiki/Slide_attack
+[keyexp]: #KeyExpansion
+[arc]: #AddRoundKey
 [mixcolumns]: https://en.wikipedia.org/wiki/Rijndael_MixColumns
 [Rijndael ff]: https://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael's_(AES)_finite_field
 [fips197]: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197-upd1.pdf

@@ -2,13 +2,20 @@
 //! and decryption.
 #![cfg_attr(not(doctest), doc = include_str!("./README.md"))]
 
+use std::ops::Mul;
+
 use itertools::Itertools;
+
+use crate::field::{extension::AESFieldExtension, prime::AESField};
 
 pub mod sbox;
 #[cfg(test)] pub mod tests;
 
 use super::SymmetricEncryption;
-use crate::encryption::symmetric::aes::sbox::SBOX;
+use crate::{
+  encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX},
+  field::FiniteField,
+};
 
 /// A block in AES represents a 128-bit sized message data.
 pub type Block = [u8; 16];
@@ -72,7 +79,34 @@ where [(); N / 8]:
     Self::aes_encrypt(plaintext, key, num_rounds)
   }
 
-  fn decrypt(_key: &Self::Key, _ciphertext: &Self::Block) -> Self::Block { unimplemented!() }
+  /// Decrypt a ciphertext of size [`Block`] with a [`Key`] of size `N`-bits.
+  ///
+  /// ## Example
+  /// ```rust
+  /// #![feature(generic_const_exprs)]
+  ///
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::symmetric::{
+  ///   aes::{Key, AES},
+  ///   SymmetricEncryption,
+  /// };
+  ///
+  /// let mut rng = thread_rng();
+  /// let key = Key::<128>::new(rng.gen());
+  /// let plaintext = rng.gen();
+  /// let encrypted = AES::encrypt(&key, &plaintext);
+  /// let decrypted = AES::decrypt(&key, &encrypted);
+  /// ```
+  fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
+    let num_rounds = match N {
+      128 => 10,
+      192 => 12,
+      256 => 14,
+      _ => panic!("AES only supports key sizes 128, 192 and 256 bits. You provided: {N}"),
+    };
+
+    Self::aes_decrypt(ciphertext, key, num_rounds)
+  }
 }
 
 /// Contains the values given by [x^(i-1), {00}, {00}, {00}], with x^(i-1)
@@ -108,6 +142,42 @@ pub struct AES<const N: usize> {}
 /// bytes in our `State`.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 struct State([[u8; 4]; 4]);
+
+/// Multiplies a 8-bit number in the Galois field GF(2^8).
+///
+/// This is defined on two bytes in two steps:
+///
+/// 1) The two polynomials that represent the bytes are multiplied as polynomials,
+/// 2) The resulting polynomial is reduced modulo the following fixed polynomial: m(x) = x^8 + x^4 +
+///    x^3 + x + 1
+///
+/// The above steps are implemented in [`AESFieldExtension`], within the operation traits.
+///
+/// Note that in most AES implementations, this is done using "carry-less" multiplication -
+/// to see how this works in more concretely in field arithmetic, this implementation uses an actual
+/// polynomial implementation.
+fn galois_multiplication(mut col: u8, mut multiplicand: u8) -> u8 {
+  // Decompose bits into degree-7 polynomials.
+  let mut col_bits: [AESField; 8] = [AESField::ZERO; 8];
+  let mut mult_bits: [AESField; 8] = [AESField::ZERO; 8];
+  for i in 0..8 {
+    col_bits[i] = AESField::new((col & 1).into());
+    mult_bits[i] = AESField::new((multiplicand & 1).into());
+    col >>= 1;
+    multiplicand >>= 1;
+  }
+
+  let col_poly = AESFieldExtension::new(col_bits);
+  let mult_poly = AESFieldExtension::new(mult_bits);
+  let res = col_poly.mul(mult_poly);
+
+  let mut product: u8 = 0;
+  for i in 0..8 {
+    product += res.coeffs[i].value as u8 * 2_u8.pow(i as u32);
+  }
+
+  product
+}
 
 impl<const N: usize> AES<N>
 where [(); N / 8]:
@@ -156,6 +226,51 @@ where [(); N / 8]:
     state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap()
   }
 
+  /// Deciphers a given `ciphertext`, with key size of `N` (in bits), as seen in Figure 5 of the
+  /// document linked in the front-page.
+  fn aes_decrypt(ciphertext: &[u8; 16], key: &Key<N>, num_rounds: usize) -> Block {
+    assert!(!key.is_empty(), "Key is not instantiated");
+
+    let key_len_words = N / 32;
+    let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
+    Self::key_expansion(*key, &mut round_keys_words, key_len_words, num_rounds);
+    // For decryption; we use the round keys from the back, so we iterate from the back here.
+    let mut round_keys = round_keys_words.chunks_exact(4).rev();
+
+    let mut state = State(
+      ciphertext
+        .chunks(4)
+        .map(|c| c.try_into().unwrap())
+        .collect::<Vec<[u8; 4]>>()
+        .try_into()
+        .unwrap(),
+    );
+    assert!(state != State::default(), "State is not instantiated");
+
+    // Round 0 - add round key
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    // Rounds 1 to N - 1
+    for _ in 1..num_rounds {
+      Self::inv_shift_rows(&mut state);
+      Self::inv_sub_bytes(&mut state);
+      Self::add_round_key(&mut state, round_keys.next().unwrap());
+      Self::inv_mix_columns(&mut state);
+    }
+
+    // Last round - we do not mix columns here.
+    Self::inv_shift_rows(&mut state);
+    Self::inv_sub_bytes(&mut state);
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    assert!(
+      round_keys.next().is_none(),
+      "Round keys not fully consumed - perhaps check key expansion?"
+    );
+
+    state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap()
+  }
+
   /// XOR a round key to its internal state.
   fn add_round_key(state: &mut State, round_key: &[[u8; 4]]) {
     for (col, word) in state.0.iter_mut().zip(round_key.iter()) {
@@ -175,9 +290,22 @@ where [(); N / 8]:
     }
   }
 
+  /// Substitutes each byte [s_0, s_1, ..., s_15] with another byte according to a substitution box
+  /// (usually referred to as an S-box).
+  ///
+  /// Note that the only difference here from [`Self::sub_bytes`] is that we use a different
+  /// substitution box [`INVERSE_SBOX`], which is derived differently.
+  fn inv_sub_bytes(state: &mut State) {
+    for i in 0..4 {
+      for j in 0..4 {
+        state.0[i][j] = INVERSE_SBOX[state.0[i][j] as usize];
+      }
+    }
+  }
+
   /// Shift i-th row of i positions, for i ranging from 0 to 3.
   ///
-  /// For row 0, no shifting occurs, for row 1, a left shift of 1 index occurs, ..
+  /// For row 0, no shifting occurs, for row 1, a **left** shift of 1 index occurs, ..
   ///
   /// Note that since our state is in column-major form, we transpose the state to a
   /// row-major form to make this step simpler.
@@ -190,8 +318,7 @@ where [(); N / 8]:
       (0..len).map(|_| iters.iter_mut().map(|n| n.next().unwrap()).collect::<Vec<_>>()).collect();
 
     for (r, i) in transposed.iter_mut().zip(0..4) {
-      let (left, right) = r.split_at(i);
-      *r = [right.to_vec(), left.to_vec()].concat();
+      r.rotate_left(i);
     }
     let mut iters: Vec<_> = transposed.into_iter().map(|n| n.into_iter()).collect();
 
@@ -202,35 +329,92 @@ where [(); N / 8]:
       .unwrap();
   }
 
-  /// Applies the same linear transformation to each of the four columns of the state.
+  /// The inverse of [`Self::shift_rows`].
   ///
-  /// Mix columns is done as such:
+  /// Shift i-th row of i positions, for i ranging from 0 to 3.
   ///
-  /// Each column of bytes is treated as a 4-term polynomial, multiplied modulo x^4 + 1 with a fixed
-  /// polynomial a(x) = 3x^3 + x^2 + x + 2. This is done using matrix multiplication.
+  /// For row 0, no shifting occurs, for row 1, a **right** shift of 1 index occurs, ..
+  ///
+  /// Note that since our state is in column-major form, we transpose the state to a
+  /// row-major form to make this step simpler.
+  fn inv_shift_rows(state: &mut State) {
+    let len = state.0.len();
+    let mut iters: Vec<_> = state.0.into_iter().map(|n| n.into_iter()).collect();
+
+    // Transpose to row-major form
+    let mut transposed: Vec<_> =
+      (0..len).map(|_| iters.iter_mut().map(|n| n.next().unwrap()).collect::<Vec<_>>()).collect();
+
+    for (r, i) in transposed.iter_mut().zip(0..4) {
+      r.rotate_right(i);
+    }
+    let mut iters: Vec<_> = transposed.into_iter().map(|n| n.into_iter()).collect();
+
+    state.0 = (0..len)
+      .map(|_| iters.iter_mut().map(|n| n.next().unwrap()).collect::<Vec<_>>().try_into().unwrap())
+      .collect::<Vec<_>>()
+      .try_into()
+      .unwrap();
+  }
+
+  /// Mixes the data in each of the 4 columns with a single fixed matrix, with its entries taken
+  /// from the word [a_0, a_1, a_2, a_3] = [{02}, {01}, {01}, {03}] (hex) (or [2, 1, 1, 3] in
+  /// decimal).
+  ///
+  /// This is done by interpreting both the byte from the state and the byte from the fixed matrix
+  /// as degree-7 polynomials and doing multiplication in the GF(2^8) field. For details, see
+  /// [`galois_multiplication`].
   fn mix_columns(state: &mut State) {
     for col in state.0.iter_mut() {
       let tmp = *col;
-      let mut col_doubled = *col;
 
-      // Perform the matrix multiplication in GF(2^8).
-      // We process the multiplications first, so we can just do additions later.
-      for (i, c) in col_doubled.iter_mut().enumerate() {
-        let hi_bit = col[i] >> 7;
-        *c = col[i] << 1;
-        *c ^= hi_bit * 0x1B; // This XOR brings the column back into the field if an
-                             // overflow occurs (ie. hi_bit == 1)
-      }
-
-      // Do all additions (XORs) here.
       // 2a0 + 3a1 + a2 + a3
-      col[0] = col_doubled[0] ^ tmp[3] ^ tmp[2] ^ col_doubled[1] ^ tmp[1];
+      col[0] =
+        galois_multiplication(tmp[0], 2) ^ tmp[3] ^ tmp[2] ^ galois_multiplication(tmp[1], 3);
       // a0 + 2a1 + 3a2 + a3
-      col[1] = col_doubled[1] ^ tmp[0] ^ tmp[3] ^ col_doubled[2] ^ tmp[2];
+      col[1] =
+        galois_multiplication(tmp[1], 2) ^ tmp[0] ^ tmp[3] ^ galois_multiplication(tmp[2], 3);
       // a0 + a1 + 2a2 + 3a3
-      col[2] = col_doubled[2] ^ tmp[1] ^ tmp[0] ^ col_doubled[3] ^ tmp[3];
+      col[2] =
+        galois_multiplication(tmp[2], 2) ^ tmp[1] ^ tmp[0] ^ galois_multiplication(tmp[3], 3);
       // 3a0 + a1 + a2 + 2a3
-      col[3] = col_doubled[3] ^ tmp[2] ^ tmp[1] ^ col_doubled[0] ^ tmp[0];
+      col[3] =
+        galois_multiplication(tmp[3], 2) ^ tmp[2] ^ tmp[1] ^ galois_multiplication(tmp[0], 3);
+    }
+  }
+
+  /// The inverse of [`Self::mix_columns`].
+  ///
+  /// Mixes the data in each of the 4 columns with a single fixed matrix, with its entries taken
+  /// from the word [a_0, a_1, a_2, a_3] = [{0e}, {09}, {0d}, {0b}] (or [14, 9, 13, 11] in decimal).
+  ///
+  /// This is done by interpreting both the byte from the state and the byte from the fixed matrix
+  /// as degree-7 polynomials and doing multiplication in the GF(2^8) field. For details, see
+  /// [`galois_multiplication`].
+  fn inv_mix_columns(state: &mut State) {
+    for col in state.0.iter_mut() {
+      let tmp = *col;
+
+      // 14a0 + 11a1 + 13a2 + 9a3
+      col[0] = galois_multiplication(tmp[0], 14)
+        ^ galois_multiplication(tmp[3], 9)
+        ^ galois_multiplication(tmp[2], 13)
+        ^ galois_multiplication(tmp[1], 11);
+      // 9a0 + 14a1 + 11a2 + 13a3
+      col[1] = galois_multiplication(tmp[1], 14)
+        ^ galois_multiplication(tmp[0], 9)
+        ^ galois_multiplication(tmp[3], 13)
+        ^ galois_multiplication(tmp[2], 11);
+      // 13a0 + 9a1 + 14a2 + 11a3
+      col[2] = galois_multiplication(tmp[2], 14)
+        ^ galois_multiplication(tmp[1], 9)
+        ^ galois_multiplication(tmp[0], 13)
+        ^ galois_multiplication(tmp[3], 11);
+      // 11a0 + 13a1 + 9a2 + 14a3
+      col[3] = galois_multiplication(tmp[3], 14)
+        ^ galois_multiplication(tmp[2], 9)
+        ^ galois_multiplication(tmp[1], 13)
+        ^ galois_multiplication(tmp[0], 11);
     }
   }
 

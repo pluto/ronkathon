@@ -27,6 +27,10 @@ pub type PlutoBaseField = PrimeField<{ PlutoPrime::Base as usize }>;
 /// to the prime number `17`. This is the scalar field used in the Pluto `ronkathon` system.
 pub type PlutoScalarField = PrimeField<{ PlutoPrime::Scalar as usize }>;
 
+/// The [`AESField`] is just a field over the prime 2, used within
+/// [`AES`][crate::encryption::symmetric::aes]
+pub type AESField = PrimeField<2>;
+
 /// The [`PrimeField`] struct represents elements of a field with prime order. The field is defined
 /// by a prime number `P`, and the elements are integers modulo `P`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default, PartialOrd)]
