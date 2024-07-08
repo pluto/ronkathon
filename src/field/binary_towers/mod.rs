@@ -13,41 +13,51 @@ pub use extension::BinaryTowers;
 
 /// binary field containing element `{0,1}`
 #[derive(Debug, Default, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct BinaryField(u8);
-
-impl BinaryField {
-  /// create new binary field element
-  pub const fn new(value: u8) -> Self {
-    debug_assert!(value < 2, "value should be less than 2");
-    Self(value)
-  }
+pub enum BinaryField {
+  /// binary field element `0`
+  #[default]
+  Zero,
+  /// binary field element `1`
+  One,
 }
 
 impl FiniteField for BinaryField {
-  const ONE: Self = BinaryField(1);
+  const ONE: Self = BinaryField::One;
   const ORDER: usize = 2;
   const PRIMITIVE_ELEMENT: Self = Self::ONE;
-  const ZERO: Self = BinaryField(0);
+  const ZERO: Self = BinaryField::Zero;
 
   fn inverse(&self) -> Option<Self> {
-    if *self == Self::ZERO {
-      return None;
+    match *self {
+      Self::Zero => None,
+      Self::One => Some(Self::One),
     }
-    Some(*self)
   }
 
   fn pow(self, _: usize) -> Self { self }
 }
 
 impl From<usize> for BinaryField {
-  fn from(value: usize) -> Self { Self::new(value as u8) }
+  fn from(value: usize) -> Self {
+    match value {
+      0 => BinaryField::Zero,
+      1 => BinaryField::One,
+      _ => panic!("Invalid `usize` value. Must be 0 or 1."),
+    }
+  }
 }
 
 impl Add for BinaryField {
   type Output = Self;
 
   #[allow(clippy::suspicious_arithmetic_impl)]
-  fn add(self, rhs: Self) -> Self::Output { BinaryField::new(self.0 ^ rhs.0) }
+  fn add(self, rhs: Self) -> Self::Output {
+    if self == rhs {
+      Self::ZERO
+    } else {
+      Self::ONE
+    }
+  }
 }
 
 impl AddAssign for BinaryField {
@@ -64,7 +74,13 @@ impl Sub for BinaryField {
   type Output = Self;
 
   #[allow(clippy::suspicious_arithmetic_impl)]
-  fn sub(self, rhs: Self) -> Self::Output { BinaryField(self.0 ^ rhs.0) }
+  fn sub(self, rhs: Self) -> Self::Output {
+    if self == rhs {
+      Self::ZERO
+    } else {
+      Self::ONE
+    }
+  }
 }
 
 impl SubAssign for BinaryField {
@@ -81,7 +97,12 @@ impl Mul for BinaryField {
   type Output = Self;
 
   #[allow(clippy::suspicious_arithmetic_impl)]
-  fn mul(self, rhs: Self) -> Self::Output { BinaryField(self.0 & rhs.0) }
+  fn mul(self, rhs: Self) -> Self::Output {
+    match (self, rhs) {
+      (Self::One, Self::One) => Self::ONE,
+      _ => Self::ZERO,
+    }
+  }
 }
 
 impl MulAssign for BinaryField {
@@ -98,7 +119,7 @@ impl Div for BinaryField {
   type Output = Self;
 
   #[allow(clippy::suspicious_arithmetic_impl)]
-  fn div(self, rhs: Self) -> Self::Output { self * rhs.inverse().unwrap() }
+  fn div(self, rhs: Self) -> Self::Output { self * rhs.inverse().expect("divide by zero") }
 }
 
 impl DivAssign for BinaryField {

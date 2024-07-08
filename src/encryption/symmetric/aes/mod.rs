@@ -2,13 +2,20 @@
 //! and decryption.
 #![cfg_attr(not(doctest), doc = include_str!("./README.md"))]
 
+use std::ops::Mul;
+
 use itertools::Itertools;
+
+use crate::field::{extension::AESFieldExtension, prime::AESField};
 
 pub mod sbox;
 #[cfg(test)] pub mod tests;
 
 use super::{BlockCipher, SymmetricEncryption};
-use crate::encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX};
+use crate::{
+  encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX},
+  field::FiniteField,
+};
 
 /// A block in AES represents a 128-bit sized message data.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -91,6 +98,24 @@ where [(); N / 8]:
     Self::aes_encrypt(&plaintext.0, key, num_rounds)
   }
 
+  /// Decrypt a ciphertext of size [`Block`] with a [`Key`] of size `N`-bits.
+  ///
+  /// ## Example
+  /// ```rust
+  /// #![feature(generic_const_exprs)]
+  ///
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::symmetric::{
+  ///   aes::{Key, AES},
+  ///   SymmetricEncryption,
+  /// };
+  ///
+  /// let mut rng = thread_rng();
+  /// let key = Key::<128>::new(rng.gen());
+  /// let plaintext = rng.gen();
+  /// let encrypted = AES::encrypt(&key, &plaintext);
+  /// let decrypted = AES::decrypt(&key, &encrypted);
+  /// ```
   fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
     let num_rounds = match N {
       128 => 10,
@@ -137,28 +162,39 @@ pub struct AES<const N: usize> {}
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 struct State([[u8; 4]; 4]);
 
-/// Multiplies a 8-bit number in the Galois field GF(2^8). This is done using "carry-less
-/// multiplication" or "bitwise multiplication", where the binary representation of each
-/// element is treated as a polynomial.
+/// Multiplies a 8-bit number in the Galois field GF(2^8).
 ///
-/// NOTE: this multiplication is not commutative - ie. A * B may not equal B * A.
-fn galois_multiplication(mut col: u8, mut multiplicant: usize) -> u8 {
-  let mut product = 0;
-
-  for _ in 0..8 {
-    if multiplicant & 1 == 1 {
-      product ^= col;
-    }
-
-    let hi_bit = col & 0x80;
-    col <<= 1;
-    if hi_bit == 0x80 {
-      col ^= 0x1B; // This XOR brings the value back into the field if an overflow occurs
-                   // (ie. hi_bit is set)
-    }
-
-    multiplicant >>= 1;
+/// This is defined on two bytes in two steps:
+///
+/// 1) The two polynomials that represent the bytes are multiplied as polynomials,
+/// 2) The resulting polynomial is reduced modulo the following fixed polynomial: m(x) = x^8 + x^4 +
+///    x^3 + x + 1
+///
+/// The above steps are implemented in [`AESFieldExtension`], within the operation traits.
+///
+/// Note that in most AES implementations, this is done using "carry-less" multiplication -
+/// to see how this works in more concretely in field arithmetic, this implementation uses an actual
+/// polynomial implementation.
+fn galois_multiplication(mut col: u8, mut multiplicand: u8) -> u8 {
+  // Decompose bits into degree-7 polynomials.
+  let mut col_bits: [AESField; 8] = [AESField::ZERO; 8];
+  let mut mult_bits: [AESField; 8] = [AESField::ZERO; 8];
+  for i in 0..8 {
+    col_bits[i] = AESField::new((col & 1).into());
+    mult_bits[i] = AESField::new((multiplicand & 1).into());
+    col >>= 1;
+    multiplicand >>= 1;
   }
+
+  let col_poly = AESFieldExtension::new(col_bits);
+  let mult_poly = AESFieldExtension::new(mult_bits);
+  let res = col_poly.mul(mult_poly);
+
+  let mut product: u8 = 0;
+  for i in 0..8 {
+    product += res.coeffs[i].value as u8 * 2_u8.pow(i as u32);
+  }
+
   product
 }
 
@@ -340,12 +376,13 @@ where [(); N / 8]:
       .unwrap();
   }
 
-  /// Applies the same linear transformation to each of the four columns of the state.
+  /// Mixes the data in each of the 4 columns with a single fixed matrix, with its entries taken
+  /// from the word [a_0, a_1, a_2, a_3] = [{02}, {01}, {01}, {03}] (hex) (or [2, 1, 1, 3] in
+  /// decimal).
   ///
-  /// Mix columns is done as such:
-  ///
-  /// Each column of bytes is treated as a 4-term polynomial, multiplied modulo x^4 + 1 with a fixed
-  /// polynomial a(x) = 3x^3 + x^2 + x + 2. This is done using matrix multiplication.
+  /// This is done by interpreting both the byte from the state and the byte from the fixed matrix
+  /// as degree-7 polynomials and doing multiplication in the GF(2^8) field. For details, see
+  /// [`galois_multiplication`].
   fn mix_columns(state: &mut State) {
     for col in state.0.iter_mut() {
       let tmp = *col;
@@ -367,13 +404,12 @@ where [(); N / 8]:
 
   /// The inverse of [`Self::mix_columns`].
   ///
-  /// Applies the same linear transformation to each of the four columns of the state.
+  /// Mixes the data in each of the 4 columns with a single fixed matrix, with its entries taken
+  /// from the word [a_0, a_1, a_2, a_3] = [{0e}, {09}, {0d}, {0b}] (or [14, 9, 13, 11] in decimal).
   ///
-  /// Mix columns is done as such:
-  ///
-  /// Each column of bytes is treated as a 4-term polynomial, multiplied modulo x^4 + 1 with a
-  /// fixed polynomial a^-1(x) = 11x^3 + 13x^2 + 9x + 14, which is the inverse of the polynomial
-  /// used in [`Self::mix_columns`]. This is done using matrix multiplication.
+  /// This is done by interpreting both the byte from the state and the byte from the fixed matrix
+  /// as degree-7 polynomials and doing multiplication in the GF(2^8) field. For details, see
+  /// [`galois_multiplication`].
   fn inv_mix_columns(state: &mut State) {
     for col in state.0.iter_mut() {
       let tmp = *col;

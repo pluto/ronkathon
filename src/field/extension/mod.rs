@@ -13,11 +13,17 @@ use super::*;
 
 mod arithmetic;
 pub mod gf_101_2;
+pub mod gf_2_8;
 
 /// The [`PlutoBaseFieldExtension`] is a specific instance of the [`GaloisField`] struct with the
 /// order set to the prime number `101^2`. This is the quadratic extension field over the
 /// [`PlutoBaseField`] used in the Pluto `ronkathon` system.
 pub type PlutoBaseFieldExtension = GaloisField<2, 101>;
+
+/// The [`AESFieldExtension`] is a specific instance of the [`GaloisField`] struct with the
+/// order set to the number `2^8`. This is the quadratic extension field over the
+/// [`AESField`][crate::field::prime::AESField] used in the Pluto `ronkathon` system.
+pub type AESFieldExtension = GaloisField<8, 2>;
 
 /// The [`PlutoScalarFieldExtension`] is a specific instance of the [`GaloisField`] struct with the
 /// order set to the prime number `17^2`. This is the quadratic extension field over the
