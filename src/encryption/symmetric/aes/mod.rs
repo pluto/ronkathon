@@ -2,9 +2,11 @@
 //! and decryption.
 #![cfg_attr(not(doctest), doc = include_str!("./README.md"))]
 
-use std::ops::{Mul, Rem};
+use std::ops::Mul;
 
 use itertools::Itertools;
+
+use crate::field::{extension::AESFieldExtension, prime::AESField};
 
 pub mod sbox;
 #[cfg(test)] pub mod tests;
@@ -12,8 +14,7 @@ pub mod sbox;
 use super::SymmetricEncryption;
 use crate::{
   encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX},
-  field::{binary_towers::BinaryField, FiniteField},
-  polynomial::{Monomial, Polynomial},
+  field::FiniteField,
 };
 
 /// A block in AES represents a 128-bit sized message data.
@@ -147,51 +148,36 @@ struct State([[u8; 4]; 4]);
 /// This is defined on two bytes in two steps:
 ///
 /// 1) The two polynomials that represent the bytes are multiplied as polynomials,
-/// 2) The resulting polynomial is reduced modulo the following fixed polynomial:
+/// 2) The resulting polynomial is reduced modulo the following fixed polynomial: m(x) = x^8 + x^4 +
+///    x^3 + x + 1
 ///
-///    m(x) = x^8 + x^4 + x^3 + x + 1
+/// Note that you do not see this done here, this is implemented in [`AESFieldExtension`], within
+/// the operation traits.
 ///
 /// Note that in most AES implementations, this is done using "carry-less" multiplication -
 /// to see how this works in more concretely in field arithmetic, this implementation uses an actual
 /// polynomial implementation (a [`Polynomial`] of [`BinaryField`]s).
-fn galois_multiplication(mut col: u8, mut multiplicant: u8) -> u8 {
+fn galois_multiplication(mut col: u8, mut multiplicand: u8) -> u8 {
   // Decompose bits into degree-7 polynomials.
-  let mut col_bits = [BinaryField::new(0); 8];
-  let mut mult_bits = [BinaryField::new(0); 8];
+  let mut col_bits: [AESField; 8] = [AESField::ZERO; 8];
+  let mut mult_bits: [AESField; 8] = [AESField::ZERO; 8];
   for i in 0..8 {
-    col_bits[i] = BinaryField::new(col & 1);
-    mult_bits[i] = BinaryField::new(multiplicant & 1);
+    col_bits[i] = AESField::new((col & 1).into());
+    mult_bits[i] = AESField::new((multiplicand & 1).into());
     col >>= 1;
-    multiplicant >>= 1;
+    multiplicand >>= 1;
   }
 
-  let col_poly = Polynomial::<Monomial, BinaryField, 8>::new(col_bits);
-  let mult_poly = Polynomial::<Monomial, BinaryField, 8>::new(mult_bits);
-  // m(x) = x^8 + x^4 + x^3 + x + 1
-  let reducer = Polynomial::<Monomial, BinaryField, 9>::new([
-    BinaryField::ONE,
-    BinaryField::ONE,
-    BinaryField::ZERO,
-    BinaryField::ONE,
-    BinaryField::ONE,
-    BinaryField::ZERO,
-    BinaryField::ZERO,
-    BinaryField::ZERO,
-    BinaryField::ONE,
-  ]);
-
+  let col_poly = AESFieldExtension::new(col_bits);
+  let mult_poly = AESFieldExtension::new(mult_bits);
   let res = col_poly.mul(mult_poly);
-  let result = res.rem(reducer); // reduce resulting polynomial modulo a fixed polynomial
 
-  assert!(result.degree() < 8, "did not get a u8 out of multiplication in GF(2^8)");
-  // Recompose polynomial into a u8.
-  let mut fin: u8 = 0;
+  let mut product: u8 = 0;
   for i in 0..8 {
-    let coeff: u8 = result.coefficients[i].into();
-    fin += coeff * (2_i16.pow(i as u32)) as u8;
+    product += res.coeffs[i].value as u8 * 2_u8.pow(i as u32);
   }
 
-  fin
+  product
 }
 
 impl<const N: usize> AES<N>

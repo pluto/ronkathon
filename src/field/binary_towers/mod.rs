@@ -47,10 +47,6 @@ impl From<usize> for BinaryField {
   }
 }
 
-impl From<BinaryField> for u8 {
-  fn from(value: BinaryField) -> u8 { value.0 }
-}
-
 impl Add for BinaryField {
   type Output = Self;
 
