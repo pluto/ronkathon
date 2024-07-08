@@ -1,7 +1,10 @@
 //! Contains implementation of symmetric encryption primitives.
+#![doc = include_str!("./README.md")]
 pub mod aes;
 pub mod chacha;
+pub mod counter;
 pub mod des;
+pub mod modes;
 
 /// Trait for symmetric encryption primitive
 pub trait SymmetricEncryption {
@@ -53,4 +56,23 @@ pub trait StreamCipher {
     counter: &Self::Counter,
     ciphertext: &[u8],
   ) -> Result<Vec<u8>, Self::Error>;
+}
+
+/// Trait for block ciphers that works on bytes of specific sizes
+pub trait BlockCipher {
+  /// Block size in bytes for cipher oprations
+  const BLOCK_SIZE: usize;
+  /// Block acted upon by the cipher
+  type Block: AsRef<[u8]> + AsMut<[u8]> + From<Vec<u8>> + Copy + PartialEq;
+  /// Secret key for encryption/decryption
+  type Key;
+
+  /// Encrypt a plaintext of arbitrary length and returns ciphertext of same length as plaintext.
+  ///
+  /// Note: correct padding scheme should be used as per the mode of operation of cipher.
+  fn encrypt_block(key: &Self::Key, plaintext: &Self::Block) -> Self::Block;
+  /// Decrypt a ciphertext of arbitrary length and returns plaintext.
+  ///
+  /// Note: any padded bytes should be removed
+  fn decrypt_block(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block;
 }
