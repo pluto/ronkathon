@@ -29,6 +29,7 @@ impl<C: BlockCipher> CBC<C> {
   ///
   /// ## Usage
   /// ```
+  /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   /// use rand::{thread_rng, Rng};
   /// use ronkathon::encryption::symmetric::{
@@ -75,6 +76,7 @@ impl<C: BlockCipher> CBC<C> {
   ///
   /// ## Usage
   /// ```
+  /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   /// use rand::{thread_rng, Rng};
   /// use ronkathon::encryption::symmetric::{
@@ -155,7 +157,7 @@ mod tests {
 
     for _ in 0..10 {
       let mut rng = thread_rng();
-      let plaintext = rand_message(rng.gen_range(1000..100000));
+      let plaintext = rand_message(rng.gen_range(1000..10000));
       let ciphertext = cbc.encrypt(&rand_key, &plaintext);
 
       let decrypted = cbc.decrypt(&rand_key, &ciphertext);

@@ -74,6 +74,7 @@ where [(); N / 8]:
   ///
   /// ## Example
   /// ```rust
+  /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   ///
   /// use rand::{thread_rng, Rng};
@@ -102,18 +103,19 @@ where [(); N / 8]:
   ///
   /// ## Example
   /// ```rust
+  /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   ///
   /// use rand::{thread_rng, Rng};
   /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Key, AES},
+  ///   aes::{Block, Key, AES},
   ///   SymmetricEncryption,
   /// };
   ///
   /// let mut rng = thread_rng();
   /// let key = Key::<128>::new(rng.gen());
   /// let plaintext = rng.gen();
-  /// let encrypted = AES::encrypt(&key, &plaintext);
+  /// let encrypted = AES::encrypt(&key, &Block(plaintext));
   /// let decrypted = AES::decrypt(&key, &encrypted);
   /// ```
   fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {

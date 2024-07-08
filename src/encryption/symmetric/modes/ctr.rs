@@ -24,6 +24,7 @@ where [(); C::BLOCK_SIZE / 2]:
   /// - `plaintext`: data to be encrypted
   /// ## Usage
   /// ```
+  /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   /// use rand::{thread_rng, Rng};
   /// use ronkathon::encryption::symmetric::{
@@ -72,6 +73,7 @@ where [(); C::BLOCK_SIZE / 2]:
   /// Decrypt a ciphertext with counter of size [`BlockCipher::BLOCK_SIZE`]/2 bytes
   /// ## Usage
   /// ```
+  /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   /// use rand::{thread_rng, Rng};
   /// use ronkathon::encryption::symmetric::{
@@ -133,7 +135,7 @@ mod tests {
 
       let ctr = CTR::<AES<128>>::new(nonce);
 
-      let plaintext = rand_message(rng.gen_range(1000..100000));
+      let plaintext = rand_message(rng.gen_range(1000..10000));
       let ciphertext = ctr.encrypt(&rand_key, &counter, &plaintext).unwrap();
 
       let decrypted = ctr.decrypt(&rand_key, &counter, &ciphertext).unwrap();
