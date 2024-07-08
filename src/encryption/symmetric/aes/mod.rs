@@ -151,12 +151,11 @@ struct State([[u8; 4]; 4]);
 /// 2) The resulting polynomial is reduced modulo the following fixed polynomial: m(x) = x^8 + x^4 +
 ///    x^3 + x + 1
 ///
-/// Note that you do not see this done here, this is implemented in [`AESFieldExtension`], within
-/// the operation traits.
+/// The above steps are implemented in [`AESFieldExtension`], within the operation traits.
 ///
 /// Note that in most AES implementations, this is done using "carry-less" multiplication -
 /// to see how this works in more concretely in field arithmetic, this implementation uses an actual
-/// polynomial implementation (a [`Polynomial`] of [`BinaryField`]s).
+/// polynomial implementation.
 fn galois_multiplication(mut col: u8, mut multiplicand: u8) -> u8 {
   // Decompose bits into degree-7 polynomials.
   let mut col_bits: [AESField; 8] = [AESField::ZERO; 8];

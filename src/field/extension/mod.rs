@@ -22,7 +22,7 @@ pub type PlutoBaseFieldExtension = GaloisField<2, 101>;
 
 /// The [`AESFieldExtension`] is a specific instance of the [`GaloisField`] struct with the
 /// order set to the number `2^8`. This is the quadratic extension field over the
-/// [`PlutoBaseField`] used in the Pluto `ronkathon` system.
+/// [`AESField`][crate::field::prime::AESField] used in the Pluto `ronkathon` system.
 pub type AESFieldExtension = GaloisField<8, 2>;
 
 /// The [`PlutoScalarFieldExtension`] is a specific instance of the [`GaloisField`] struct with the
