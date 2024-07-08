@@ -152,8 +152,8 @@ struct State([[u8; 4]; 4]);
 ///    m(x) = x^8 + x^4 + x^3 + x + 1
 ///
 /// Note that in most AES implementations, this is done using "carry-less" multiplication -
-/// to see how this works in field terms, this implementation uses an actual polynomial
-/// implementation (a [`Polynomial`] of [`BinaryField`]s)
+/// to see how this works in more concretely in field arithmetic, this implementation uses an actual
+/// polynomial implementation (a [`Polynomial`] of [`BinaryField`]s).
 fn galois_multiplication(mut col: u8, mut multiplicant: u8) -> u8 {
   // Decompose bits into degree-7 polynomials.
   let mut col_bits = [BinaryField::new(0); 8];
