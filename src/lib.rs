@@ -30,6 +30,7 @@ pub mod encryption;
 pub mod field;
 pub mod hashes;
 pub mod kzg;
+pub mod ot;
 pub mod polynomial;
 pub mod tree;
 
