@@ -1,5 +1,8 @@
 //! Elliptic curve operations and types.
 
+use field::group::FiniteGroup;
+use fmt::Debug;
+
 use self::field::prime::PlutoScalarField;
 use super::*;
 
@@ -9,12 +12,15 @@ pub mod pluto_curve;
 
 /// Elliptic curve parameters for a curve over a finite field in Weierstrass form
 /// `y^2 = x^3 + ax + b`
-pub trait EllipticCurve: Copy {
+pub trait EllipticCurve: Copy + Debug + Eq {
   /// The field for the curve coefficients.
   type Coefficient: FiniteField + Into<Self::BaseField>;
 
   /// Integer field element type
   type BaseField: FiniteField;
+
+  /// Curve scalar field type
+  type ScalarField: FiniteField + Into<usize>;
 
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
   const ORDER: usize;
@@ -27,6 +33,14 @@ pub trait EllipticCurve: Copy {
 
   /// Generator of the scalar field to the elliptic curve.
   const GENERATOR: (Self::BaseField, Self::BaseField);
+}
+
+/// Curve group representing curve element
+pub trait CurveGroup: FiniteGroup {
+  /// Point doubling
+  fn double(self) -> Self;
+  /// Checks whether a point is on curve
+  fn is_on_curve(&self) -> bool;
 }
 
 // TODO: A potential issue here is that you can have a point that is not on the curve created via
@@ -44,17 +58,86 @@ pub enum AffinePoint<C: EllipticCurve> {
 impl<C: EllipticCurve> AffinePoint<C> {
   /// Create a new point on the curve so long as it satisfies the curve equation.
   pub fn new(x: C::BaseField, y: C::BaseField) -> Self {
-    assert_eq!(
-      y * y,
-      x * x * x + C::EQUATION_A.into() * x + C::EQUATION_B.into(),
-      "Point is not on curve"
-    );
-    Self::Point(x, y)
+    let point = Self::Point(x, y);
+    assert!(point.is_on_curve(), "Point is not on curve");
+    point
   }
 }
 
+impl<C: EllipticCurve> FiniteGroup for AffinePoint<C> {
+  type Scalar = C::ScalarField;
+
+  const GENERATOR: Self = AffinePoint::Point(C::GENERATOR.0, C::GENERATOR.1);
+  const IDENTITY: Self = AffinePoint::Infinity;
+  const ORDER: usize = C::ORDER;
+
+  fn operation(a: &Self, b: &Self) -> Self { AffinePoint::add(*a, *b) }
+
+  fn inverse(&self) -> Self {
+    let (x, y) = match self {
+      AffinePoint::Infinity => return *self,
+      AffinePoint::Point(x, y) => (*x, *y),
+    };
+    AffinePoint::Point(-x, y)
+  }
+
+  fn scalar_mul(&self, b: &Self::Scalar) -> Self { *self * *b }
+}
+
+impl<C: EllipticCurve> CurveGroup for AffinePoint<C> {
+  // NOTE: Apparently there is a faster way to do this with twisted curve methods
+  fn double(self) -> Self {
+    let (x, y) = match self {
+      AffinePoint::Point(x, y) => (x, y),
+      AffinePoint::Infinity => return AffinePoint::Infinity,
+    };
+    // m = (3x^2) / (2y)
+    let m = (((C::BaseField::ONE + C::BaseField::ONE) + C::BaseField::ONE) * x * x
+      + C::EQUATION_A.into())
+      / ((C::BaseField::ONE + C::BaseField::ONE) * y);
+
+    // 2P = (m^2 - 2x, m(3x - m^2)- y)
+    let x_new = m * m - (C::BaseField::ONE + C::BaseField::ONE) * x;
+    let y_new = m * ((C::BaseField::ONE + C::BaseField::ONE + C::BaseField::ONE) * x - m * m) - y;
+    AffinePoint::new(x_new, y_new)
+  }
+
+  fn is_on_curve(&self) -> bool {
+    match self {
+      AffinePoint::Infinity => true,
+      AffinePoint::Point(x, y) =>
+        *y * *y == *x * *x * *x + C::EQUATION_A.into() * *x + C::EQUATION_B.into(),
+    }
+  }
+}
+
+impl<C: EllipticCurve> Default for AffinePoint<C> {
+  fn default() -> Self { <Self as FiniteGroup>::GENERATOR }
+}
+
+impl<C: EllipticCurve> Mul<C::ScalarField> for AffinePoint<C> {
+  type Output = Self;
+
+  /// This is the naive implementation of scalar multiplication
+  /// There is a faster way to do this but this is simpler to reason about for now
+  fn mul(self, rhs: C::ScalarField) -> Self::Output {
+    if rhs == C::ScalarField::ZERO {
+      return AffinePoint::Infinity;
+    }
+    let mut val = self;
+    for _ in 1..rhs.into() {
+      val += self;
+    }
+    val
+  }
+}
+
+impl<C: EllipticCurve> MulAssign<C::ScalarField> for AffinePoint<C> {
+  fn mul_assign(&mut self, rhs: C::ScalarField) { *self = *self * rhs }
+}
+
 impl<C: EllipticCurve> Add for AffinePoint<C> {
-  type Output = AffinePoint<C>;
+  type Output = Self;
 
   fn add(self, rhs: Self) -> Self::Output {
     // infty checks
@@ -112,23 +195,7 @@ impl<C: EllipticCurve> Neg for AffinePoint<C> {
   }
 }
 
-/// This is the niave implementation of scalar multiplication
-/// There is a faster way to do this but this is simpler to reason about for now
 #[allow(clippy::suspicious_arithmetic_impl)]
-impl<C: EllipticCurve> Mul<u32> for AffinePoint<C> {
-  type Output = AffinePoint<C>;
-
-  fn mul(mut self, scalar: u32) -> Self::Output {
-    if scalar == 0 {
-      return AffinePoint::Infinity;
-    }
-    let val = self;
-    for _ in 1..scalar {
-      self += val;
-    }
-    self
-  }
-}
 
 impl<C: EllipticCurve> Sub for AffinePoint<C> {
   type Output = AffinePoint<C>;
@@ -136,10 +203,8 @@ impl<C: EllipticCurve> Sub for AffinePoint<C> {
   fn sub(self, rhs: Self) -> Self::Output { self + -rhs }
 }
 
-impl<C: EllipticCurve> Mul<PlutoScalarField> for AffinePoint<C> {
-  type Output = AffinePoint<C>;
-
-  fn mul(self, scalar: PlutoScalarField) -> Self::Output { scalar.value as u32 * self }
+impl<C: EllipticCurve> SubAssign for AffinePoint<C> {
+  fn sub_assign(&mut self, rhs: Self) { *self = *self - rhs; }
 }
 
 #[allow(clippy::suspicious_arithmetic_impl)]
@@ -155,31 +220,5 @@ impl<C: EllipticCurve> std::ops::Mul<AffinePoint<C>> for u32 {
       out += val;
     }
     out
-  }
-}
-
-// NOTE: Apparently there is a faster way to do this with twisted curve methods
-impl<C: EllipticCurve> AffinePoint<C> {
-  /// Compute the point doubling operation on this point.
-  pub fn point_doubling(self) -> AffinePoint<C> {
-    let (x, y) = match self {
-      AffinePoint::Point(x, y) => (x, y),
-      AffinePoint::Infinity => return AffinePoint::Infinity,
-    };
-    // m = (3x^2) / (2y)
-    let m = (((C::BaseField::ONE + C::BaseField::ONE) + C::BaseField::ONE) * x * x
-      + C::EQUATION_A.into())
-      / ((C::BaseField::ONE + C::BaseField::ONE) * y);
-
-    // 2P = (m^2 - 2x, m(3x - m^2)- y)
-    let x_new = m * m - (C::BaseField::ONE + C::BaseField::ONE) * x;
-    let y_new = m * ((C::BaseField::ONE + C::BaseField::ONE + C::BaseField::ONE) * x - m * m) - y;
-    AffinePoint::new(x_new, y_new)
-  }
-
-  /// Get the generator point of this curve.
-  pub fn generator() -> Self {
-    let (x, y) = C::GENERATOR;
-    AffinePoint::new(x, y)
   }
 }

@@ -1,6 +1,8 @@
 //! ECDSA signature verification
 use std::hash::{DefaultHasher, Hasher};
 
+use field::group::FiniteGroup;
+
 use self::field::prime::PlutoScalarField;
 use super::*;
 
@@ -31,7 +33,7 @@ pub fn sign(message: &[u8], private_key: PlutoScalarField) -> (PlutoScalarField,
   let k = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
 
   // Compute the curve point (x_1, y_1) = k × G.
-  let point = AffinePoint::<PlutoBaseCurve>::generator() * k;
+  let point = AffinePoint::<PlutoBaseCurve>::GENERATOR * k;
   let x_1 = match point {
     AffinePoint::Point(x, _) => x,
     _ => PlutoBaseField::ZERO,
@@ -75,7 +77,7 @@ pub fn verify(
   signature: (PlutoScalarField, PlutoScalarField),
 ) -> bool {
   // Check that n × Q_A = O.
-  if (q_a * 17) != AffinePoint::Infinity {
+  if (q_a * PlutoScalarField::new(17)) != AffinePoint::Infinity {
     return false;
   }
 
@@ -93,7 +95,7 @@ pub fn verify(
   // Compute u_2 = rs^(-1) mod n.
   let u_2 = r * s_inv;
   // Compute the curve point (x_1, y_1) = u_1 × G + u_2 × Q_A. If
-  let point = (AffinePoint::<PlutoBaseCurve>::generator() * u_1) + (q_a * u_2);
+  let point = (AffinePoint::<PlutoBaseCurve>::GENERATOR * u_1) + (q_a * u_2);
   let (x_1, _) = match point {
     AffinePoint::Point(x, y) => (x, y),
     _ => (PlutoBaseField::ZERO, PlutoBaseField::ZERO),
@@ -122,7 +124,7 @@ mod tests {
     let s_key = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
 
     // public key
-    let q_a = AffinePoint::<PlutoBaseCurve>::generator() * s_key;
+    let q_a = AffinePoint::<PlutoBaseCurve>::GENERATOR * s_key;
     let m = b"Hello, world!";
     // sign the message
     let signature = sign(m, s_key);
@@ -135,7 +137,7 @@ mod tests {
     let mut rng = rand::rngs::OsRng;
     let s_key = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
     // public key
-    let q_a = AffinePoint::<PlutoBaseCurve>::generator() * s_key;
+    let q_a = AffinePoint::<PlutoBaseCurve>::GENERATOR * s_key;
     let m = b"Hello, Pluto!";
     // sign the message
     let mut signature = sign(m, s_key);

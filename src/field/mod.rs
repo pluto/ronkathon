@@ -1,7 +1,8 @@
-//! This module contains the definition of finite fields and their extension fields.
+//! This module contains the definition of groups, finite fields, and their extension fields.
 use super::*;
 pub mod binary_towers;
 pub mod extension;
+pub mod group;
 pub mod prime;
 
 /// A field is a set of elements on which addition, subtraction, multiplication, and division are

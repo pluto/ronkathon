@@ -265,10 +265,10 @@ mod tests {
 
   #[test]
   fn torsion_generators() {
-    let generator = AffinePoint::<PlutoBaseCurve>::generator();
+    let generator = AffinePoint::<PlutoBaseCurve>::GENERATOR;
     println!("Generator: {:?}", generator);
     for i in 1..PlutoPrime::Scalar as usize + 1 {
-      let point = generator * i as u32;
+      let point = generator * PlutoScalarField::new(i);
       println!("{:?} * P = {:?}", i, point);
       if i == PlutoPrime::Scalar as usize {
         assert_eq!(point, AffinePoint::Infinity);
@@ -281,7 +281,7 @@ mod tests {
 
     let cube_root_of_unity = PlutoBaseFieldExtension::primitive_root_of_unity(3);
     let torsion_generator = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
-      AffinePoint::<PlutoBaseCurve>::generator()
+      AffinePoint::<PlutoBaseCurve>::GENERATOR
     {
       AffinePoint::<PlutoExtendedCurve>::new(
         cube_root_of_unity * PlutoBaseFieldExtension::from(x),
@@ -291,7 +291,7 @@ mod tests {
       panic!("Generator is not a point");
     };
     for i in 1..PlutoPrime::Scalar as usize + 1 {
-      let point = torsion_generator * i as u32;
+      let point = torsion_generator * PlutoScalarField::new(i);
       println!("{:?} * P = {:?}", i, point);
       if i == PlutoPrime::Scalar as usize {
         assert_eq!(point, AffinePoint::Infinity);
@@ -305,10 +305,10 @@ mod tests {
 
   #[test]
   fn pairing_test() {
-    let p = AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::generator());
+    let p = AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::GENERATOR);
     let cube_root_of_unity = PlutoBaseFieldExtension::primitive_root_of_unity(3);
     let q = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
-      AffinePoint::<PlutoBaseCurve>::generator()
+      AffinePoint::<PlutoBaseCurve>::GENERATOR
     {
       AffinePoint::<PlutoExtendedCurve>::new(
         cube_root_of_unity * PlutoBaseFieldExtension::from(x),
@@ -358,10 +358,10 @@ mod tests {
 
   #[test]
   fn weil_from_tate_paring() {
-    let p = AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::generator());
+    let p = AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::GENERATOR);
     let cube_root_of_unity = PlutoBaseFieldExtension::primitive_root_of_unity(3);
     let q = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
-      AffinePoint::<PlutoBaseCurve>::generator()
+      AffinePoint::<PlutoBaseCurve>::GENERATOR
     {
       AffinePoint::<PlutoExtendedCurve>::new(
         cube_root_of_unity * PlutoBaseFieldExtension::from(x),
@@ -391,10 +391,10 @@ mod tests {
     let a = PlutoScalarField::new(3);
     let b = PlutoScalarField::new(5);
 
-    let p = AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::generator());
+    let p = AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::GENERATOR);
     let cube_root_of_unity = PlutoBaseFieldExtension::primitive_root_of_unity(3);
     let q = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
-      AffinePoint::<PlutoBaseCurve>::generator()
+      AffinePoint::<PlutoBaseCurve>::GENERATOR
     {
       AffinePoint::<PlutoExtendedCurve>::new(
         cube_root_of_unity * PlutoBaseFieldExtension::from(x),
@@ -417,7 +417,7 @@ mod tests {
     assert_eq!(lhs, rhs);
 
     let r = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
-      AffinePoint::<PlutoBaseCurve>::generator().point_doubling()
+      AffinePoint::<PlutoBaseCurve>::GENERATOR.double()
     {
       AffinePoint::<PlutoExtendedCurve>::new(
         cube_root_of_unity * PlutoBaseFieldExtension::from(x),
