@@ -184,3 +184,7 @@ impl<const N: usize, const P: usize> From<u64> for GaloisField<N, P> {
 impl<const N: usize, const P: usize> From<usize> for GaloisField<N, P> {
   fn from(val: usize) -> Self { Self::from(PrimeField::<P>::from(val)) }
 }
+
+impl<const N: usize, const P: usize> From<GaloisField<N, P>> for usize {
+  fn from(value: GaloisField<N, P>) -> Self { value.coeffs[0].value }
+}

@@ -1,4 +1,5 @@
 //! This module contains the definition of groups, finite fields, and their extension fields.
+#![doc = include_str!("./README.md")]
 use super::*;
 pub mod binary_towers;
 pub mod extension;

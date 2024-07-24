@@ -7,10 +7,13 @@
 //! 4. Existence of inverse element for every element of the set: $a\oplus b=0$
 //! 5. Commutativity: Groups which satisfy an additional property: *commutativity* on the set of
 //!    elements are known as **Abelian groups**.
+//!
+//! [`FiniteGroup`] trait is implemented for all finite groups.
 use std::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use super::{prime::find_primitive_element, FiniteField, PrimeField};
 
+#[const_trait]
 /// Group trait with finite number of elements
 pub trait FiniteGroup:
   std::fmt::Debug
@@ -44,7 +47,7 @@ pub trait FiniteGroup:
 
   /// Multiplication with the scalar element of the group, i.e. repeatedly applying group
   /// [`FiniteGroup::operation`] `b` number of times.
-  fn scalar_mul(&self, b: &Self::Scalar) -> Self;
+  fn scalar_mul(&self, scalar: &Self::Scalar) -> Self;
 }
 
 /// Additive group on integer $\mathbb{Z}_p$ modulo over prime `P`.
@@ -67,6 +70,7 @@ impl<const P: usize> FiniteGroup for AdditivePrimeGroup<P> {
 
   fn inverse(&self) -> Self { Self(Self::ORDER - self.0) }
 
+  /// naive scalar multiplication
   fn scalar_mul(&self, b: &Self::Scalar) -> Self {
     let mut res = *self;
     for _ in 0..b.value {
@@ -114,7 +118,7 @@ impl<const P: usize> MulAssign<PrimeField<P>> for AdditivePrimeGroup<P> {
   fn mul_assign(&mut self, rhs: PrimeField<P>) { *self = *self * rhs; }
 }
 
-/// [`FiniteGroup`] under multiplication implemented as integer, $Z/nZ$ modulo prime `r`.
+/// [`FiniteGroup`] under multiplication implemented as integer, $Z/rZ$ modulo prime `r`.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct MultiplicativePrimeGroup<const P: usize>(usize);
 
@@ -186,19 +190,30 @@ mod tests {
 
     // commutativity
     assert_eq!(one + ident, ident + one);
-    assert_eq!(one, ident);
+    // inverse
+    assert_eq!(one + one.inverse(), ident);
+    // associativity
+    assert_eq!(one + (ident + one), (one + ident) + one);
+    // scalar multiplication
+    assert_eq!(one * PrimeField::<17>::new(2), one + one);
   }
 
   #[test]
   fn mul_group_properties() {
-    type MulGroup = MultiplicativePrimeGroup<5>;
-    type ScalarField = PrimeField<5>;
+    type MulGroup = MultiplicativePrimeGroup<17>;
+    type ScalarField = PrimeField<17>;
 
-    let gen = MultiplicativePrimeGroup::<5>::GENERATOR;
+    let gen = MultiplicativePrimeGroup::<17>::GENERATOR;
 
     let ident = MulGroup::IDENTITY;
 
-    assert_eq!(gen + ident, gen);
+    // commutativity
+    assert_eq!(gen + ident, ident + gen);
+    // inverse
+    assert_eq!(gen + gen.inverse(), ident);
+    // associativity
+    assert_eq!(gen + (ident + gen), (gen + gen) + ident);
+    // scalar multiplication
     assert_eq!(gen * ScalarField::new(2), gen + gen);
   }
 }

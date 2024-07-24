@@ -16,8 +16,9 @@ pub trait EllipticCurve: Copy + Debug + Eq {
   /// The field for the curve coefficients.
   type Coefficient: FiniteField + Into<Self::BaseField>;
 
-  /// Integer field element type
-  type BaseField: FiniteField;
+  /// curve base field element type
+  /// TODO: need to be converted for for big integers later
+  type BaseField: FiniteField + Into<usize>;
 
   /// Curve scalar field type
   type ScalarField: FiniteField + Into<usize>;
@@ -37,10 +38,16 @@ pub trait EllipticCurve: Copy + Debug + Eq {
 
 /// Curve group representing curve element
 pub trait CurveGroup: FiniteGroup {
+  /// Curve group's base field
+  type BaseField: FiniteField + Into<usize>;
+
   /// Point doubling
   fn double(self) -> Self;
   /// Checks whether a point is on curve
   fn is_on_curve(&self) -> bool;
+
+  /// Returns affine point `(x, y)`, returns `(_, _, true)` if point is `infinity`
+  fn xy(&self) -> (Self::BaseField, Self::BaseField, bool);
 }
 
 // TODO: A potential issue here is that you can have a point that is not on the curve created via
@@ -85,6 +92,8 @@ impl<C: EllipticCurve> FiniteGroup for AffinePoint<C> {
 }
 
 impl<C: EllipticCurve> CurveGroup for AffinePoint<C> {
+  type BaseField = C::BaseField;
+
   // NOTE: Apparently there is a faster way to do this with twisted curve methods
   fn double(self) -> Self {
     let (x, y) = match self {
@@ -105,8 +114,18 @@ impl<C: EllipticCurve> CurveGroup for AffinePoint<C> {
   fn is_on_curve(&self) -> bool {
     match self {
       AffinePoint::Infinity => true,
-      AffinePoint::Point(x, y) =>
-        *y * *y == *x * *x * *x + C::EQUATION_A.into() * *x + C::EQUATION_B.into(),
+      AffinePoint::Point(x, y) => {
+        let a: C::BaseField = C::EQUATION_A.into();
+        let b: C::BaseField = C::EQUATION_B.into();
+        *y * *y == *x * *x * *x + a * *x + b
+      },
+    }
+  }
+
+  fn xy(&self) -> (Self::BaseField, Self::BaseField, bool) {
+    match self {
+      AffinePoint::Infinity => (Self::BaseField::ZERO, Self::BaseField::ZERO, true),
+      AffinePoint::Point(x, y) => (*x, *y, false),
     }
   }
 }
