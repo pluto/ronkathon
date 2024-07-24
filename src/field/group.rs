@@ -50,74 +50,6 @@ pub trait FiniteGroup:
   fn scalar_mul(&self, scalar: &Self::Scalar) -> Self;
 }
 
-/// Additive group on integer $\mathbb{Z}_p$ modulo over prime `P`.
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdditivePrimeGroup<const P: usize>(usize);
-
-impl<const P: usize> AdditivePrimeGroup<P> {
-  /// generates new group element
-  pub fn new(val: usize) -> Self { Self(val % Self::ORDER) }
-}
-
-impl<const P: usize> FiniteGroup for AdditivePrimeGroup<P> {
-  type Scalar = PrimeField<P>;
-
-  const GENERATOR: Self = Self(1);
-  const IDENTITY: Self = Self(0);
-  const ORDER: usize = P;
-
-  fn operation(a: &Self, b: &Self) -> Self { Self((a.0 + b.0) % Self::ORDER) }
-
-  fn inverse(&self) -> Self { Self(Self::ORDER - self.0) }
-
-  /// naive scalar multiplication
-  fn scalar_mul(&self, b: &Self::Scalar) -> Self {
-    let mut res = *self;
-    for _ in 0..b.value {
-      res += *self;
-    }
-    res
-  }
-}
-
-impl<const P: usize> Add for AdditivePrimeGroup<P> {
-  type Output = Self;
-
-  fn add(self, rhs: Self) -> Self::Output { <Self as FiniteGroup>::operation(&self, &rhs) }
-}
-
-impl<const P: usize> AddAssign for AdditivePrimeGroup<P> {
-  fn add_assign(&mut self, rhs: Self) { *self = *self + rhs; }
-}
-
-impl<const P: usize> Neg for AdditivePrimeGroup<P> {
-  type Output = Self;
-
-  fn neg(self) -> Self::Output { Self(Self::ORDER - self.0) }
-}
-
-impl<const P: usize> Sub for AdditivePrimeGroup<P> {
-  type Output = Self;
-
-  fn sub(self, rhs: Self) -> Self::Output { self + (-rhs) }
-}
-
-impl<const P: usize> SubAssign for AdditivePrimeGroup<P> {
-  fn sub_assign(&mut self, rhs: Self) { *self = *self - rhs; }
-}
-
-impl<const P: usize> Mul<PrimeField<P>> for AdditivePrimeGroup<P> {
-  type Output = Self;
-
-  fn mul(self, rhs: PrimeField<P>) -> Self::Output {
-    <Self as FiniteGroup>::scalar_mul(&self, &rhs)
-  }
-}
-
-impl<const P: usize> MulAssign<PrimeField<P>> for AdditivePrimeGroup<P> {
-  fn mul_assign(&mut self, rhs: PrimeField<P>) { *self = *self * rhs; }
-}
-
 /// [`FiniteGroup`] under multiplication implemented as integer, $Z/rZ$ modulo prime `r`.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct MultiplicativePrimeGroup<const P: usize>(usize);
@@ -181,22 +113,6 @@ impl<const P: usize> MulAssign<PrimeField<P>> for MultiplicativePrimeGroup<P> {
 #[cfg(test)]
 mod tests {
   use super::*;
-
-  #[test]
-  fn add_group_properties() {
-    type AddGroup = AdditivePrimeGroup<17>;
-    let one = AddGroup::new(1);
-    let ident = AddGroup::IDENTITY;
-
-    // commutativity
-    assert_eq!(one + ident, ident + one);
-    // inverse
-    assert_eq!(one + one.inverse(), ident);
-    // associativity
-    assert_eq!(one + (ident + one), (one + ident) + one);
-    // scalar multiplication
-    assert_eq!(one * PrimeField::<17>::new(2), one + one);
-  }
 
   #[test]
   fn mul_group_properties() {

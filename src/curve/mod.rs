@@ -17,7 +17,7 @@ pub trait EllipticCurve: Copy + Debug + Eq {
   type Coefficient: FiniteField + Into<Self::BaseField>;
 
   /// curve base field element type
-  /// TODO: need to be converted for for big integers later
+  /// TODO: need to be converted for big integers later
   type BaseField: FiniteField + Into<usize>;
 
   /// Curve scalar field type

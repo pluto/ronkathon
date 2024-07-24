@@ -64,7 +64,6 @@ We will see examples of this usage next.
 
 ## Structs
 The structs that implement these traits are
-- `AdditivePrimeGroup`
 - `MultiplicativePrimeGroup`
 - `PrimeField`
 - `GaloisField`
@@ -72,13 +71,6 @@ The structs that implement these traits are
 > [!NOTE]
 > In principal, `PrimeField` and `GaloisField` could be combined into just `GaloisField` but are separated for clarity at the moment.
 > These structs are both generic over the prime `P` of the field, but `GaloisField` is also generic over the degree `N` of the extension field.
-
-### `AdditivePrimeGroup`
-
-The `AdditivePrimeGroup` struct is a wrapper around a `usize` with binary operation as $+$:
-```rust
-pub struct AdditivePrimeGroup<const P: usize>(usize);
-```
 
 ### `MultiplicativePrimeGroup`
 The `MultiplicativePrimeGroup` struct is a wrapper around a `usize` with binary operation as $\times$:
