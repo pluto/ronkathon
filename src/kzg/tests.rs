@@ -1,7 +1,7 @@
-use field::group::FiniteGroup;
+use algebra::group::FiniteCyclicGroup;
 
 use super::*;
-use crate::{curve::pairing::pairing, field::prime::PlutoScalarField};
+use crate::{curve::pairing::pairing, PlutoScalarField};
 
 #[test]
 fn test_setup() {

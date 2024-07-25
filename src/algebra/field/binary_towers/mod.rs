@@ -4,7 +4,7 @@ use std::{
   ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
 };
 
-use crate::field::FiniteField;
+use super::*;
 
 pub mod extension;
 pub use extension::BinaryTowers;

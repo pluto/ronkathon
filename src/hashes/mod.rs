@@ -4,7 +4,7 @@
 //! Currently, the only supported algorithm is SHA-256.
 #![doc = include_str!("./README.md")]
 pub mod sha256;
-use crate::field::FiniteField;
+use crate::FiniteField;
 pub mod poseidon;
 
 /// Sponge trait defining absorb and squeeze behavior of sponge based hash function.

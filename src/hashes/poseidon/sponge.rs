@@ -34,7 +34,7 @@
 use std::marker::PhantomData;
 
 use super::Poseidon;
-use crate::{field::FiniteField, hashes::Sponge};
+use crate::{hashes::Sponge, FiniteField};
 
 /// initialised sponge state
 pub struct Init;

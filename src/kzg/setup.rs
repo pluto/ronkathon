@@ -1,8 +1,8 @@
 //! Does the SRS setup for the KZG10 scheme.
 
-use field::group::FiniteGroup;
+use algebra::group::FiniteCyclicGroup;
 
-use self::{curve::pairing::pairing, field::prime::PlutoScalarField};
+use self::{curve::pairing::pairing, PlutoScalarField};
 use super::*;
 
 /// simple setup to get params.

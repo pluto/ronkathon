@@ -3,7 +3,9 @@
 //! [`FiniteField`] trait is implemented. This module asserts at compile time that the order of the
 //! field is a prime number and allows for creation of generic prime order fields.
 
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
+
+use rand::{distributions::Standard, prelude::Distribution, Rng};
 
 use super::*;
 
@@ -261,6 +263,8 @@ impl<const P: usize> FromStr for PrimeField<P> {
 
 #[cfg(test)]
 mod tests {
+
+  use rstest::rstest;
 
   use super::*;
 

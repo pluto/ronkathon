@@ -2,7 +2,7 @@ use rand::{thread_rng, Rng};
 use rstest::rstest;
 
 use super::*;
-use crate::field::prime::PrimeField;
+use crate::PrimeField;
 
 type TestBinaryField = PrimeField<2>;
 

@@ -1,35 +1,14 @@
-# Groups & Fields
-
-[Groups](https://en.wikipedia.org/wiki/Group_(mathematics)) $G$ are algebraic structures which are set and has a binary operation $\oplus$ that combines two elements $a, b$ of the set to produce a third element $a\oplus b$ in the set.
-The operation is said to have following properties:
-1. Closure: $a\oplus b=c\in G$
-2. Associative: $(a\oplus b)\oplus c = a\oplus(b\oplus c)$
-3. Existence of Identity element: $a\oplus 0 = 0\oplus a = a$
-4. Existence of inverse element for every element of the set: $a\oplus b=0$
-5. Commutativity: Groups which satisfy an additional property: *commutativity* on the set of
-   elements are known as **Abelian groups**.
-
-[Finite fields](https://en.wikipedia.org/wiki/Finite_field) are instrumental in cryptographic systems.
-They are used in elliptic curve cryptography, RSA, and many other cryptographic systems.
-This module provides a generic implementation of finite fields via two traits and two structs.
-It is designed to be easy to use and understand, and to be flexible enough to extend yourself.
+# Field
 
 ## Traits
-- `FiniteGroup`: a [`group`](./mod.rs) $(G, \oplus)$ where $G$ is a set and $\oplus$ is a binary operation.
+
 - `FiniteField`: a field $(\mathbb{F}_p, +,\cdot)$ where $p$ is a prime number.
 - `ExtensionField`: an extension of a field $(\mathbb{F}_{p^k}, +,\cdot)$ where $p$ is a prime number and $\mathbb{F}_{p^k}$ is an extension of $\mathbb{F}_p$.
+
 
 The two traits used in this module are `FiniteField` and `ExtensionField` which are located in the `field` and `field::extension` modules respectively.
 These traits are interfacial components that provide the necessary functionality for field-like objects to adhere to to be used in cryptographic systems.
 
-### `FiniteGroup`
-[`FiniteGroup`](./group.rs) represents a group with finite elements. It defines a binary operation on the set of elements of the group.
-- `ORDER`: The order of the group.
-- `IDENTITY`: The identity element of the group.
-- `GENERATOR`: The generator of the group.
-- `inverse(&self) -> Self`: inverse of the element.
-- `operation(a: &Self, b: &Self) -> Self`: the operation of the group.
-- `scalar_mul(&self, scalar: &Self::Scalar)`: multiplication of the element by a scalar.
 
 ### `FiniteField`
 The `FiniteField` trait is used to define a finite field in general.
@@ -55,28 +34,15 @@ The only additional constraint aside from the `FiniteField` trait and adherance 
 
 We will discuss `PrimeField<P>` momentarily.
 
-### Constant (Compile Time) Implementations
-Note that all of these traits are tagged with `#[const_trait]` which implies that each method and associated constant is implemented at compile time.
-This is done purposefully as it allows for generic implementations of these fields to be constructed when you compile `ronkathon` rather than computed at runtime.
-In principle, this means the code runs faster, but will compile slower, but the tradeoff is that the cryptographic system is faster and extensible.
-
-We will see examples of this usage next.
 
 ## Structs
 The structs that implement these traits are
-- `MultiplicativePrimeGroup`
 - `PrimeField`
 - `GaloisField`
 
 > [!NOTE]
 > In principal, `PrimeField` and `GaloisField` could be combined into just `GaloisField` but are separated for clarity at the moment.
 > These structs are both generic over the prime `P` of the field, but `GaloisField` is also generic over the degree `N` of the extension field.
-
-### `MultiplicativePrimeGroup`
-The `MultiplicativePrimeGroup` struct is a wrapper around a `usize` with binary operation as $\times$:
-```rust
-pub struct MultiplicativePrimeGroup<const P: usize>(usize);
-```
 
 ### `PrimeField`
 The `PrimeField` struct is a wrapper around a `usize` by:

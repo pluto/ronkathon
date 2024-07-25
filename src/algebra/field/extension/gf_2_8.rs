@@ -4,8 +4,8 @@
 //! (X^2-K).
 //!
 //! This extension field is used for our [AES implementation][`crate::encryption::symmetric::aes`].
-use self::field::prime::AESField;
-use super::*;
+use super::{prime::AESField, *};
+use crate::{Monomial, Polynomial};
 
 impl FiniteField for GaloisField<8, 2> {
   const ONE: Self = Self::new([

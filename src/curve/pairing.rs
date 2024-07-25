@@ -1,5 +1,7 @@
 //! Pairing operations for the Pluto curve.
 
+use std::fmt::Debug;
+
 use super::*;
 
 /// Compute the simplified Tate pairing of two points on the curve.
@@ -28,7 +30,7 @@ use super::*;
 /// Refer to Ben Lynn's [Thesis](https://crypto.stanford.edu/pbc/thesis.pdf#page=99.18) Section 6.2.
 /// Note that this is only possible for a supersingular curve and [`curve::PlutoBaseCurve`]
 /// satisfies this property.
-pub fn pairing<C: EllipticCurve + fmt::Debug + PartialEq, const R: usize>(
+pub fn pairing<C: EllipticCurve + Debug + PartialEq, const R: usize>(
   p: AffinePoint<C>,
   q: AffinePoint<C>,
 ) -> C::BaseField {
@@ -53,7 +55,7 @@ pub fn pairing<C: EllipticCurve + fmt::Debug + PartialEq, const R: usize>(
 
 /// Evaluate a rational function on a divisor f_{r,P}(D_{Q}) in logarithmic time complexity using an
 /// algorithm similar to double and add.
-pub(crate) fn miller_loop<C: EllipticCurve + fmt::Debug + PartialEq, const R: usize>(
+pub(crate) fn miller_loop<C: EllipticCurve + Debug + PartialEq, const R: usize>(
   p: AffinePoint<C>,
   q: AffinePoint<C>,
 ) -> C::BaseField {

@@ -1,5 +1,5 @@
 use super::*;
-use crate::field::prime::PlutoBaseField;
+use crate::PlutoBaseField;
 mod constants;
 use rstest::{fixture, rstest};
 

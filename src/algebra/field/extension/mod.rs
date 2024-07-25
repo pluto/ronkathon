@@ -9,7 +9,7 @@
 
 use std::array;
 
-use super::*;
+use super::{prime::*, *};
 
 mod arithmetic;
 pub mod gf_101_2;

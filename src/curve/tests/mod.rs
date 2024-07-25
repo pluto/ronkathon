@@ -1,8 +1,7 @@
 use std::array;
 
-use self::{field::extension::ExtensionField, pairing::miller_loop};
 use super::*;
-use crate::curve::pairing::{line_function, pairing, tangent_line, vertical_line};
+use crate::curve::pairing::{line_function, miller_loop, pairing, tangent_line, vertical_line};
 
 mod fields;
 use fields::*;

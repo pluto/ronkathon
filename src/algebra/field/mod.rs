@@ -1,10 +1,13 @@
 //! This module contains the definition of groups, finite fields, and their extension fields.
 #![doc = include_str!("./README.md")]
-use super::*;
 pub mod binary_towers;
 pub mod extension;
-pub mod group;
 pub mod prime;
+use std::{
+  hash::Hash,
+  iter::{Product, Sum},
+  ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
+};
 
 /// A field is a set of elements on which addition, subtraction, multiplication, and division are
 /// defined.

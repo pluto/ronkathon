@@ -1,5 +1,8 @@
-use super::*;
+use core::ops::{Div, DivAssign, Mul, MulAssign, Rem};
+use std::iter::Product;
 
+use super::*;
+use crate::algebra::field::extension::ExtensionField;
 pub type TestField = PrimeField<59>;
 pub type TestExtension = GaloisField<2, 59>;
 

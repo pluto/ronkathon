@@ -1,10 +1,12 @@
 //! Elliptic curve operations and types.
 
-use field::group::FiniteGroup;
-use fmt::Debug;
+use std::fmt::Debug;
 
-use self::field::prime::PlutoScalarField;
 use super::*;
+use crate::{
+  algebra::group::{FiniteCyclicGroup, FiniteGroup, Group},
+  FiniteField, PlutoScalarField,
+};
 
 pub mod pairing;
 pub mod pluto_curve;
@@ -37,7 +39,7 @@ pub trait EllipticCurve: Copy + Debug + Eq {
 }
 
 /// Curve group representing curve element
-pub trait CurveGroup: FiniteGroup {
+pub trait CurveGroup: FiniteCyclicGroup {
   /// Curve group's base field
   type BaseField: FiniteField + Into<usize>;
 
@@ -71,12 +73,10 @@ impl<C: EllipticCurve> AffinePoint<C> {
   }
 }
 
-impl<C: EllipticCurve> FiniteGroup for AffinePoint<C> {
+impl<C: EllipticCurve> Group for AffinePoint<C> {
   type Scalar = C::ScalarField;
 
-  const GENERATOR: Self = AffinePoint::Point(C::GENERATOR.0, C::GENERATOR.1);
   const IDENTITY: Self = AffinePoint::Infinity;
-  const ORDER: usize = C::ORDER;
 
   fn operation(a: &Self, b: &Self) -> Self { AffinePoint::add(*a, *b) }
 
@@ -130,8 +130,16 @@ impl<C: EllipticCurve> CurveGroup for AffinePoint<C> {
   }
 }
 
+impl<C: EllipticCurve> FiniteGroup for AffinePoint<C> {
+  const ORDER: usize = C::ORDER;
+}
+
+impl<C: EllipticCurve> FiniteCyclicGroup for AffinePoint<C> {
+  const GENERATOR: Self = AffinePoint::Point(C::GENERATOR.0, C::GENERATOR.1);
+}
+
 impl<C: EllipticCurve> Default for AffinePoint<C> {
-  fn default() -> Self { <Self as FiniteGroup>::GENERATOR }
+  fn default() -> Self { <Self as FiniteCyclicGroup>::GENERATOR }
 }
 
 impl<C: EllipticCurve> Mul<C::ScalarField> for AffinePoint<C> {

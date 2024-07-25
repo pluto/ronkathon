@@ -10,8 +10,7 @@ use rand::{
   Rng,
 };
 
-use super::BinaryField;
-use crate::field::FiniteField;
+use super::{BinaryField, FiniteField};
 
 /// Binary extension field GF_{2^{2^K}} using binary towers arithmetic as explained in Section 2.3 of [DP23b](https://eprint.iacr.org/2023/1784.pdf)
 /// represented as vector of 2^K [`BinaryField`] components in multilinear basis,

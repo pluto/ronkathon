@@ -8,6 +8,7 @@
 //! verified by finding out embedding degree of the curve, i.e. smallest k such that r|q^k-1.
 
 use super::*;
+use crate::{Distribution, Monomial, Polynomial, Rng, Standard};
 
 impl ExtensionField<2, 101> for PlutoBaseFieldExtension {
   /// irreducible polynomial used to reduce field polynomials to second degree:
@@ -178,6 +179,8 @@ impl Rem for PlutoBaseFieldExtension {
 
 #[cfg(test)]
 mod tests {
+  use rstest::rstest;
+
   use super::*;
 
   #[test]

@@ -15,11 +15,9 @@ use super::{
 };
 use crate::{
   compiler::parser::{parse_constraints, WireCoeffs},
-  field::{prime::PlutoScalarField, FiniteField},
   polynomial::{Lagrange, Polynomial},
+  FiniteField, PlutoScalarField,
 };
-
-// type Poly =
 
 /// Column represents all three columns in the execution trace which a variable
 /// can take.

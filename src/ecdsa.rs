@@ -117,7 +117,7 @@ fn hash_and_extract_bits<F: FiniteField>(m: &[u8], bit_count: usize) -> F {
 
 #[cfg(test)]
 mod tests {
-  use field::{group::FiniteGroup, prime::PlutoScalarField};
+  use algebra::{field::prime::PlutoScalarField, group::FiniteCyclicGroup};
 
   use super::*;
 

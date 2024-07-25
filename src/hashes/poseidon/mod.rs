@@ -6,7 +6,7 @@ pub mod sponge;
 
 pub use sponge::*;
 
-use crate::field::FiniteField;
+use crate::FiniteField;
 
 /// Poseidon config used to instantiate hash function
 #[derive(Debug, Clone)]
