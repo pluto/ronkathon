@@ -10,13 +10,13 @@
 //!
 //! [`FiniteGroup`] trait is implemented for all finite groups.
 #![doc = include_str!("./README.md")]
-pub mod group;
+pub mod prime;
 
 use std::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[const_trait]
 /// Group trait defined by a binary operation and identity element.
-pub trait Group:
+pub trait FiniteGroup:
   std::fmt::Debug
   + Sized
   + Add<Output = Self>
@@ -34,25 +34,25 @@ pub trait Group:
   type Scalar;
   /// Identity element of group
   const IDENTITY: Self;
+  /// number of elements in group
+  const ORDER: usize;
+
+  /// order of group element
+  fn order(&self) -> usize;
 
   /// operation defined for the group, can be `+` for additive group and `*` for multiplicative
   /// group
   fn operation(a: &Self, b: &Self) -> Self;
 
   /// Inverse of group element: a ⨁ i = [`FiniteGroup::IDENTITY`]
-  fn inverse(&self) -> Self;
+  fn inverse(&self) -> Option<Self>;
 
   /// Multiplication with the scalar element of the group, i.e. repeatedly applying group
   /// [`FiniteGroup::operation`] `scalar` number of times.
-  fn scalar_mul(&self, scalar: &Self::Scalar) -> Self;
+  fn scalar_mul(&self, scalar: Self::Scalar) -> Self;
 }
 
-/// Finite group trait with finite number of elements
-pub trait FiniteGroup: Group {
-  /// total number of elements in group
-  const ORDER: usize;
-}
-
+#[const_trait]
 /// Finite cyclic group trait defined by a generator element and order of the group
 pub trait FiniteCyclicGroup: FiniteGroup {
   /// primtive element of group

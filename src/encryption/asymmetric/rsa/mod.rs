@@ -95,21 +95,26 @@ pub fn random_prime(first_prime: usize) -> usize {
   n
 }
 
-fn is_prime(n: usize) -> bool {
+/// Primality testing in a constant function for compile time checks
+pub const fn is_prime(n: usize) -> bool {
   if n <= 1 {
     return false;
   }
-  for i in 2..=((n as f64).sqrt() as usize) {
+  let mut i = 2;
+  while i * i <= n {
     if n % i == 0 {
       return false;
     }
+    i += 1;
   }
   true
 }
 
-const fn euler_totient(prime_1: u64, prime_2: u64) -> u64 { (prime_1 - 1) * (prime_2 - 1) }
+/// Euler totient: Ψ(x)
+pub const fn euler_totient(prime_1: u64, prime_2: u64) -> u64 { (prime_1 - 1) * (prime_2 - 1) }
 
-const fn gcd(a: u64, b: u64) -> u64 {
+/// GCD of two numbers
+pub const fn gcd(a: u64, b: u64) -> u64 {
   if b == 0 {
     a
   } else {

@@ -20,6 +20,7 @@
 #![feature(const_for)]
 #![feature(const_option)]
 #![feature(generic_const_exprs)]
+#![feature(specialization)]
 #![warn(missing_docs)]
 
 pub mod algebra;

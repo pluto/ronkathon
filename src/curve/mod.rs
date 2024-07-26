@@ -4,7 +4,7 @@ use std::fmt::Debug;
 
 use super::*;
 use crate::{
-  algebra::group::{FiniteCyclicGroup, FiniteGroup, Group},
+  algebra::group::{FiniteCyclicGroup, FiniteGroup},
   FiniteField, PlutoScalarField,
 };
 
@@ -73,22 +73,38 @@ impl<C: EllipticCurve> AffinePoint<C> {
   }
 }
 
-impl<C: EllipticCurve> Group for AffinePoint<C> {
+impl<C: EllipticCurve> FiniteGroup for AffinePoint<C> {
   type Scalar = C::ScalarField;
 
   const IDENTITY: Self = AffinePoint::Infinity;
+  const ORDER: usize = C::ORDER;
+
+  fn order(&self) -> usize {
+    let mut order = 0;
+    let mut elem = *self;
+    for _ in 0..C::ORDER {
+      // check if elem is the identity
+      if elem == Self::IDENTITY {
+        return order;
+      }
+      // apply operation and increment order
+      elem = Self::operation(&elem, self);
+      order += 1;
+    }
+    order
+  }
 
   fn operation(a: &Self, b: &Self) -> Self { AffinePoint::add(*a, *b) }
 
-  fn inverse(&self) -> Self {
+  fn inverse(&self) -> Option<Self> {
     let (x, y) = match self {
-      AffinePoint::Infinity => return *self,
+      AffinePoint::Infinity => return Some(*self),
       AffinePoint::Point(x, y) => (*x, *y),
     };
-    AffinePoint::Point(-x, y)
+    Some(AffinePoint::Point(-x, y))
   }
 
-  fn scalar_mul(&self, b: &Self::Scalar) -> Self { *self * *b }
+  fn scalar_mul(&self, b: Self::Scalar) -> Self { *self * b }
 }
 
 impl<C: EllipticCurve> CurveGroup for AffinePoint<C> {
@@ -128,10 +144,6 @@ impl<C: EllipticCurve> CurveGroup for AffinePoint<C> {
       AffinePoint::Point(x, y) => (*x, *y, false),
     }
   }
-}
-
-impl<C: EllipticCurve> FiniteGroup for AffinePoint<C> {
-  const ORDER: usize = C::ORDER;
 }
 
 impl<C: EllipticCurve> FiniteCyclicGroup for AffinePoint<C> {
