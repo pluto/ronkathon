@@ -63,7 +63,7 @@ All of the relevant arithmetic operations for `PrimeField<P>` are implemented in
 ### `GaloisField`
 The `GaloisField` struct is a wrapper around a `PrimeField<P>` by:
 ```rust
-use ronkathon::field::prime::PrimeField;
+use ronkathon::algebra::field::prime::PrimeField;
 pub struct GaloisField<const N: usize, const P: usize> {
     value: [PrimeField<P>; N],
 }

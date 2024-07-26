@@ -23,7 +23,9 @@ The structs that implement these traits are
 - `MultiplicativePrimeGroup`
 
 ### `MultiplicativePrimeGroup`
-The `MultiplicativePrimeGroup` struct is a wrapper around a `usize` with binary operation as $\times$:
+The `MultiplicativePrimeGroup` struct is a wrapper around a `usize` that defines $(Z/nZ)^{*}$ for a prime power $n=p^k$ with binary operation as $\times$:
 ```rust
-pub struct MultiplicativePrimeGroup<const P: usize>(usize);
+pub struct MultiplicativePrimeGroup<const P: usize, const K: usize>(usize);
 ```
+
+It uses compile time assertions to check that $P$ is prime.
