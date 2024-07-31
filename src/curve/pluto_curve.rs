@@ -8,8 +8,8 @@
 //! Note that this would be cleaner if we could use trait specialization to keep the default
 //! implementations in the trait itself, but this feature is not yet to that point of utility.
 
-use self::field::extension::PlutoExtensions;
 use super::*;
+use crate::algebra::field::extension::PlutoExtensions;
 
 /// The [`PlutoBaseCurve`] is an the base field set to the [`PlutoBaseField`]. This is the curve
 /// used in the Pluto `ronkathon` system. The curve is defined by the equation `y^2 = x^3 + 3`.
@@ -27,6 +27,7 @@ pub struct PlutoExtendedCurve;
 impl EllipticCurve for PlutoBaseCurve {
   type BaseField = PlutoBaseField;
   type Coefficient = PlutoBaseField;
+  type ScalarField = PlutoScalarField;
 
   const EQUATION_A: Self::Coefficient = PlutoBaseField::ZERO;
   const EQUATION_B: Self::Coefficient = PlutoBaseField::new(3);
@@ -38,6 +39,7 @@ impl EllipticCurve for PlutoBaseCurve {
 impl EllipticCurve for PlutoExtendedCurve {
   type BaseField = PlutoBaseFieldExtension;
   type Coefficient = PlutoBaseField;
+  type ScalarField = PlutoScalarField;
 
   const EQUATION_A: Self::Coefficient = PlutoBaseField::ZERO;
   const EQUATION_B: Self::Coefficient = PlutoBaseField::new(3);
@@ -86,9 +88,9 @@ mod pluto_base_curve_tests {
 
   #[test]
   fn point_doubling() {
-    let g = AffinePoint::<PlutoBaseCurve>::generator();
+    let g = AffinePoint::<PlutoBaseCurve>::GENERATOR;
 
-    let two_g = g.point_doubling();
+    let two_g = g.double();
     let expected_2g =
       AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(68), PlutoBaseField::new(74));
     let expected_negative_2g =
@@ -96,7 +98,7 @@ mod pluto_base_curve_tests {
     assert_eq!(two_g, expected_2g);
     assert_eq!(-two_g, expected_negative_2g);
 
-    let four_g = two_g.point_doubling();
+    let four_g = two_g.double();
     let expected_4g =
       AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(65), PlutoBaseField::new(98));
     let expected_negative_4g =
@@ -104,7 +106,7 @@ mod pluto_base_curve_tests {
     assert_eq!(four_g, expected_4g);
     assert_eq!(-four_g, expected_negative_4g);
 
-    let eight_g = four_g.point_doubling();
+    let eight_g = four_g.double();
     let expected_8g =
       AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(18), PlutoBaseField::new(49));
     let expected_negative_8g =
@@ -112,7 +114,7 @@ mod pluto_base_curve_tests {
     assert_eq!(eight_g, expected_8g);
     assert_eq!(-eight_g, expected_negative_8g);
 
-    let sixteen_g = eight_g.point_doubling();
+    let sixteen_g = eight_g.double();
     let expected_16g =
       AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(1), PlutoBaseField::new(99));
     let expected_negative_16g =
@@ -124,11 +126,11 @@ mod pluto_base_curve_tests {
 
   #[test]
   fn order_17() {
-    let g = AffinePoint::<PlutoBaseCurve>::generator();
-    let mut g_double = g.point_doubling();
+    let g: AffinePoint<PlutoBaseCurve> = AffinePoint::<PlutoBaseCurve>::GENERATOR;
+    let mut g_double = g.double();
     let mut count = 2;
     while g_double != g && -g_double != g {
-      g_double = g_double.point_doubling();
+      g_double = g_double.double();
       count *= 2;
     }
     assert_eq!(count + 1, 17);
@@ -136,8 +138,8 @@ mod pluto_base_curve_tests {
 
   #[test]
   fn point_addition() {
-    let g = AffinePoint::<PlutoBaseCurve>::generator();
-    let two_g = g.point_doubling();
+    let g = AffinePoint::<PlutoBaseCurve>::GENERATOR;
+    let two_g = g.double();
     let three_g = g + two_g;
     let expected_3g =
       AffinePoint::<PlutoBaseCurve>::new(PlutoBaseField::new(26), PlutoBaseField::new(45));
@@ -169,18 +171,18 @@ mod pluto_base_curve_tests {
 
   #[test]
   fn scalar_multiplication_rhs() {
-    let g = AffinePoint::<PlutoBaseCurve>::generator();
-    let two_g = g * 2;
-    let expected_2g = g.point_doubling();
+    let g = AffinePoint::<PlutoBaseCurve>::GENERATOR;
+    let two_g = g * PlutoScalarField::new(2);
+    let expected_2g: AffinePoint<PlutoBaseCurve> = g.double();
     assert_eq!(two_g, expected_2g);
     assert_eq!(-two_g, -expected_2g);
   }
 
   #[test]
   fn scalar_multiplication_lhs() {
-    let g = AffinePoint::<PlutoBaseCurve>::generator();
+    let g = AffinePoint::<PlutoBaseCurve>::GENERATOR;
     let two_g = 2 * g;
-    let expected_2g = g.point_doubling();
+    let expected_2g = g.double();
     assert_eq!(two_g, expected_2g);
     assert_eq!(-two_g, -expected_2g);
   }
@@ -212,7 +214,7 @@ mod pluto_extended_curve_tests {
   }
 
   #[rstest]
-  #[case(AffinePoint::<PlutoExtendedCurve>::generator())]
+  #[case(AffinePoint::<PlutoExtendedCurve>::GENERATOR)]
   #[case(generator())]
   #[case(point())]
   #[should_panic]
@@ -221,8 +223,8 @@ mod pluto_extended_curve_tests {
 
   #[test]
   fn point_doubling() {
-    let g = AffinePoint::<PlutoExtendedCurve>::generator();
-    let two_g = g.point_doubling();
+    let g = AffinePoint::<PlutoExtendedCurve>::GENERATOR;
+    let two_g = g.double();
 
     let expected_g = generator();
     let expected_two_g = point();
@@ -233,18 +235,18 @@ mod pluto_extended_curve_tests {
 
   #[test]
   fn scalar_multiplication_rhs() {
-    let g = AffinePoint::<PlutoExtendedCurve>::generator();
-    let two_g = g * 2;
-    let expected_two_g = g.point_doubling();
+    let g = AffinePoint::<PlutoExtendedCurve>::GENERATOR;
+    let two_g = g * PlutoScalarField::new(2);
+    let expected_two_g = g.double();
     assert_eq!(two_g, expected_two_g);
     assert_eq!(-two_g, -expected_two_g);
   }
 
   #[test]
   fn scalar_multiplication_lhs() {
-    let g = AffinePoint::<PlutoExtendedCurve>::generator();
+    let g = AffinePoint::<PlutoExtendedCurve>::GENERATOR;
     let two_g = 2 * g;
-    let expected_two_g = g.point_doubling();
+    let expected_two_g: AffinePoint<PlutoExtendedCurve> = g.double();
     assert_eq!(two_g, expected_two_g);
     assert_eq!(-two_g, -expected_two_g);
   }

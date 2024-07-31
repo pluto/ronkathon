@@ -1,6 +1,6 @@
 use std::{error::Error, fmt::Display};
 
-use crate::field::prime::PlutoScalarField;
+use crate::PlutoScalarField;
 
 /// Errors from parsing the DSL
 #[derive(Debug)]

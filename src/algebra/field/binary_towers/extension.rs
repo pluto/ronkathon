@@ -10,8 +10,7 @@ use rand::{
   Rng,
 };
 
-use super::BinaryField;
-use crate::field::FiniteField;
+use super::{BinaryField, Field, Finite, FiniteField};
 
 /// Binary extension field GF_{2^{2^K}} using binary towers arithmetic as explained in Section 2.3 of [DP23b](https://eprint.iacr.org/2023/1784.pdf)
 /// represented as vector of 2^K [`BinaryField`] components in multilinear basis,
@@ -36,13 +35,16 @@ where [(); 1 << K]:
   }
 }
 
-impl<const K: usize> FiniteField for BinaryTowers<K>
+impl<const K: usize> Finite for BinaryTowers<K>
+where [(); 1 << K]:
+{
+  const ORDER: usize = 1 << (1 << K);
+}
+
+impl<const K: usize> Field for BinaryTowers<K>
 where [(); 1 << K]:
 {
   const ONE: Self = Self::one();
-  const ORDER: usize = 1 << (1 << K);
-  // TODO: incorrect
-  const PRIMITIVE_ELEMENT: Self = Self::ONE;
   const ZERO: Self = Self::new([BinaryField::ZERO; 1 << K]);
 
   fn pow(self, power: usize) -> Self {
@@ -67,6 +69,13 @@ where [(); 1 << K]:
     }
     Some(self.pow(Self::ORDER - 2))
   }
+}
+
+impl<const K: usize> FiniteField for BinaryTowers<K>
+where [(); 1 << K]:
+{
+  // TODO: incorrect
+  const PRIMITIVE_ELEMENT: Self = Self::ONE;
 }
 
 impl<const K: usize> Default for BinaryTowers<K>

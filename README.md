@@ -20,6 +20,7 @@
 Ronkathon is a rust implementation of a collection of cryptographic primitives. It is inspired by the common python plonkathon repository, and plonk-by-hand. We use the same curve and field as plonk-by-hand (not secure), and are working towards building everything from scratch to understand everything from first principles.
 
 ## Primitives
+- [Finite Group](src/field/group.rs)
 - [Fields and Their Extensions](src/field/README.md)
   - [Binary Fields](src/field/binary_towers/README.md)
 - [Curves and Their Pairings](src/curve/README.md)
@@ -27,6 +28,7 @@ Ronkathon is a rust implementation of a collection of cryptographic primitives. 
 - [KZG Commitments](src/kzg/README.md)
 - [Reed-Solomon Codes](src/codes/README.md)
 - [Merkle Proofs](src/tree/README.md)
+- [DSL](src/compiler/README.md)
 
 ### Signatures
 - [Tiny ECDSA](src/ecdsa.rs)
@@ -34,6 +36,8 @@ Ronkathon is a rust implementation of a collection of cryptographic primitives. 
 ### Encryption
 - [RSA](src/encryption/asymmetric/rsa/README.md)
 - [DES](src/encryption/symmetric/des/README.md)
+- [AES](src/encryption/symmetric/aes/README.md)
+- [ChaCha](src/encryption/symmetric/chacha/README.md)
 
 ### Hash
 - [Sha256 Hash](src/hashes/README.md)

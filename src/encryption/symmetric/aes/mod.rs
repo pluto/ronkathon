@@ -6,16 +6,15 @@ use std::ops::Mul;
 
 use itertools::Itertools;
 
-use crate::field::{extension::AESFieldExtension, prime::AESField};
+use super::{BlockCipher, SymmetricEncryption};
+use crate::{
+  algebra::field::{extension::AESFieldExtension, prime::AESField},
+  encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX},
+  Field,
+};
 
 pub mod sbox;
 #[cfg(test)] pub mod tests;
-
-use super::{BlockCipher, SymmetricEncryption};
-use crate::{
-  encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX},
-  field::FiniteField,
-};
 
 /// A block in AES represents a 128-bit sized message data.
 #[derive(Debug, Clone, Copy, PartialEq)]

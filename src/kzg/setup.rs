@@ -1,6 +1,8 @@
 //! Does the SRS setup for the KZG10 scheme.
 
-use self::{curve::pairing::pairing, field::prime::PlutoScalarField};
+use algebra::group::FiniteCyclicGroup;
+
+use self::{curve::pairing::pairing, PlutoScalarField};
 use super::*;
 
 /// simple setup to get params.
@@ -11,8 +13,8 @@ pub fn setup() -> (Vec<AffinePoint<PlutoExtendedCurve>>, Vec<AffinePoint<PlutoEx
   // This is just tau from plonk by hand, it is not actually secure
   let tau: PlutoScalarField = PlutoScalarField::new(2);
 
-  let g1 = AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::generator());
-  let g2 = AffinePoint::<PlutoExtendedCurve>::generator();
+  let g1 = AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::GENERATOR);
+  let g2 = AffinePoint::<PlutoExtendedCurve>::GENERATOR;
   // NOTE: Just sample the d of both for now.
   // - g1 and g2 SRS have variable sizes for diff kzg uses
   // - in eth blobs, g1 is 4096 elements, g2 is 16 elements
@@ -90,16 +92,12 @@ pub fn check(
   let g2 = g2_srs[1];
 
   // e(pi, g2 - gen * point)
-  let lhs = pairing::<PlutoExtendedCurve, 17>(
-    q,
-    g2 - AffinePoint::<PlutoExtendedCurve>::generator() * point,
-  );
+  let lhs =
+    pairing::<PlutoExtendedCurve, 17>(q, g2 - AffinePoint::<PlutoExtendedCurve>::GENERATOR * point);
 
   // e(p - g1 * value, gen)
-  let rhs = pairing::<PlutoExtendedCurve, 17>(
-    p - g1 * value,
-    AffinePoint::<PlutoExtendedCurve>::generator(),
-  );
+  let rhs =
+    pairing::<PlutoExtendedCurve, 17>(p - g1 * value, AffinePoint::<PlutoExtendedCurve>::GENERATOR);
   println!("lhs {:?}", lhs);
   println!("rhs {:?}", rhs);
 

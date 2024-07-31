@@ -31,7 +31,7 @@ use super::{
   errors::ParserError,
   utils::{get_product_key, is_valid_var_name},
 };
-use crate::field::{prime::PlutoScalarField, FiniteField};
+use crate::{Field, PlutoScalarField};
 
 /// Fan-in 2 Gate representing a constraint in the computation.
 /// Each constraint satisfies PLONK's arithmetic equation: `a(X)QL(X) + b(X)QR(X) + a(X)b(X)QM(X) +

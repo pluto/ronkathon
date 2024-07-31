@@ -6,11 +6,11 @@ pub mod sponge;
 
 pub use sponge::*;
 
-use crate::field::FiniteField;
+use crate::Field;
 
 /// Poseidon config used to instantiate hash function
 #[derive(Debug, Clone)]
-pub struct PoseidonConfig<F: FiniteField> {
+pub struct PoseidonConfig<F: Field> {
   /// alpha used during sbox layer calculate `x^{alpha}`
   alpha:           usize,
   /// width of the hash function that decides how many elements of finite field are stored in the
@@ -30,12 +30,12 @@ pub struct PoseidonConfig<F: FiniteField> {
 /// state contains current hash state of `width` length and [`PoseidonConfig`]
 /// contains config for rounds in the hash function.
 #[derive(Debug, Clone)]
-pub struct Poseidon<F: FiniteField> {
+pub struct Poseidon<F: Field> {
   state:  Vec<F>,
   config: PoseidonConfig<F>,
 }
 
-impl<F: FiniteField> PoseidonConfig<F> {
+impl<F: Field> PoseidonConfig<F> {
   fn new(
     width: usize,
     alpha: usize,
@@ -56,7 +56,7 @@ impl<F: FiniteField> PoseidonConfig<F> {
   }
 }
 
-impl<F: FiniteField> Poseidon<F> {
+impl<F: Field> Poseidon<F> {
   /// instantiate hash function with required config
   pub fn new(
     width: usize,

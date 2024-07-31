@@ -1,5 +1,7 @@
+use algebra::group::FiniteCyclicGroup;
+
 use super::*;
-use crate::{curve::pairing::pairing, field::prime::PlutoScalarField};
+use crate::{curve::pairing::pairing, PlutoScalarField};
 
 #[test]
 fn test_setup() {
@@ -43,7 +45,7 @@ fn test_setup() {
     PlutoBaseFieldExtension::new([PlutoBaseField::new(90), PlutoBaseField::ZERO]),
     PlutoBaseFieldExtension::new([PlutoBaseField::ZERO, PlutoBaseField::new(82)]),
   );
-  let g2_gen = AffinePoint::<PlutoExtendedCurve>::generator();
+  let g2_gen = AffinePoint::<PlutoExtendedCurve>::GENERATOR;
   let expected_g2srs = vec![g2_gen, expected_2g];
 
   assert_eq!(g2srs, expected_g2srs);
@@ -193,12 +195,12 @@ fn all_srs_combinations() {
       println!("Loop for g2 {:?}", g2);
       let lhs = pairing::<PlutoExtendedCurve, 17>(
         paring_params.q,
-        *g2 - AffinePoint::<PlutoExtendedCurve>::generator() * paring_params.point,
+        *g2 - AffinePoint::<PlutoExtendedCurve>::GENERATOR * paring_params.point,
       );
 
       let rhs = pairing::<PlutoExtendedCurve, 17>(
         paring_params.p - g1 * paring_params.value,
-        AffinePoint::<PlutoExtendedCurve>::generator(),
+        AffinePoint::<PlutoExtendedCurve>::GENERATOR,
       );
       if lhs == rhs {
         println!(
@@ -231,18 +233,18 @@ fn e2e<const D: usize>(
   // We can look at `g1srs` and see it is in `G1` and `g2srs` is in `G2`
   dbg!(paring_params.g1srs.first().unwrap());
   for i in 0..17 {
-    println!("{}: {:?}", i, *paring_params.g1srs.first().unwrap() * i);
+    println!("{}: {:?}", i, i * *paring_params.g1srs.first().unwrap());
   }
   assert_eq!(
-    *paring_params.g1srs.first().unwrap() * 17u32,
+    17u32 * *paring_params.g1srs.first().unwrap(),
     AffinePoint::<PlutoExtendedCurve>::Infinity
   );
   dbg!(paring_params.g2srs.first().unwrap());
   for i in 0..17 {
-    println!("{}: {:?}", i, *paring_params.g2srs.first().unwrap() * i);
+    println!("{}: {:?}", i, i * *paring_params.g2srs.first().unwrap());
   }
   assert_eq!(
-    *paring_params.g2srs.first().unwrap() * 17u32,
+    17u32 * *paring_params.g2srs.first().unwrap(),
     AffinePoint::<PlutoExtendedCurve>::Infinity
   );
 

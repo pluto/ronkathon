@@ -1,13 +1,13 @@
-use super::*;
+use core::ops::{Div, DivAssign, Mul, MulAssign, Rem};
+use std::iter::Product;
 
+use super::*;
+use crate::algebra::field::extension::ExtensionField;
 pub type TestField = PrimeField<59>;
 pub type TestExtension = GaloisField<2, 59>;
 
-impl FiniteField for TestExtension {
+impl Field for TestExtension {
   const ONE: Self = Self::new([TestField::ONE, TestField::ZERO]);
-  const ORDER: usize = TestField::ORDER * TestField::ORDER;
-  // TODO: This is not correct for this field!!! Fix!
-  const PRIMITIVE_ELEMENT: Self = Self::new([TestField::new(14), TestField::new(9)]);
   const ZERO: Self = Self::new([TestField::ZERO, TestField::ZERO]);
 
   /// Computes the multiplicative inverse of `a`, i.e. 1 / (a0 + a1 * t).
@@ -42,6 +42,11 @@ impl FiniteField for TestExtension {
 impl ExtensionField<2, 59> for GaloisField<2, 59> {
   const IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS: [PrimeField<59>; 3] =
     [PrimeField::<59>::ONE, PrimeField::<59>::ZERO, PrimeField::<59>::ONE];
+}
+
+impl FiniteField for TestExtension {
+  // TODO: This is not correct for this field!!! Fix!
+  const PRIMITIVE_ELEMENT: Self = Self::new([TestField::new(14), TestField::new(9)]);
 }
 
 /// Returns the multiplication of two [`Ext<2, GF101>`] elements by reducing result modulo

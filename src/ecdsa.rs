@@ -1,7 +1,9 @@
 //! ECDSA signature verification
 use std::hash::{DefaultHasher, Hasher};
 
-use self::field::prime::PlutoScalarField;
+use algebra::field::FiniteField;
+use curve::CurveGroup;
+
 use super::*;
 
 // PARAMETERS
@@ -22,35 +24,36 @@ use super::*;
 /// 5. Compute r = x_1 mod n. If r = 0, go back to step 3.
 /// 6. Compute s = k^(-1) (z + r * d_A) mod n. If s = 0, go back to step 3.
 /// 7. The signature is the pair (r, s). the pair (r, -s mod n) is also a valid signature.
-pub fn sign(message: &[u8], private_key: PlutoScalarField) -> (PlutoScalarField, PlutoScalarField) {
+pub fn sign<F: FiniteField, G: CurveGroup<Scalar = F>>(message: &[u8], private_key: F) -> (F, F) {
   // Hash and extract bits
-  let z = hash_and_extract_bits(message, 17);
+  let bit_count = (F::ORDER.leading_zeros() - 1) as usize;
+  let z = hash_and_extract_bits::<F>(message, bit_count);
 
   let mut rng = rand::rngs::OsRng;
   // Select a cryptographically secure random integer k from [1, n-1].
-  let k = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
+  let k = F::from(rand::Rng::gen_range(&mut rng, 1..=F::ORDER));
 
   // Compute the curve point (x_1, y_1) = k × G.
-  let point = AffinePoint::<PlutoBaseCurve>::generator() * k;
-  let x_1 = match point {
-    AffinePoint::Point(x, _) => x,
-    _ => PlutoBaseField::ZERO,
-  };
+  let point = G::GENERATOR * k;
+  let (mut x_1, _, is_infty) = point.xy();
+  if is_infty {
+    x_1 = G::BaseField::ZERO;
+  }
   // Compute r = x_1 mod n. If r = 0, go back to step 3.
-  let r = PlutoScalarField::from(x_1.value);
-  if r == PlutoScalarField::ZERO {
-    return sign(message, private_key);
+  let r = F::from(x_1.into());
+  if r == F::ZERO {
+    return sign::<F, G>(message, private_key);
   }
   // Compute s = k^(-1) (z + r * d_A) mod n. If s = 0, go back to step 3.
   let k_inv = k.inverse().unwrap();
   let s = k_inv * (z + r * private_key);
-  if s == PlutoScalarField::ZERO {
-    return sign(message, private_key);
+  if s == F::ZERO {
+    return sign::<F, G>(message, private_key);
   }
   //  The signature is the pair (Notable not nessisarily a point on the curve) (r, s). the pair
   //    (r, -s mod n) is also a valid signature.
-  let r = PlutoScalarField::from(r.value);
-  let s = PlutoScalarField::from(s.value);
+  // let r = F::from(r.value);
+  // let s = F::from(s.value);
   (r, s)
 }
 
@@ -69,50 +72,54 @@ pub fn sign(message: &[u8], private_key: PlutoScalarField) -> (PlutoScalarField,
 /// 5. Compute u_2 = rs^(-1) mod n.
 /// 6. Compute the curve point (x_1, y_1) = u_1 × G + u_2 × Q_A. If = O, the signature is invalid.
 /// 7. The signature is valid if r = x_1 mod n, invalid otherwise.
-pub fn verify(
+pub fn verify<F: FiniteField, G: CurveGroup<Scalar = F>>(
   m: &[u8],
-  q_a: AffinePoint<PlutoBaseCurve>,
-  signature: (PlutoScalarField, PlutoScalarField),
+  q_a: G,
+  signature: (F, F),
 ) -> bool {
   // Check that n × Q_A = O.
-  if (q_a * 17) != AffinePoint::Infinity {
+  let (_, _, is_infty) = (q_a * F::ORDER.into()).xy();
+  if !is_infty {
     return false;
   }
 
   // Verify that the signature is valid.
-  let (r, s): (PlutoScalarField, PlutoScalarField) = signature;
+  let (r, s): (F, F) = signature;
   // Verify that r and s are integers in the interval [1, n-1].
-  if r == PlutoScalarField::ZERO || s == PlutoScalarField::ZERO {
+  if r == F::ZERO || s == F::ZERO {
     return false;
   }
   // Hash and extract bits
-  let z = hash_and_extract_bits(m, 17);
+  let bit_count = (F::ORDER.leading_zeros() - 1) as usize;
+  let z = hash_and_extract_bits::<F>(m, bit_count);
   // Compute u_1 = zs^(-1) mod n.
   let s_inv = s.inverse().unwrap();
   let u_1 = z * s_inv;
   // Compute u_2 = rs^(-1) mod n.
   let u_2 = r * s_inv;
   // Compute the curve point (x_1, y_1) = u_1 × G + u_2 × Q_A. If
-  let point = (AffinePoint::<PlutoBaseCurve>::generator() * u_1) + (q_a * u_2);
-  let (x_1, _) = match point {
-    AffinePoint::Point(x, y) => (x, y),
-    _ => (PlutoBaseField::ZERO, PlutoBaseField::ZERO),
-  };
-  let x = PlutoScalarField::from(x_1.value);
+  let point = (G::GENERATOR * u_1) + (q_a * u_2);
+  let (x_1, _, is_infty) = point.xy();
+  if is_infty {
+    panic!("signature invalid");
+  }
+  let x = F::from(x_1.into());
   r == x
 }
 
 /// Computes the hash of a message and extracts the leftmost bits.
-fn hash_and_extract_bits(m: &[u8], bit_count: usize) -> PlutoScalarField {
+fn hash_and_extract_bits<F: Field>(m: &[u8], bit_count: usize) -> F {
   let mut hasher = DefaultHasher::new();
   m.hash(&mut hasher);
   let e = hasher.finish().to_be_bytes();
-  let e_4_bytes = [e[0], e[1], e[2], e[3]];
-  PlutoScalarField::from(u32::from_be_bytes(e_4_bytes) >> (32 - bit_count))
+  // let e_4_bytes = [e[0], e[1], e[2], e[3]];
+  F::from(usize::from_be_bytes(e) & ((1 << bit_count) - 1))
 }
 
 #[cfg(test)]
 mod tests {
+  use algebra::{field::prime::PlutoScalarField, group::FiniteCyclicGroup, Finite};
+
   use super::*;
 
   #[test]
@@ -122,10 +129,10 @@ mod tests {
     let s_key = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
 
     // public key
-    let q_a = AffinePoint::<PlutoBaseCurve>::generator() * s_key;
+    let q_a = AffinePoint::<PlutoBaseCurve>::GENERATOR * s_key;
     let m = b"Hello, world!";
     // sign the message
-    let signature = sign(m, s_key);
+    let signature = sign::<PlutoScalarField, AffinePoint<PlutoBaseCurve>>(m, s_key);
     println!("signature = {:?}", signature);
     assert!(verify(m, q_a, signature));
   }
@@ -135,10 +142,10 @@ mod tests {
     let mut rng = rand::rngs::OsRng;
     let s_key = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
     // public key
-    let q_a = AffinePoint::<PlutoBaseCurve>::generator() * s_key;
+    let q_a = AffinePoint::<PlutoBaseCurve>::GENERATOR * s_key;
     let m = b"Hello, Pluto!";
     // sign the message
-    let mut signature = sign(m, s_key);
+    let mut signature = sign::<PlutoScalarField, AffinePoint<PlutoBaseCurve>>(m, s_key);
     // Modify the signature to make it invalid
     signature.0 = PlutoScalarField::ZERO; // Invalidate r
     assert!(!verify(m, q_a, signature), "Signature should be invalid but was verified as valid.");

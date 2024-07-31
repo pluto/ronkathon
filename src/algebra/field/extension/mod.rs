@@ -9,7 +9,7 @@
 
 use std::array;
 
-use super::*;
+use super::{prime::*, *};
 
 mod arithmetic;
 pub mod gf_101_2;
@@ -43,7 +43,7 @@ pub enum PlutoExtensions {
 /// polynomial to the original field.
 #[const_trait]
 pub trait ExtensionField<const N: usize, const P: usize>:
-  FiniteField
+  Field
   + From<PrimeField<P>>
   + Add<PrimeField<P>, Output = Self>
   + AddAssign<PrimeField<P>>
@@ -63,6 +63,10 @@ where [PrimeField<P>; N + 1]: {
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Hash, Debug)]
 pub struct GaloisField<const N: usize, const P: usize> {
   pub(crate) coeffs: [PrimeField<P>; N],
+}
+
+impl<const N: usize, const P: usize> Finite for GaloisField<N, P> {
+  const ORDER: usize = PrimeField::<P>::ORDER.pow(N as u32);
 }
 
 // impl<const N: usize, const P: usize> FiniteField for GaloisField<N, P> {
@@ -183,4 +187,8 @@ impl<const N: usize, const P: usize> From<u64> for GaloisField<N, P> {
 /// Convert from a [`usize`] into the [`GaloisField`] field element in the natural way.
 impl<const N: usize, const P: usize> From<usize> for GaloisField<N, P> {
   fn from(val: usize) -> Self { Self::from(PrimeField::<P>::from(val)) }
+}
+
+impl<const N: usize, const P: usize> From<GaloisField<N, P>> for usize {
+  fn from(value: GaloisField<N, P>) -> Self { value.coeffs[0].value }
 }

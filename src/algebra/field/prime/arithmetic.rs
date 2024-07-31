@@ -72,6 +72,8 @@ impl<const P: usize> Rem for PrimeField<P> {
 
 #[cfg(test)]
 mod tests {
+  use rstest::rstest;
+
   use super::*;
 
   #[rstest]

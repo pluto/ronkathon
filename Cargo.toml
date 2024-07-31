@@ -30,3 +30,6 @@ ark-std      ={ git="https://github.com/arkworks-rs/std/" }
 
 [[example]]
 name="aes_chained_cbc"
+
+[[example]]
+name="symmetric_group"

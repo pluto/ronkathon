@@ -4,11 +4,11 @@
 //! Currently, the only supported algorithm is SHA-256.
 #![doc = include_str!("./README.md")]
 pub mod sha256;
-use crate::field::FiniteField;
+use crate::Field;
 pub mod poseidon;
 
 /// Sponge trait defining absorb and squeeze behavior of sponge based hash function.
-pub trait Sponge<F: FiniteField> {
+pub trait Sponge<F: Field> {
   /// apply round function of hash to the sponge state
   fn permute(&mut self);
   /// absorb takes arbitrary number of elements and continue to apply inner permutation on the

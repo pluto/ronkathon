@@ -5,7 +5,7 @@ When working over a finite field so that $x, y a, b \in \mathbb{F}_q$, we put $E
 It turns out that the set of points $E(\mathbb{F}_q)$ forms a group under a certain operation called point addition.
 This group, in at least certain cases, is discrete logarithm hard, which is the basis for much of modern day cryptography.
 
-## Pluto Curve
+## Curve Group and Pluto Curve
 For the sake of `ronkathon`, we use a specific curve which we affectionately call the "Pluto Curve."
 Our equation is:
 $$y^2 = x^3 + 3$$
@@ -13,6 +13,8 @@ and we work with the field $F_p$ and $F_{p^2}$ where $p = 101$.
 Predominantly, we use the extension $F_{p^2}$ since we need this for the [Tate pairing](https://en.wikipedia.org/wiki/Tate_pairing) operation.
 We refer to $F_{101}$ as the `PlutoBaseField` and $F_{101^2}$ as the `PlutoBaseFieldExtension` within `ronkathon`.
 From which, we also use the terminology of `PlutoCurve` to refer to $E(F_{101})$ and `PlutoExtendedCurve` to refer to $E(F_{101^2})$.
+
+We also define a `CurveGroup`, an extension of [`FiniteGroup`](../field/group.rs) trait representing the group law of the curve.
 
 ### Type B curve and type 1 pairing
 
@@ -63,11 +65,11 @@ Here are a few related definitions that might be helpful to understand the curve
 
 ### roots of unity
 
-the $rth$ root of unity in $F_p$ is some number $h$ such that $h^r \equiv 1$, For example in our field scaler field $F_{101}$ the $4th$ roots of unity are $\{1,10,91,100\}$. 
+the $rth$ root of unity in $F_p$ is some number $h$ such that $h^r \equiv 1$, For example in our field scaler field $F_{101}$ the $4th$ roots of unity are $\{1,10,91,100\}$.
 
 ### $r$-torsion
 
- $r$-torsion points are points $P \in E(K) | rP = O$ for some point $P$ so that $P$  has order $r$  or is a factor of $r$. The set of r-torsion points in $E(K)$ is denoted $E(K)[r]$. If $\bar{K}$ is the [algebraic closure](https://en.wikipedia.org/wiki/Algebraic_closure) of $K$ then the number of r-torsion points in $E(K)$ is the number of points in $E(\bar{K})[r] = r^2$. 
+ $r$-torsion points are points $P \in E(K) | rP = O$ for some point $P$ so that $P$  has order $r$  or is a factor of $r$. The set of r-torsion points in $E(K)$ is denoted $E(K)[r]$. If $\bar{K}$ is the [algebraic closure](https://en.wikipedia.org/wiki/Algebraic_closure) of $K$ then the number of r-torsion points in $E(K)$ is the number of points in $E(\bar{K})[r] = r^2$.
 
 - *Security note: If* $r$  and $q$ are not co-prime then the discrete log is solvable in linear time with something called an anomaly attack.
 

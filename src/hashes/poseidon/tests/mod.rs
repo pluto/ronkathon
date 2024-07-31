@@ -1,5 +1,5 @@
 use super::*;
-use crate::field::prime::PlutoBaseField;
+use crate::PlutoBaseField;
 mod constants;
 use rstest::{fixture, rstest};
 
@@ -15,7 +15,7 @@ use ark_crypto_primitives::sponge::{
 use constants::{constants, ALPHA, NUM_F, NUM_P, WIDTH};
 use rand::{thread_rng, Rng};
 
-fn load_constants<F: FiniteField>() -> (Vec<F>, Vec<Vec<F>>) {
+fn load_constants<F: Field>() -> (Vec<F>, Vec<Vec<F>>) {
   let (rc, mds) = constants();
 
   let rc = rc.into_iter().map(|val| F::from(val)).collect();
@@ -25,7 +25,7 @@ fn load_constants<F: FiniteField>() -> (Vec<F>, Vec<Vec<F>>) {
 }
 
 #[allow(dead_code)]
-fn random_constants<F: FiniteField>(width: usize, num_rounds: usize) -> (Vec<F>, Vec<Vec<F>>)
+fn random_constants<F: Field>(width: usize, num_rounds: usize) -> (Vec<F>, Vec<Vec<F>>)
 where rand::distributions::Standard: rand::distributions::Distribution<F> {
   let mut rng = thread_rng();
   let rc: Vec<F> = (0..num_rounds * width).map(|_| rng.gen::<F>()).collect();

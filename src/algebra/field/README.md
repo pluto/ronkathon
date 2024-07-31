@@ -1,12 +1,14 @@
-# Fields
-[Finite fields](https://en.wikipedia.org/wiki/Finite_field) are instrumental in cryptographic systems. 
-They are used in elliptic curve cryptography, RSA, and many other cryptographic systems. 
-This module provides a generic implementation of finite fields via two traits and two structs. 
-It is designed to be easy to use and understand, and to be flexible enough to extend yourself.
+# Field
 
 ## Traits
+
+- `FiniteField`: a field $(\mathbb{F}_p, +,\cdot)$ where $p$ is a prime number.
+- `ExtensionField`: an extension of a field $(\mathbb{F}_{p^k}, +,\cdot)$ where $p$ is a prime number and $\mathbb{F}_{p^k}$ is an extension of $\mathbb{F}_p$.
+
+
 The two traits used in this module are `FiniteField` and `ExtensionField` which are located in the `field` and `field::extension` modules respectively.
 These traits are interfacial components that provide the necessary functionality for field-like objects to adhere to to be used in cryptographic systems.
+
 
 ### `FiniteField`
 The `FiniteField` trait is used to define a finite field in general.
@@ -18,7 +20,7 @@ A bit more specifically, the `FiniteField` trait requires the following associat
 - `const ZERO: Self` - The additive identity.
 - `const ONE: Self` - The multiplicative identity.
 - `const PRIMITIVE_ELEMENT: Self` - A [primitive element](https://en.wikipedia.org/wiki/Primitive_element_(finite_field)) of the field, that is, a generator of the multiplicative subgroup of the field.
-- `inverse(&self) -> Option<Self>` - The multiplicative inverse of a nonzero field element. 
+- `inverse(&self) -> Option<Self>` - The multiplicative inverse of a nonzero field element.
 Returns `None` if the element is zero.
 - `pow(&self, power: usize) -> Self` - Multiply a field element by itself `power` times.
 - `primitive_root_of_unity(n: usize) -> Self` - The primitive $n$th root of unity of the field.
@@ -32,16 +34,15 @@ The only additional constraint aside from the `FiniteField` trait and adherance 
 
 We will discuss `PrimeField<P>` momentarily.
 
-### Constant (Compile Time) Implementations
-Note that both of these traits are tagged with `#[const_trait]` which implies that each method and associated constant is implemented at compile time.
-This is done purposefully as it allows for generic implementations of these fields to be constructed when you compile `ronkathon` rather than computed at runtime. 
-In principle, this means the code runs faster, but will compile slower, but the tradeoff is that the cryptographic system is faster and extensible.
-
-We will see examples of this usage next.
 
 ## Structs
-The two structs that implement these traits are `PrimeField` and `GaloisField`, which, in principal, could be combined into just `GaloisField` but are separated for clarity at the moment.
-These structs are both generic over the prime `P` of the field, but `GaloisField` is also generic over the degree `N` of the extension field.
+The structs that implement these traits are
+- `PrimeField`
+- `GaloisField`
+
+> [!NOTE]
+> In principal, `PrimeField` and `GaloisField` could be combined into just `GaloisField` but are separated for clarity at the moment.
+> These structs are both generic over the prime `P` of the field, but `GaloisField` is also generic over the degree `N` of the extension field.
 
 ### `PrimeField`
 The `PrimeField` struct is a wrapper around a `usize` by:
@@ -50,11 +51,11 @@ pub struct PrimeField<const P: usize> {
     value: usize,
 }
 ```
-that implements the `FiniteField` trait and has some compile-time constructions. 
-For example, upon creation of an element of `PrimeField<P>` we utilize the `const fn is_prime<const P: usize>()` function which will `panic!` if `P` is not prime. 
+that implements the `FiniteField` trait and has some compile-time constructions.
+For example, upon creation of an element of `PrimeField<P>` we utilize the `const fn is_prime<const P: usize>()` function which will `panic!` if `P` is not prime.
 **Hence, it is impossible to compile a program for which you construct `PrimeField<P>` where `P` is not prime.**
 
-Furthermore, it is possible to determine the `PRIMITIVE_ELEMENT` of the field at compile time so that we may implement `FiniteField` for any prime `P` without any runtime overhead. 
+Furthermore, it is possible to determine the `PRIMITIVE_ELEMENT` of the field at compile time so that we may implement `FiniteField` for any prime `P` without any runtime overhead.
 The means to do so is done in the `field::prime::find_primitive_element` function which is a brute force search for a primitive element of the field that occurs as Rust compiles `ronkathon`.
 
 All of the relevant arithmetic operations for `PrimeField<P>` are implemented in `field::prime::arithmetic`.
@@ -62,6 +63,7 @@ All of the relevant arithmetic operations for `PrimeField<P>` are implemented in
 ### `GaloisField`
 The `GaloisField` struct is a wrapper around a `PrimeField<P>` by:
 ```rust
+use ronkathon::algebra::field::prime::PrimeField;
 pub struct GaloisField<const N: usize, const P: usize> {
     value: [PrimeField<P>; N],
 }
@@ -70,5 +72,5 @@ where the `[PrimeField<P>; N]` is the representation of the field element as coe
 
 We implement `ExtensionField` for specific instances of `GaloisField<N, P>` as, at the moment, we do not have a general compile-time-based implementation of extension fields as we do with `PrimeField<P>`, though it is possible to do so.
 Instead, we have implemented much of the arithmetic operations for `GaloisField<N, P>` in `field::extension::arithmetic`, but left some that needs to be computed by hand for the user to implement (for now).
-See, for instance, `field::extension::gf_101_2` implements the `IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS` for `GaloisField<2, 101>` as well as the remaining arithmetic operations. 
+See, for instance, `field::extension::gf_101_2` implements the `IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS` for `GaloisField<2, 101>` as well as the remaining arithmetic operations.
 There is a method to compute both the `IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS` at compile time as well as the `PRIMITIVE_ELEMENT` of the field, but it is not implemented at the moment.

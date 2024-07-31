@@ -34,7 +34,7 @@
 use std::marker::PhantomData;
 
 use super::Poseidon;
-use crate::{field::FiniteField, hashes::Sponge};
+use crate::{hashes::Sponge, Field};
 
 /// initialised sponge state
 pub struct Init;
@@ -61,12 +61,12 @@ pub struct SpongeConfig<S> {
 /// * `poseidon` - [`Poseidon`] struct with hash state, and config
 /// * `parameters` - [`SpongeConfig`] with sponge related parameters like `rate` and `absorb_index`
 #[derive(Debug, Clone)]
-pub struct PoseidonSponge<F: FiniteField, S> {
+pub struct PoseidonSponge<F: Field, S> {
   poseidon:   Poseidon<F>,
   parameters: SpongeConfig<S>,
 }
 
-impl<F: FiniteField, S> PoseidonSponge<F, S> {
+impl<F: Field, S> PoseidonSponge<F, S> {
   /// create new poseidon sponge object with [`Poseidon`] hash object and [`SpongeConfig`]
   pub fn new(
     width: usize,
@@ -99,7 +99,7 @@ impl<F: FiniteField, S> PoseidonSponge<F, S> {
   }
 }
 
-impl<F: FiniteField> PoseidonSponge<F, Init> {
+impl<F: Field> PoseidonSponge<F, Init> {
   /// start absorption stage of a sponge
   pub fn start_absorbing(self) -> PoseidonSponge<F, Absorbing> {
     PoseidonSponge {
@@ -115,7 +115,7 @@ impl<F: FiniteField> PoseidonSponge<F, Init> {
   }
 }
 
-impl<F: FiniteField> PoseidonSponge<F, Absorbing> {
+impl<F: Field> PoseidonSponge<F, Absorbing> {
   /// perform sponge absorption of arbitrary length finite field elements. permutes the state after
   /// each `rate` length chunk has been fully absorbed.
   ///
@@ -213,7 +213,7 @@ impl<F: FiniteField> PoseidonSponge<F, Absorbing> {
   }
 }
 
-impl<F: FiniteField> PoseidonSponge<F, Squeezing> {
+impl<F: Field> PoseidonSponge<F, Squeezing> {
   /// squeezes arbitrary element output
   ///
   /// ## Example
@@ -274,7 +274,7 @@ impl<F: FiniteField> PoseidonSponge<F, Squeezing> {
   }
 }
 
-impl<F: FiniteField> Sponge<F> for PoseidonSponge<F, Absorbing> {
+impl<F: Field> Sponge<F> for PoseidonSponge<F, Absorbing> {
   fn permute(&mut self) { self.permute(); }
 
   fn absorb(&mut self, elements: &[F]) -> Result<(), &str> {
@@ -285,7 +285,7 @@ impl<F: FiniteField> Sponge<F> for PoseidonSponge<F, Absorbing> {
   fn squeeze(&mut self, _: usize) -> Result<Vec<F>, &str> { Err("sponge is in squeeze state") }
 }
 
-impl<F: FiniteField> Sponge<F> for PoseidonSponge<F, Squeezing> {
+impl<F: Field> Sponge<F> for PoseidonSponge<F, Squeezing> {
   fn permute(&mut self) { self.permute(); }
 
   fn absorb(&mut self, _: &[F]) -> Result<(), &str> { Err("sponge is in squeezing state") }

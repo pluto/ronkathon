@@ -1,15 +1,21 @@
-//! This module contains the definition of finite fields and their extension fields.
-use super::*;
+//! This module contains the definition of groups, finite fields, and their extension fields.
+#![doc = include_str!("./README.md")]
 pub mod binary_towers;
 pub mod extension;
 pub mod prime;
+use std::{
+  hash::Hash,
+  iter::{Product, Sum},
+  ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
+};
+
+use super::Finite;
 
 /// A field is a set of elements on which addition, subtraction, multiplication, and division are
 /// defined.
-///
-/// We restrict to finite fields, which are fields with a finite number of elements.
+
 #[const_trait]
-pub trait FiniteField:
+pub trait Field:
   std::fmt::Debug
   + From<usize>
   + Default
@@ -32,20 +38,22 @@ pub trait FiniteField:
   + Rem<Output = Self>
   + Hash
   + 'static {
-  /// The order of the field, i.e., the number of elements in the field.
-  const ORDER: usize;
   /// The additive identity element.
   const ZERO: Self;
   /// The multiplicative identity element.
   const ONE: Self;
-  /// Returns a multiplicative generator of the field.
-  const PRIMITIVE_ELEMENT: Self;
 
   /// Gets the multiplicative inverse of the field element (if it exists).
   fn inverse(&self) -> Option<Self>;
 
   /// Computes the power of the field element.
   fn pow(self, power: usize) -> Self;
+}
+
+/// fields with a finite number of elements.
+pub trait FiniteField: Finite + Field {
+  /// Returns a multiplicative generator of the field.
+  const PRIMITIVE_ELEMENT: Self;
 
   /// Returns the primitive n-th root of unity in the field.
   ///

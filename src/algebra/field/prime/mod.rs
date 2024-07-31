@@ -3,9 +3,12 @@
 //! [`FiniteField`] trait is implemented. This module asserts at compile time that the order of the
 //! field is a prime number and allows for creation of generic prime order fields.
 
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
+
+use rand::{distributions::Standard, prelude::Distribution, Rng};
 
 use super::*;
+use crate::algebra::Finite;
 
 mod arithmetic;
 
@@ -132,10 +135,12 @@ impl<const P: usize> PrimeField<P> {
   }
 }
 
-impl<const P: usize> const FiniteField for PrimeField<P> {
-  const ONE: Self = Self { value: 1 };
+impl<const P: usize> const Finite for PrimeField<P> {
   const ORDER: usize = P;
-  const PRIMITIVE_ELEMENT: Self = if P == 2 { Self::ONE } else { find_primitive_element::<P>() };
+}
+
+impl<const P: usize> const Field for PrimeField<P> {
+  const ONE: Self = Self { value: 1 };
   const ZERO: Self = Self { value: 0 };
 
   fn inverse(&self) -> Option<Self> {
@@ -163,6 +168,11 @@ impl<const P: usize> const FiniteField for PrimeField<P> {
   }
 }
 
+impl<const P: usize> FiniteField for PrimeField<P> {
+  const PRIMITIVE_ELEMENT: Self =
+    if P == 2 { Self::ONE } else { Self::new(find_primitive_element::<P>()) };
+}
+
 const fn is_prime(n: usize) {
   let mut i = 2;
   while i * i <= n {
@@ -181,14 +191,14 @@ const fn is_prime(n: usize) {
 /// the non-zero elements of the field, so we check here that `g` raised to the power of `(P-1)/g`
 /// where this division is integer division, is not equal to 1. In other words, we are checking that
 /// `g` is coprime to `P-1`. This follows from [Lagrange's theorem](https://en.wikipedia.org/wiki/Lagrange%27s_theorem_(group_theory)).
-const fn find_primitive_element<const P: usize>() -> PrimeField<P> {
+pub const fn find_primitive_element<const P: usize>() -> usize {
   let mut i = 2;
   while i * i <= P {
     if (P - 1) % i == 0 {
       if PrimeField::<P>::new(i).pow((P - 1) / i).value != PrimeField::<P>::ONE.value {
-        return PrimeField::<P>::new(i);
+        return i;
       } else if PrimeField::<P>::new(P + 1 - i).pow(i).value != PrimeField::<P>::ONE.value {
-        return PrimeField::<P>::new(P + 1 - i);
+        return P + 1 - i;
       }
     }
     i += 1;
@@ -234,6 +244,10 @@ impl From<PlutoPrime> for usize {
   }
 }
 
+impl<const P: usize> From<PrimeField<P>> for usize {
+  fn from(value: PrimeField<P>) -> Self { value.value }
+}
+
 impl<const P: usize> From<i32> for PrimeField<P> {
   fn from(value: i32) -> Self {
     let abs = Self::new(value.unsigned_abs() as usize);
@@ -256,6 +270,8 @@ impl<const P: usize> FromStr for PrimeField<P> {
 
 #[cfg(test)]
 mod tests {
+
+  use rstest::rstest;
 
   use super::*;
 

@@ -20,14 +20,15 @@
 #![feature(const_for)]
 #![feature(const_option)]
 #![feature(generic_const_exprs)]
+#![feature(specialization)]
 #![warn(missing_docs)]
 
+pub mod algebra;
 pub mod codes;
 pub mod compiler;
 pub mod curve;
 pub mod ecdsa;
 pub mod encryption;
-pub mod field;
 pub mod hashes;
 pub mod kzg;
 pub mod polynomial;
@@ -36,8 +37,8 @@ pub mod tree;
 use core::{
   fmt::{self, Display, Formatter},
   hash::Hash,
-  iter::{Product, Sum},
-  ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
+  iter::Sum,
+  ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Rem, Sub, SubAssign},
 };
 
 use rand::{
@@ -47,14 +48,14 @@ use rand::{
 #[cfg(test)] use rstest::{fixture, rstest};
 
 use self::{
+  algebra::field::{
+    extension::{GaloisField, PlutoBaseFieldExtension},
+    prime::{PlutoBaseField, PlutoPrime, PlutoScalarField, PrimeField},
+    Field,
+  },
   curve::{
     pluto_curve::{PlutoBaseCurve, PlutoExtendedCurve},
     AffinePoint,
-  },
-  field::{
-    extension::{GaloisField, PlutoBaseFieldExtension},
-    prime::{PlutoBaseField, PlutoPrime, PrimeField},
-    FiniteField,
   },
   polynomial::{Monomial, Polynomial},
 };

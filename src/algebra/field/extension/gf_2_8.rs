@@ -4,27 +4,16 @@
 //! (X^2-K).
 //!
 //! This extension field is used for our [AES implementation][`crate::encryption::symmetric::aes`].
-use self::field::prime::AESField;
-use super::*;
+use super::{prime::AESField, *};
+use crate::{Monomial, Polynomial};
 
-impl FiniteField for GaloisField<8, 2> {
+impl Field for GaloisField<8, 2> {
   const ONE: Self = Self::new([
     AESField::ONE,
     AESField::ZERO,
     AESField::ZERO,
     AESField::ZERO,
     AESField::ZERO,
-    AESField::ZERO,
-    AESField::ZERO,
-    AESField::ZERO,
-  ]);
-  const ORDER: usize = AESField::ORDER.pow(8);
-  const PRIMITIVE_ELEMENT: Self = Self::new([
-    AESField::ONE,
-    AESField::ONE,
-    AESField::ZERO,
-    AESField::ZERO,
-    AESField::ONE,
     AESField::ZERO,
     AESField::ZERO,
     AESField::ZERO,
@@ -61,6 +50,19 @@ impl FiniteField for GaloisField<8, 2> {
       self.pow(power / 2) * self.pow(power / 2) * self
     }
   }
+}
+
+impl FiniteField for GaloisField<8, 2> {
+  const PRIMITIVE_ELEMENT: Self = Self::new([
+    AESField::ONE,
+    AESField::ONE,
+    AESField::ZERO,
+    AESField::ZERO,
+    AESField::ONE,
+    AESField::ZERO,
+    AESField::ZERO,
+    AESField::ZERO,
+  ]);
 }
 
 impl ExtensionField<8, 2> for GaloisField<8, 2> {

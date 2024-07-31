@@ -14,12 +14,11 @@ use super::{
   utils::get_product_key,
 };
 use crate::{
+  algebra::field::FiniteField,
   compiler::parser::{parse_constraints, WireCoeffs},
-  field::{prime::PlutoScalarField, FiniteField},
   polynomial::{Lagrange, Polynomial},
+  Field, PlutoScalarField,
 };
-
-// type Poly =
 
 /// Column represents all three columns in the execution trace which a variable
 /// can take.

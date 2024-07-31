@@ -1,8 +1,7 @@
 use std::array;
 
-use self::{field::extension::ExtensionField, pairing::miller_loop};
 use super::*;
-use crate::curve::pairing::{line_function, pairing, tangent_line, vertical_line};
+use crate::curve::pairing::{line_function, miller_loop, pairing, tangent_line, vertical_line};
 
 mod fields;
 use fields::*;
@@ -25,6 +24,8 @@ struct TestCurve;
 impl EllipticCurve for TestCurve {
   type BaseField = TestField;
   type Coefficient = TestField;
+  // TODO: incorrect
+  type ScalarField = TestField;
 
   const EQUATION_A: Self::Coefficient = TestField::ONE;
   const EQUATION_B: Self::Coefficient = TestField::ZERO;
@@ -40,6 +41,8 @@ struct TestCurveExtended;
 impl EllipticCurve for TestCurveExtended {
   type BaseField = TestExtension;
   type Coefficient = TestField;
+  // TODO: incorrect
+  type ScalarField = TestField;
 
   const EQUATION_A: Self::Coefficient = TestField::ONE;
   const EQUATION_B: Self::Coefficient = TestField::ZERO;
@@ -50,10 +53,10 @@ impl EllipticCurve for TestCurveExtended {
 
 #[test]
 fn five_torsion() {
-  let generator = AffinePoint::<TestCurve>::generator();
+  let generator = AffinePoint::<TestCurve>::GENERATOR;
   println!("Generator: {:?}", generator);
   for i in 1..6 {
-    let point = generator * i as u32;
+    let point = i as u32 * generator;
     println!("{:?} * P = {:?}", i, point);
     if i == 5 {
       assert_eq!(point, AffinePoint::Infinity);
@@ -72,7 +75,7 @@ fn five_torsion() {
   println!("\n\n");
 
   let torsion_generator =
-    if let AffinePoint::<TestCurve>::Point(x, y) = AffinePoint::<TestCurve>::generator() {
+    if let AffinePoint::<TestCurve>::Point(x, y) = AffinePoint::<TestCurve>::GENERATOR {
       // Apply the distortion map
       AffinePoint::<TestCurveExtended>::new(
         -TestExtension::from(x),
@@ -85,7 +88,7 @@ fn five_torsion() {
 
   println!("Distortion map on generator: {:?}", torsion_generator);
   for i in 1..6 {
-    let point = torsion_generator * i as u32;
+    let point = i as u32 * torsion_generator;
     println!("{:?} * P = {:?}", i, point);
     if i == 5 {
       assert_eq!(point, AffinePoint::Infinity);
@@ -108,7 +111,7 @@ fn five_torsion() {
 
 #[test]
 fn vertical_line_2p() {
-  let generator = AffinePoint::<TestCurve>::generator();
+  let generator = AffinePoint::<TestCurve>::GENERATOR;
   let two_p = generator + generator;
   println!("2P: {:?}", two_p);
   // We should get:
@@ -126,7 +129,7 @@ fn vertical_line_2p() {
 
 #[test]
 fn tangent_line_p() {
-  let p = AffinePoint::<TestCurve>::generator();
+  let p = AffinePoint::<TestCurve>::GENERATOR;
   println!("P: {:?}", p);
   // We should get:
   // P = Point(PrimeField { value: 25 }, PrimeField { value: 30 })
@@ -146,7 +149,7 @@ fn tangent_line_p() {
 
 #[test]
 fn line_from_p_to_2p() {
-  let p = AffinePoint::<TestCurve>::generator();
+  let p = AffinePoint::<TestCurve>::GENERATOR;
   let two_p = p + p;
   println!("P: {:?}", p);
   println!("2P: {:?}", two_p);
@@ -170,8 +173,7 @@ fn line_from_p_to_2p() {
 
 #[test]
 fn miller_loop_check() {
-  let (p, q) = if let AffinePoint::<TestCurve>::Point(x, y) = AffinePoint::<TestCurve>::generator()
-  {
+  let (p, q) = if let AffinePoint::<TestCurve>::Point(x, y) = AffinePoint::<TestCurve>::GENERATOR {
     (
       AffinePoint::<TestCurveExtended>::new(TestExtension::from(x), TestExtension::from(y)),
       // Apply the distortion map
@@ -203,8 +205,7 @@ fn miller_loop_check() {
 
 #[test]
 fn pairing_check() {
-  let (p, q) = if let AffinePoint::<TestCurve>::Point(x, y) = AffinePoint::<TestCurve>::generator()
-  {
+  let (p, q) = if let AffinePoint::<TestCurve>::Point(x, y) = AffinePoint::<TestCurve>::GENERATOR {
     (
       AffinePoint::<TestCurveExtended>::new(TestExtension::from(x), TestExtension::from(y)),
       // Apply the distortion map
