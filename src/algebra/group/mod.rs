@@ -60,7 +60,7 @@ pub trait FiniteGroup: Finite + Group {
 /// Defines a group with commutative operation: `a·b=b·a`
 pub trait AbelianGroup: Group {
   /// Returns whether the group is an abelian group
-  fn is_abelian(a: &Self, b: &Self) -> bool { Self::op(a, b) == Self::op(b, a) }
+  fn is_abelian(a: &Self, b: &Self) { assert!(Self::op(a, b) == Self::op(b, a)) }
 }
 
 #[const_trait]

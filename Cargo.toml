@@ -32,4 +32,4 @@ ark-std      ={ git="https://github.com/arkworks-rs/std/" }
 name="aes_chained_cbc"
 
 [[example]]
-name="permutation_group"
+name="symmetric_group"
