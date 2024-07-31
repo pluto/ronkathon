@@ -1,22 +1,13 @@
-//! Groups $G$ are algebraic structures which are set and has a binary operation $\oplus$ that
-//! combines two elements $a, b$ of the set to produce a third element $a\oplus b$ in the set.
-//! The operation is said to have following properties:
-//! 1. Closure: $a\oplus b=c\in G$
-//! 2. Associative: $(a\oplus b)\oplus c = a\oplus(b\oplus c)$
-//! 3. Existence of Identity element: $a\oplus 0 = 0\oplus a = a$
-//! 4. Existence of inverse element for every element of the set: $a\oplus b=0$
-//! 5. Commutativity: Groups which satisfy an additional property: *commutativity* on the set of
-//!    elements are known as **Abelian groups**.
-//!
-//! [`FiniteGroup`] trait is implemented for all finite groups.
 #![doc = include_str!("./README.md")]
 pub mod prime;
 
 use std::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
+use super::Finite;
+
 #[const_trait]
-/// Group trait defined by a binary operation and identity element.
-pub trait FiniteGroup:
+/// Group trait defined by a binary operation, identity element and inverse.
+pub trait Group:
   std::fmt::Debug
   + Sized
   + Add<Output = Self>
@@ -34,17 +25,15 @@ pub trait FiniteGroup:
   type Scalar;
   /// Identity element of group
   const IDENTITY: Self;
-  /// number of elements in group
-  const ORDER: usize;
 
   /// order of group element
   fn order(&self) -> usize;
 
-  /// operation defined for the group, can be `+` for additive group and `*` for multiplicative
+  /// operation defined for the group, can be `+` for additive group and `·` for multiplicative
   /// group
-  fn operation(a: &Self, b: &Self) -> Self;
+  fn operation(a: &Self, rhs: &Self) -> Self;
 
-  /// Inverse of group element: a ⨁ i = [`FiniteGroup::IDENTITY`]
+  /// Inverse of group element: a·i = [`FiniteGroup::IDENTITY`]
   fn inverse(&self) -> Option<Self>;
 
   /// Multiplication with the scalar element of the group, i.e. repeatedly applying group
@@ -53,8 +42,18 @@ pub trait FiniteGroup:
 }
 
 #[const_trait]
+/// Group trait with finite number of elements
+pub trait FiniteGroup: Finite + Group {}
+
+/// Defines a group with commutative operation: `a·b=b·a`
+pub trait AbelianGroup: Group {
+  /// Returns whether the group is an abelian group
+  fn is_abelian(a: &Self, b: &Self) -> bool { Self::operation(a, b) == Self::operation(b, a) }
+}
+
+#[const_trait]
 /// Finite cyclic group trait defined by a generator element and order of the group
-pub trait FiniteCyclicGroup: FiniteGroup {
+pub trait FiniteCyclicGroup: FiniteGroup + AbelianGroup {
   /// primtive element of group
   const GENERATOR: Self;
 }

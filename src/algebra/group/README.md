@@ -3,6 +3,7 @@
 ## Traits
 - `Group`: a generic group $(G, \cdot)$ where $G$ is a set and $\cdot$ is a binary operation.
 - `FiniteGroup`: a group with finite elements defined using `Finite` trait
+- `AbelianGroup`: group with commutative operation
 - `FiniteCyclicGroup`: a finite group with a generator.
 
 ### `Group`
@@ -11,15 +12,6 @@
 - `inverse(&self) -> Self`: inverse of the element.
 - `operation(a: &Self, b: &Self) -> Self`: the operation of the group.
 - `scalar_mul(&self, scalar: &Self::Scalar)`: multiplication of the element by a scalar.
-
-### `Finite`
-- `ORDER`: The order of the structure.
-
-### `FiniteGroup: Finite + Group`
-- Group with finite number of elements
-
-### `FiniteCyclicGroup`
-- `GENERATOR`: The generator of the group.
 
 ## Structs
 The structs that implement these traits are

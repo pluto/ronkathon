@@ -2,9 +2,14 @@
 
 use std::fmt::Debug;
 
+use algebra::{
+  group::{AbelianGroup, FiniteGroup},
+  Finite,
+};
+
 use super::*;
 use crate::{
-  algebra::group::{FiniteCyclicGroup, FiniteGroup},
+  algebra::group::{FiniteCyclicGroup, Group},
   FiniteField, PlutoScalarField,
 };
 
@@ -73,11 +78,14 @@ impl<C: EllipticCurve> AffinePoint<C> {
   }
 }
 
-impl<C: EllipticCurve> FiniteGroup for AffinePoint<C> {
+impl<C: EllipticCurve> Finite for AffinePoint<C> {
+  const ORDER: usize = C::ORDER;
+}
+
+impl<C: EllipticCurve> Group for AffinePoint<C> {
   type Scalar = C::ScalarField;
 
   const IDENTITY: Self = AffinePoint::Infinity;
-  const ORDER: usize = C::ORDER;
 
   fn order(&self) -> usize {
     let mut order = 0;
@@ -106,6 +114,9 @@ impl<C: EllipticCurve> FiniteGroup for AffinePoint<C> {
 
   fn scalar_mul(&self, b: Self::Scalar) -> Self { *self * b }
 }
+
+impl<C: EllipticCurve> FiniteGroup for AffinePoint<C> {}
+impl<C: EllipticCurve> AbelianGroup for AffinePoint<C> {}
 
 impl<C: EllipticCurve> CurveGroup for AffinePoint<C> {
   type BaseField = C::BaseField;

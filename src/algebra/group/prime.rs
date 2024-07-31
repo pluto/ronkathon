@@ -13,16 +13,19 @@ impl<const P: usize, const K: usize> MultiplicativePrimeGroup<P, K> {
   #[allow(dead_code)]
   const IS_PRIME: () = assert!(is_prime(P));
 
-  /// create new value in group $Z/nZ$
+  /// create new value in group `Z/nZ`
   pub fn new(value: usize) -> Self { Self(value % (P ^ K)) }
 }
 
-impl<const P: usize, const K: usize> FiniteGroup for MultiplicativePrimeGroup<P, K> {
+impl<const P: usize, const K: usize> Finite for MultiplicativePrimeGroup<P, K> {
+  /// P^K - P^{K-1}
+  const ORDER: usize = (P ^ K) - (P ^ (K - 1));
+}
+
+impl<const P: usize, const K: usize> Group for MultiplicativePrimeGroup<P, K> {
   type Scalar = usize;
 
   const IDENTITY: Self = Self(1);
-  /// P^K - P^{K-1}
-  const ORDER: usize = (P ^ K) - (P ^ (K - 1));
 
   fn order(&self) -> usize { Self::ORDER }
 
@@ -43,6 +46,10 @@ impl<const P: usize, const K: usize> FiniteGroup for MultiplicativePrimeGroup<P,
     res
   }
 }
+
+impl<const P: usize, const K: usize> FiniteGroup for MultiplicativePrimeGroup<P, K> {}
+
+impl<const P: usize, const K: usize> AbelianGroup for MultiplicativePrimeGroup<P, K> {}
 
 impl<const P: usize, const K: usize> FiniteCyclicGroup for MultiplicativePrimeGroup<P, K> {
   const GENERATOR: Self = Self(find_primitive_element::<P>());
