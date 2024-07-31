@@ -79,20 +79,8 @@ impl PlutoBaseFieldExtension {
   }
 }
 
-impl FiniteField for PlutoBaseFieldExtension {
+impl Field for PlutoBaseFieldExtension {
   const ONE: Self = Self::new([PlutoBaseField::ONE, PlutoBaseField::ZERO]);
-  const ORDER: usize = PlutoExtensions::QuadraticBase as usize;
-  /// Retrieves a multiplicative generator for GF(101) inside of [`GaloisField<2, GF101>`].
-  /// This can be verified using sage script
-  /// ```sage
-  /// F = GF(101)
-  /// Ft.<t> = F[]
-  /// P = Ft(t ^ 2 + 2)
-  /// F_2 = GF(101 ^ 2, name="t", modulus=P)
-  /// f_2_primitive_element = F_2([14, 9])
-  /// assert f_2_primitive_element.multiplicative_order() == 101^2-1
-  /// ```
-  const PRIMITIVE_ELEMENT: Self = Self::new([PlutoBaseField::new(14), PlutoBaseField::new(9)]);
   const ZERO: Self = Self::new([PlutoBaseField::ZERO, PlutoBaseField::ZERO]);
 
   /// Computes the multiplicative inverse of `a`, i.e. 1 / (a0 + a1 * t).
@@ -123,6 +111,20 @@ impl FiniteField for PlutoBaseFieldExtension {
       self.pow(power / 2) * self.pow(power / 2) * self
     }
   }
+}
+
+impl FiniteField for PlutoBaseFieldExtension {
+  /// Retrieves a multiplicative generator for GF(101) inside of [`GaloisField<2, GF101>`].
+  /// This can be verified using sage script
+  /// ```sage
+  /// F = GF(101)
+  /// Ft.<t> = F[]
+  /// P = Ft(t ^ 2 + 2)
+  /// F_2 = GF(101 ^ 2, name="t", modulus=P)
+  /// f_2_primitive_element = F_2([14, 9])
+  /// assert f_2_primitive_element.multiplicative_order() == 101^2-1
+  /// ```
+  const PRIMITIVE_ELEMENT: Self = Self::new([PlutoBaseField::new(14), PlutoBaseField::new(9)]);
 }
 
 impl<const N: usize, const P: usize> Distribution<GaloisField<N, P>> for Standard {

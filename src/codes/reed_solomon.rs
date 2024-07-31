@@ -5,6 +5,7 @@ use std::array;
 use itertools::Itertools;
 
 use super::*;
+use crate::algebra::field::FiniteField;
 
 // TODO: We should allow for arbitrary data in the message so long as it can be
 // converted into an element of a prime field and decoded the same way.

@@ -8,6 +8,7 @@ use std::{fmt, str::FromStr};
 use rand::{distributions::Standard, prelude::Distribution, Rng};
 
 use super::*;
+use crate::algebra::Finite;
 
 mod arithmetic;
 
@@ -134,11 +135,12 @@ impl<const P: usize> PrimeField<P> {
   }
 }
 
-impl<const P: usize> const FiniteField for PrimeField<P> {
-  const ONE: Self = Self { value: 1 };
+impl<const P: usize> const Finite for PrimeField<P> {
   const ORDER: usize = P;
-  const PRIMITIVE_ELEMENT: Self =
-    if P == 2 { Self::ONE } else { Self::new(find_primitive_element::<P>()) };
+}
+
+impl<const P: usize> const Field for PrimeField<P> {
+  const ONE: Self = Self { value: 1 };
   const ZERO: Self = Self { value: 0 };
 
   fn inverse(&self) -> Option<Self> {
@@ -164,6 +166,11 @@ impl<const P: usize> const FiniteField for PrimeField<P> {
       Self::new((self.pow(power / 2).value * self.pow(power / 2).value * self.value) % Self::ORDER)
     }
   }
+}
+
+impl<const P: usize> FiniteField for PrimeField<P> {
+  const PRIMITIVE_ELEMENT: Self =
+    if P == 2 { Self::ONE } else { Self::new(find_primitive_element::<P>()) };
 }
 
 const fn is_prime(n: usize) {

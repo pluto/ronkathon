@@ -31,7 +31,7 @@ pub trait Group:
 
   /// operation defined for the group, can be `+` for additive group and `·` for multiplicative
   /// group
-  fn operation(a: &Self, rhs: &Self) -> Self;
+  fn op(&self, rhs: &Self) -> Self;
 
   /// Inverse of group element: a·i = [`FiniteGroup::IDENTITY`]
   fn inverse(&self) -> Option<Self>;
@@ -48,7 +48,7 @@ pub trait FiniteGroup: Finite + Group {}
 /// Defines a group with commutative operation: `a·b=b·a`
 pub trait AbelianGroup: Group {
   /// Returns whether the group is an abelian group
-  fn is_abelian(a: &Self, b: &Self) -> bool { Self::operation(a, b) == Self::operation(b, a) }
+  fn is_abelian(a: &Self, b: &Self) -> bool { Self::op(a, b) == Self::op(b, a) }
 }
 
 #[const_trait]

@@ -51,7 +51,7 @@ use self::{
   algebra::field::{
     extension::{GaloisField, PlutoBaseFieldExtension},
     prime::{PlutoBaseField, PlutoPrime, PlutoScalarField, PrimeField},
-    FiniteField,
+    Field,
   },
   curve::{
     pluto_curve::{PlutoBaseCurve, PlutoExtendedCurve},

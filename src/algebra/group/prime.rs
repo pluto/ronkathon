@@ -29,7 +29,7 @@ impl<const P: usize, const K: usize> Group for MultiplicativePrimeGroup<P, K> {
 
   fn order(&self) -> usize { Self::ORDER }
 
-  fn operation(a: &Self, b: &Self) -> Self { Self(a.0 * b.0 % (P ^ K)) }
+  fn op(&self, rhs: &Self) -> Self { Self(self.0 * rhs.0 % (P ^ K)) }
 
   fn inverse(&self) -> Option<Self> {
     if gcd(self.0 as u64, P as u64) != 1 {
@@ -41,7 +41,7 @@ impl<const P: usize, const K: usize> Group for MultiplicativePrimeGroup<P, K> {
   fn scalar_mul(&self, b: Self::Scalar) -> Self {
     let mut res = Self(1);
     for _ in 0..b {
-      res = Self::operation(&res, self);
+      res = Self::op(&res, self);
     }
     res
   }
@@ -58,7 +58,7 @@ impl<const P: usize, const K: usize> FiniteCyclicGroup for MultiplicativePrimeGr
 impl<const P: usize, const K: usize> Add for MultiplicativePrimeGroup<P, K> {
   type Output = Self;
 
-  fn add(self, rhs: Self) -> Self::Output { Self::operation(&self, &rhs) }
+  fn add(self, rhs: Self) -> Self::Output { Self::op(&self, &rhs) }
 }
 
 impl<const P: usize, const K: usize> AddAssign for MultiplicativePrimeGroup<P, K> {

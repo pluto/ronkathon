@@ -21,10 +21,12 @@ pub enum BinaryField {
   One,
 }
 
-impl FiniteField for BinaryField {
-  const ONE: Self = BinaryField::One;
+impl Finite for BinaryField {
   const ORDER: usize = 2;
-  const PRIMITIVE_ELEMENT: Self = Self::ONE;
+}
+
+impl Field for BinaryField {
+  const ONE: Self = BinaryField::One;
   const ZERO: Self = BinaryField::Zero;
 
   fn inverse(&self) -> Option<Self> {
@@ -35,6 +37,10 @@ impl FiniteField for BinaryField {
   }
 
   fn pow(self, _: usize) -> Self { self }
+}
+
+impl FiniteField for BinaryField {
+  const PRIMITIVE_ELEMENT: Self = Self::ONE;
 }
 
 impl From<usize> for BinaryField {

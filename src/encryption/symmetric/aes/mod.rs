@@ -10,7 +10,7 @@ use super::{BlockCipher, SymmetricEncryption};
 use crate::{
   algebra::field::{extension::AESFieldExtension, prime::AESField},
   encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX},
-  FiniteField,
+  Field,
 };
 
 pub mod sbox;

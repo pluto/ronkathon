@@ -3,6 +3,7 @@
 use std::fmt::Debug;
 
 use algebra::{
+  field::FiniteField,
   group::{AbelianGroup, FiniteGroup},
   Finite,
 };
@@ -10,7 +11,7 @@ use algebra::{
 use super::*;
 use crate::{
   algebra::group::{FiniteCyclicGroup, Group},
-  FiniteField, PlutoScalarField,
+  Field, PlutoScalarField,
 };
 
 pub mod pairing;
@@ -21,7 +22,7 @@ pub mod pluto_curve;
 /// `y^2 = x^3 + ax + b`
 pub trait EllipticCurve: Copy + Debug + Eq {
   /// The field for the curve coefficients.
-  type Coefficient: FiniteField + Into<Self::BaseField>;
+  type Coefficient: Field + Into<Self::BaseField>;
 
   /// curve base field element type
   /// TODO: need to be converted for big integers later
@@ -46,7 +47,7 @@ pub trait EllipticCurve: Copy + Debug + Eq {
 /// Curve group representing curve element
 pub trait CurveGroup: FiniteCyclicGroup {
   /// Curve group's base field
-  type BaseField: FiniteField + Into<usize>;
+  type BaseField: Field + Into<usize>;
 
   /// Point doubling
   fn double(self) -> Self;
@@ -96,13 +97,13 @@ impl<C: EllipticCurve> Group for AffinePoint<C> {
         return order;
       }
       // apply operation and increment order
-      elem = Self::operation(&elem, self);
+      elem = Self::op(&elem, self);
       order += 1;
     }
     order
   }
 
-  fn operation(a: &Self, b: &Self) -> Self { AffinePoint::add(*a, *b) }
+  fn op(&self, b: &Self) -> Self { self.add(*b) }
 
   fn inverse(&self) -> Option<Self> {
     let (x, y) = match self {
