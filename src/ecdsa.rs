@@ -24,10 +24,7 @@ use super::*;
 /// 5. Compute r = x_1 mod n. If r = 0, go back to step 3.
 /// 6. Compute s = k^(-1) (z + r * d_A) mod n. If s = 0, go back to step 3.
 /// 7. The signature is the pair (r, s). the pair (r, -s mod n) is also a valid signature.
-pub fn sign<F: FiniteField, G: CurveGroup<Scalar = F>>(
-  message: &[u8],
-  private_key: F,
-) -> (F, F) {
+pub fn sign<F: FiniteField, G: CurveGroup<Scalar = F>>(message: &[u8], private_key: F) -> (F, F) {
   // Hash and extract bits
   let bit_count = (F::ORDER.leading_zeros() - 1) as usize;
   let z = hash_and_extract_bits::<F>(message, bit_count);
