@@ -27,8 +27,6 @@ impl<const P: usize, const K: usize> Group for MultiplicativePrimeGroup<P, K> {
 
   const IDENTITY: Self = Self(1);
 
-  fn order(&self) -> usize { Self::ORDER }
-
   fn op(&self, rhs: &Self) -> Self { Self(self.0 * rhs.0 % (P ^ K)) }
 
   fn inverse(&self) -> Option<Self> {
@@ -47,7 +45,9 @@ impl<const P: usize, const K: usize> Group for MultiplicativePrimeGroup<P, K> {
   }
 }
 
-impl<const P: usize, const K: usize> FiniteGroup for MultiplicativePrimeGroup<P, K> {}
+impl<const P: usize, const K: usize> FiniteGroup for MultiplicativePrimeGroup<P, K> {
+  fn order(&self) -> usize { Self::ORDER }
+}
 
 impl<const P: usize, const K: usize> AbelianGroup for MultiplicativePrimeGroup<P, K> {}
 

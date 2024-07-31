@@ -88,21 +88,6 @@ impl<C: EllipticCurve> Group for AffinePoint<C> {
 
   const IDENTITY: Self = AffinePoint::Infinity;
 
-  fn order(&self) -> usize {
-    let mut order = 0;
-    let mut elem = *self;
-    for _ in 0..C::ORDER {
-      // check if elem is the identity
-      if elem == Self::IDENTITY {
-        return order;
-      }
-      // apply operation and increment order
-      elem = Self::op(&elem, self);
-      order += 1;
-    }
-    order
-  }
-
   fn op(&self, b: &Self) -> Self { self.add(*b) }
 
   fn inverse(&self) -> Option<Self> {

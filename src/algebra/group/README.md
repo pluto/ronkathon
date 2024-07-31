@@ -24,3 +24,7 @@ pub struct MultiplicativePrimeGroup<const P: usize, const K: usize>(usize);
 ```
 
 It uses compile time assertions to check that $P$ is prime.
+
+## Examples
+
+[PermutationGroup](/examples/permutation_group.rs) example showcases how `Group` trait is implemented for any struct.

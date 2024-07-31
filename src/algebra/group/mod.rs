@@ -26,9 +26,6 @@ pub trait Group:
   /// Identity element of group
   const IDENTITY: Self;
 
-  /// order of group element
-  fn order(&self) -> usize;
-
   /// operation defined for the group, can be `+` for additive group and `·` for multiplicative
   /// group
   fn op(&self, rhs: &Self) -> Self;
@@ -41,9 +38,24 @@ pub trait Group:
   fn scalar_mul(&self, scalar: Self::Scalar) -> Self;
 }
 
-#[const_trait]
 /// Group trait with finite number of elements
-pub trait FiniteGroup: Finite + Group {}
+pub trait FiniteGroup: Finite + Group {
+  /// order of group element, i.e. order of finite cyclic subgroup that the element belongs to
+  fn order(&self) -> usize {
+    let mut order = 1;
+    let mut elem = *self;
+    for _ in 0..Self::ORDER {
+      // check if elem is the identity
+      if elem == Self::IDENTITY {
+        return order;
+      }
+      // apply operation and increment order
+      elem = Self::op(&elem, self);
+      order += 1;
+    }
+    order
+  }
+}
 
 /// Defines a group with commutative operation: `a·b=b·a`
 pub trait AbelianGroup: Group {
