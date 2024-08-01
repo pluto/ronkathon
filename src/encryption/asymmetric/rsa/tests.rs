@@ -13,17 +13,26 @@ fn test_euler_totient() {
 
 #[test]
 fn key_gen() {
-  let key = rsa_key_gen(PRIME_1, PRIME_2);
-  assert_eq!(key.public_key.n, PRIME_1 * PRIME_2);
-  assert_eq!(gcd(key.private_key.e as u64, euler_totient(PRIME_1 as u64, PRIME_2 as u64)), 1);
+  let (rsa_encrypt, rsa_decrypt) = rsa_key_gen(PRIME_1, PRIME_2);
+  assert_eq!(rsa_encrypt.public_key.n, PRIME_1 * PRIME_2);
+  assert_eq!(
+    gcd(rsa_decrypt.private_key.d as u64, euler_totient(PRIME_1 as u64, PRIME_2 as u64)),
+    1
+  );
 
-  let key = rsa_key_gen(PRIME_2, PRIME_3);
-  assert_eq!(key.public_key.n, PRIME_2 * PRIME_3);
-  assert_eq!(gcd(key.private_key.e as u64, euler_totient(PRIME_2 as u64, PRIME_3 as u64)), 1);
+  let (rsa_encrypt, rsa_decrypt) = rsa_key_gen(PRIME_2, PRIME_3);
+  assert_eq!(rsa_encrypt.public_key.n, PRIME_2 * PRIME_3);
+  assert_eq!(
+    gcd(rsa_decrypt.private_key.d as u64, euler_totient(PRIME_2 as u64, PRIME_3 as u64)),
+    1
+  );
 
-  let key = rsa_key_gen(PRIME_3, PRIME_1);
-  assert_eq!(key.public_key.n, PRIME_3 * PRIME_1);
-  assert_eq!(gcd(key.private_key.e as u64, euler_totient(PRIME_3 as u64, PRIME_1 as u64)), 1);
+  let (rsa_encrypt, rsa_decrypt) = rsa_key_gen(PRIME_3, PRIME_1);
+  assert_eq!(rsa_encrypt.public_key.n, PRIME_3 * PRIME_1);
+  assert_eq!(
+    gcd(rsa_decrypt.private_key.d as u64, euler_totient(PRIME_3 as u64, PRIME_1 as u64)),
+    1
+  );
 }
 
 #[test]
@@ -58,33 +67,32 @@ fn test_mod_inverse() {
 #[test]
 fn test_encrypt_decrypt() {
   let message = 10;
-  let key = rsa_key_gen(PRIME_1, PRIME_2);
-  let cipher = key.encrypt(message);
-  let decrypted = key.decrypt(cipher);
+  let (rsa_encrypt, rsa_decrypt) = rsa_key_gen(PRIME_1, PRIME_2);
+  let cipher = rsa_encrypt.encrypt(message);
+  let decrypted = rsa_decrypt.decrypt(cipher);
   assert_eq!(decrypted, message);
 
-  let key = rsa_key_gen(PRIME_2, PRIME_3);
-  let cipher = key.encrypt(message);
-  let decrypted = key.decrypt(cipher);
+  let (rsa_encrypt, rsa_decrypt) = rsa_key_gen(PRIME_2, PRIME_3);
+  let cipher = rsa_encrypt.encrypt(message);
+  let decrypted = rsa_decrypt.decrypt(cipher);
   assert_eq!(decrypted, message);
 
   let message = 10;
-  let key = rsa_key_gen(PRIME_3, PRIME_1);
-  let cipher = key.encrypt(message);
-  let decrypted = key.decrypt(cipher);
+  let (rsa_encrypt, rsa_decrypt) = rsa_key_gen(PRIME_3, PRIME_1);
+  let cipher = rsa_encrypt.encrypt(message);
+  let decrypted = rsa_decrypt.decrypt(cipher);
+  assert_eq!(decrypted, message);
+
+  let message = u16::MAX as u32;
+  let (rsa_encrypt, rsa_decrypt) = rsa_key_gen(10007, 49999);
+  let cipher = rsa_encrypt.encrypt(message);
+  let decrypted = rsa_decrypt.decrypt(cipher);
   assert_eq!(decrypted, message);
 }
 
 #[test]
 fn test_random_prime() {
-  let prime = random_prime(2);
-  assert!(is_prime(prime));
-  assert!(prime >= 1_000_000);
-}
-
-#[test]
-fn test_random_prime_generation() {
-  let prime = random_prime(2);
+  let prime = random_prime(1_000_000);
   assert!(is_prime(prime));
   assert!(prime >= 1_000_000);
 }
