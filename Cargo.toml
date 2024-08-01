@@ -5,7 +5,7 @@ edition    ="2021"
 license    ="Apache2.0 OR MIT"
 name       ="ronkathon"
 repository ="https://github.com/thor314/ronkathon"
-version    ="0.1.0"
+version    = "0.1.0"
 
 [dependencies]
 rand     ="0.8.5"
