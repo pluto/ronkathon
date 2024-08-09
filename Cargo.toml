@@ -13,7 +13,7 @@ itertools="0.13.0"
 hex      ="0.4.3"
 
 [dev-dependencies]
-rstest               ="0.21.0"
+rstest               ="0.22.0"
 pretty_assertions    ="1.4.0"
 sha2                 ="0.10.8"
 ark-ff               ={ version="^0.4.0", features=["std"] }
