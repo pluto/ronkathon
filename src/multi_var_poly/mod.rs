@@ -2,15 +2,16 @@ use super::*;
 use crate::algebra::field::FiniteField;
 
 // L is the number of variables
-pub struct MultiVarPolynomial<F: FiniteField, const L: usize> {
-  degree:       [usize; L],
+pub struct MultiVarPolynomial<F: FiniteField> {
+  degree:       Vec<usize>,
   coefficients: Vec<F>,
 }
 
-fn generate_cartesian_product(n: usize, l: &[usize]) -> Vec<Vec<usize>> {
+// generates the cartesian product (0..l[0]) X (0..l[1]) X  ... X (0..l[n-1])
+fn generate_cartesian_product(l: Vec<usize>) -> Vec<Vec<usize>> {
   let mut result = vec![vec![]];
 
-  for i in 0..n {
+  for i in 0..l.len() {
     let mut new_result = Vec::new();
     for item in result.iter() {
       for j in 0..l[i] {
@@ -25,8 +26,8 @@ fn generate_cartesian_product(n: usize, l: &[usize]) -> Vec<Vec<usize>> {
   result
 }
 
-impl<F: FiniteField, const L: usize> MultiVarPolynomial<F, L> {
-  pub fn new(degree: [usize; L], coefficients: Vec<F>) -> Result<Self, String> {
+impl<F: FiniteField> MultiVarPolynomial<F> {
+  pub fn new(degree: Vec<usize>, coefficients: Vec<F>) -> Result<Self, String> {
     // Calculate the expected number of coefficients
     let expected_coeff_count = degree.iter().map(|&d| d + 1).fold(1, Mul::mul);
 
@@ -42,9 +43,10 @@ impl<F: FiniteField, const L: usize> MultiVarPolynomial<F, L> {
     Ok(Self { degree, coefficients })
   }
 
-  fn evaluation(&self, r: [F; L]) -> F {
-    let degree_plus_1 = self.degree.map(|x| x + 1);
-    let cartesian_prod = generate_cartesian_product(L, &degree_plus_1);
+  pub fn evaluation(&self, r: Vec<F>) -> F {
+    assert_eq!(r.len(), self.num_var());
+    let degree_plus_1 = self.degree.iter().map(|x| x + 1).collect();
+    let cartesian_prod = generate_cartesian_product(degree_plus_1);
     let mut result = F::ZERO;
     for i in 0..cartesian_prod.len() {
       let cood = &cartesian_prod[i];
@@ -58,6 +60,8 @@ impl<F: FiniteField, const L: usize> MultiVarPolynomial<F, L> {
     }
     return result;
   }
+
+  pub fn num_var(&self) -> usize { self.degree.len() }
 }
 
 #[cfg(test)] mod tests;
