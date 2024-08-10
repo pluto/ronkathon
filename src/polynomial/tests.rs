@@ -1,4 +1,5 @@
 use super::*;
+use crate::polynomial::multivariate_polynomial::{MultivariatePolynomial, MultivariateTerm, MultivariateVariable};
 
 #[fixture]
 fn poly() -> Polynomial<Monomial, PlutoBaseField, 4> {
@@ -125,4 +126,291 @@ fn dft(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
   // let poly =
   //   Polynomial::<Monomial, PlutoBaseField>::new(vec![PlutoBaseField::ZERO,
   // PlutoBaseField::ZERO]); assert_eq!(poly.coefficients, [PlutoBaseField::ZERO]);
+}
+
+#[test]
+fn test_multivariate_polynomial_creation() {
+  let poly = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 2 }, MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(3)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 1 }],
+      PlutoBaseField::new(2)
+    ),
+    MultivariateTerm::new(
+      vec![],
+      PlutoBaseField::new(1)
+    )
+  ]);
+
+  assert_eq!(poly.degree(), 3);
+
+  assert_eq!(
+    poly.variables().into_iter().collect::<std::collections::HashSet<_>>(),
+    vec![0, 1].into_iter().collect::<std::collections::HashSet<_>>()
+  );
+}
+
+#[test]
+fn test_multivariate_polynomial_addition() {
+  let poly1 = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 2 }],
+      PlutoBaseField::new(1)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(2)
+    )
+  ]);
+
+  let poly2 = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 2 }],
+      PlutoBaseField::new(3)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 2, exponent: 1 }],
+      PlutoBaseField::new(4)
+    )
+  ]);
+
+  let result = poly1 + poly2;
+
+  println!("Addition Result polynomial: {}", result);
+
+  let expected_result = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 2 }],
+      PlutoBaseField::new(4)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(2)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 2, exponent: 1 }],
+      PlutoBaseField::new(4)
+    )
+  ]);
+
+  assert_eq!(result, expected_result);
+}
+
+#[test]
+fn test_multivariate_polynomial_multiplication() {
+  let poly1 = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 1 }],
+      PlutoBaseField::new(2)
+    ),
+    MultivariateTerm::new(
+      vec![],
+      PlutoBaseField::new(1)
+    )
+  ]);
+
+  let poly2 = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(3)
+    ),
+    MultivariateTerm::new(
+      vec![],
+      PlutoBaseField::new(1)
+    )
+  ]);
+
+  let result = poly1 * poly2;
+
+  println!("Multiplication Result polynomial: {}", result);
+
+  let expected_result = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 1 }, MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(6)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 1 }],
+      PlutoBaseField::new(2)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(3)
+    ),
+    MultivariateTerm::new(
+      vec![],
+      PlutoBaseField::new(1)
+    )
+  ]);
+
+  assert_eq!(result, expected_result);
+}
+
+#[test]
+fn test_multivariate_polynomial_evaluation() {
+  let poly = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 2 }, MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(3)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 1 }],
+      PlutoBaseField::new(2)
+    ),
+    MultivariateTerm::new(
+      vec![],
+      PlutoBaseField::new(1)
+    )
+  ]);
+
+  let points = vec![(0, PlutoBaseField::new(2)), (1, PlutoBaseField::new(3))];
+
+  println!("{}", poly);
+
+  let result = poly.evaluate(&points);
+  // 3*(2^2)*(3) + 2*(2) + 1 = 3*4*3 + 4 + 1 = 36 + 4 + 1 = 41
+  assert_eq!(result, PlutoBaseField::new(41));
+}
+
+#[test]
+fn test_apply_variables_single_variable() {
+  let poly = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 2 }],
+      PlutoBaseField::new(3)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 1 }],
+      PlutoBaseField::new(2)
+    ),
+    MultivariateTerm::new(
+      vec![],
+      PlutoBaseField::new(1)
+    )
+  ]);
+
+  let variables = vec![(0, PlutoBaseField::new(2))];
+  let result = poly.apply_variables(&variables);
+
+  let expected_result = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![],
+      PlutoBaseField::new(17)
+    )
+  ]);
+
+  assert_eq!(result, expected_result);
+}
+
+#[test]
+fn test_apply_variables_multiple_variables() {
+  let poly = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 2 }, MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(3)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 1 }],
+      PlutoBaseField::new(2)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(4)
+    ),
+    MultivariateTerm::new(
+      vec![],
+      PlutoBaseField::new(1)
+    )
+  ]);
+
+  println!("Apply Multiple Variables Polynomial: {}", poly);
+
+  let variables = vec![(0, PlutoBaseField::new(2)), (1, PlutoBaseField::new(3))];
+  let result = poly.apply_variables(&variables);
+
+  println!("Reduced Multiple Variable Polynomial: {}", result);
+
+  let expected_result = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![],
+      PlutoBaseField::new(53)
+    )
+  ]);
+
+  assert_eq!(result, expected_result);
+}
+
+#[test]
+fn test_apply_variables_partial_application() {
+  let poly = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![
+          MultivariateVariable { index: 0, exponent: 2 },
+          MultivariateVariable { index: 1, exponent: 1 },
+          MultivariateVariable { index: 2, exponent: 1 }
+      ],
+      PlutoBaseField::new(3)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 1 }, MultivariateVariable { index: 2, exponent: 1 }],
+      PlutoBaseField::new(2)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(4)
+    )
+  ]);
+
+  let variables = vec![(0, PlutoBaseField::new(2)), (1, PlutoBaseField::new(3))];
+  let applied_poly = poly.apply_variables(&variables);
+
+  let expected_result = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 2, exponent: 1 }],
+      PlutoBaseField::new(40)
+    ),
+    MultivariateTerm::new(
+      vec![],
+      PlutoBaseField::new(12)
+    )
+  ]);
+
+  assert_eq!(applied_poly, expected_result);
+}
+
+#[test]
+fn test_apply_variables_no_effect() {
+  let poly = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 2 }, MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(3)
+    ),
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 2, exponent: 1 }],
+      PlutoBaseField::new(2)
+    )
+  ]);
+
+  let variables = vec![(3, PlutoBaseField::new(5))];
+  let result = poly.apply_variables(&variables);
+
+  assert_eq!(result, poly);
+}
+
+#[test]
+fn test_apply_variables_empty() {
+  let poly = MultivariatePolynomial::<PlutoBaseField>::from_terms(vec![
+    MultivariateTerm::new(
+      vec![MultivariateVariable { index: 0, exponent: 2 }, MultivariateVariable { index: 1, exponent: 1 }],
+      PlutoBaseField::new(3)
+    )
+  ]); // 3x_0^2*x_1
+
+  let variables = vec![];
+  let result = poly.apply_variables(&variables);
+
+  assert_eq!(result, poly);
 }

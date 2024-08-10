@@ -5,6 +5,8 @@ cgt* # ignore instatiations of my test template
 # don't leak secret env vars
 .env
 
+.history/*
+
 # exclude compiled files and binaries
 debug/
 target/

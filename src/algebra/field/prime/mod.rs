@@ -8,7 +8,7 @@ use std::{fmt, str::FromStr};
 use rand::{distributions::Standard, prelude::Distribution, Rng};
 
 use super::*;
-use crate::algebra::Finite;
+use crate::{algebra::Finite, random::Random};
 
 mod arithmetic;
 
@@ -39,6 +39,13 @@ pub type AESField = PrimeField<2>;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default, PartialOrd)]
 pub struct PrimeField<const P: usize> {
   pub(crate) value: usize,
+}
+
+impl Random for PlutoBaseField {
+  fn random<R: Rng + ?Sized>(rng: &mut R) -> Self {
+    let value = rng.gen_range(0..PlutoPrime::Base as usize);
+    PlutoBaseField::new(value)
+  }
 }
 
 impl<const P: usize> PrimeField<P> {
