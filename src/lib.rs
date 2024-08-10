@@ -31,6 +31,7 @@ pub mod ecdsa;
 pub mod encryption;
 pub mod hashes;
 pub mod kzg;
+pub mod multi_var_poly;
 pub mod polynomial;
 pub mod tree;
 
