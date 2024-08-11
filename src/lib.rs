@@ -33,6 +33,7 @@ pub mod hashes;
 pub mod kzg;
 pub mod multi_var_poly;
 pub mod polynomial;
+pub mod sumcheck;
 pub mod tree;
 
 use core::{
