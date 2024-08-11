@@ -13,12 +13,12 @@ fn compute_block_sized_key(key: &[u8]) -> [u8; SHA256_BLOCK_SIZE] {
   let mut block_sized_key = [0; SHA256_BLOCK_SIZE];
 
   if key.len() > SHA256_BLOCK_SIZE {
-      // Hash the key and use only the first SHA256_BLOCK_SIZE bytes
-      let digest = Sha256::digest(key);
-      block_sized_key[..SHA256_OUTPUT_SIZE].copy_from_slice(&digest);
+    // Hash the key and use only the first SHA256_BLOCK_SIZE bytes
+    let digest = Sha256::digest(key);
+    block_sized_key[..SHA256_OUTPUT_SIZE].copy_from_slice(&digest);
   } else {
-      // Copy the key directly, padded with zeros if necessary
-      block_sized_key[..key.len()].copy_from_slice(key);
+    // Copy the key directly, padded with zeros if necessary
+    block_sized_key[..key.len()].copy_from_slice(key);
   }
 
   block_sized_key
@@ -79,13 +79,25 @@ mod tests {
 
   use super::*;
   #[rstest]
-  #[case("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b", "4869205468657265", "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7")]
-  #[case("4a656665", "7768617420646f2079612077616e7420666f72206e6f7468696e673f", "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843")]
+  #[case(
+    "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+    "4869205468657265",
+    "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
+  )]
+  #[case(
+    "4a656665",
+    "7768617420646f2079612077616e7420666f72206e6f7468696e673f",
+    "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
+  )]
   #[case("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "773ea91e36800e46854db8ebd09181a72959098b3ef8c122d9635514ced565fe")]
   #[case("0102030405060708090a0b0c0d0e0f10111213141516171819", "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
   "82558a389a443c0ea4cc819899f2083a85f0faa3e578f8077a2e3ff46729665b")]
-  #[case("0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c", "546573742057697468205472756e636174696f6e", "a3b6167473100ee06e0c796c2955552bfa6f7c0a6a8aef8b93f860aab0cd20c5")]
+  #[case(
+    "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+    "546573742057697468205472756e636174696f6e",
+    "a3b6167473100ee06e0c796c2955552bfa6f7c0a6a8aef8b93f860aab0cd20c5"
+  )]
   #[case("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "54657374205573696e67204c6172676572205468616e20426c6f636b2d53697a65204b6579202d2048617368204b6579204669727374",
   "60e431591ee0b67f0d8a26aacbf5b77f8e0bc6213728c5140546040f0ee37f54")]
