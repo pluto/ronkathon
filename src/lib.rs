@@ -32,9 +32,9 @@ pub mod encryption;
 pub mod hashes;
 pub mod kzg;
 pub mod polynomial;
-pub mod tree;
 pub mod random;
 pub mod sumcheck;
+pub mod tree;
 
 use core::{
   fmt::{self, Display, Formatter},

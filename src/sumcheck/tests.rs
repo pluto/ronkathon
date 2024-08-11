@@ -1,8 +1,5 @@
 use crate::{
-  algebra::field::{
-    prime::PlutoBaseField,
-    Field,
-  },
+  algebra::field::{prime::PlutoBaseField, Field},
   polynomial::multivariate_polynomial::{
     MultivariatePolynomial, MultivariateTerm, MultivariateVariable,
   },
@@ -11,7 +8,6 @@ use crate::{
   },
 };
 
-#[test]
 #[test]
 fn test_full_sumcheck_protocol() {
   // This test demonstrates the full sumcheck protocol for the polynomial:
