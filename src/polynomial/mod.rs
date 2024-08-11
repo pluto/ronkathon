@@ -7,13 +7,13 @@
 //! [`Monomial`] [`Basis`].
 //!
 //! - [`Polynomial`] struct represents a polynomial in any basis. These are generic over the
-//!   [`Basis`] and [`FiniteFiniteField`] traits.
+//!   [`Basis`] and [`FiniteField`] traits.
 //! - [`Basis`] trait is used to specify the basis of the polynomial which can be either:
 //!    - [`Monomial`] basis as shown above.
 //!    - [`Lagrange`] basis which is used in the [Lagrange interpolation](https://en.wikipedia.org/wiki/Lagrange_polynomial).
 //! - Includes arithmetic operations such as addition, subtraction, multiplication, and division in
 //!   the [`arithmetic`] module. The [`Polynomial`] struct is generic over the [`Basis`] and
-//!   [`FiniteFiniteField`] traits.
+//!   [`FiniteField`] traits.
 //! - Includes Discrete Fourier Transform (DFT) for polynomials in the [`Monomial`] basis to convert
 //!   into the [`Lagrange`] basis via evaluation at the roots of unity.
 
@@ -121,7 +121,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
     self.coefficients.iter().rev().find(|&&coeff| coeff != F::ZERO).copied().unwrap_or(F::ZERO)
   }
 
-  /// Evaluates the polynomial at a given [`FiniteFiniteField`] element `x` using the [`Monomial`]
+  /// Evaluates the polynomial at a given [`FiniteField`] element `x` using the [`Monomial`]
   /// basis. This is not using Horner's method or any other optimization.
   ///
   /// ## Arguments:
@@ -235,8 +235,8 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   ///   evaluation of the polynomial at the roots of unity.
   ///
   /// ## Panics
-  /// - This function will panic in calling [`FiniteFiniteField::primitive_root_of_unity`] if the
-  ///   field does not have roots of unity for the degree of the polynomial.
+  /// - This function will panic in calling [`FiniteField::primitive_root_of_unity`] if the field
+  ///   does not have roots of unity for the degree of the polynomial.
   pub fn dft(&self) -> Polynomial<Lagrange<F>, F, D> {
     let n = self.num_terms();
     let primitive_root_of_unity = F::primitive_root_of_unity(n);
@@ -310,11 +310,11 @@ impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
   /// polynomial. The evaluation of the polynomial at `x` is then given by $L(x)$.
   ///
   /// ## Arguments:
-  /// - `x`: The field element as [`FiniteFiniteField`] at which to evaluate the polynomial.
+  /// - `x`: The field element as [`FiniteField`] at which to evaluate the polynomial.
   ///
   /// ## Returns:
   /// - The result of evaluating the polynomial at `x` which is an element of the associated
-  ///   [`FiniteFiniteField`].
+  ///   [`FiniteField`].
   pub fn evaluate(&self, x: F) -> F {
     let n = self.coefficients.len();
 
