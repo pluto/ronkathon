@@ -144,7 +144,7 @@ impl<F: FiniteField> SumCheckVerifier<F> {
   ///
   /// ## Returns:
   /// - A new `SumCheckVerifier` instance.
-  fn new(c: F, deg: Vec<usize>) -> Self {
+  pub fn new(c: F, deg: Vec<usize>) -> Self {
     Self {
       current_round:   0,
       total_rounds:    deg.len(),
@@ -162,7 +162,7 @@ impl<F: FiniteField> SumCheckVerifier<F> {
   ///
   /// ## Returns:
   /// - The challenge field element for the next round.
-  fn verify_internal_rounds(&mut self, h_poly: Vec<F>) -> F {
+  pub fn verify_internal_rounds(&mut self, h_poly: Vec<F>) -> F {
     assert_eq!(
       h_poly.len(),
       self.degree[self.current_round] + 1,
@@ -204,7 +204,7 @@ impl<F: FiniteField> SumCheckVerifier<F> {
   ///   polynomial at the point given by `&challenges_sent:&Vec<F>` is correct or not. Using a
   ///   oracle like this should allow us to use both simple evaluation by the Verifier as well as a
   ///   commitment proof.
-  fn verify_final_result(&self, oracle: impl Fn(&Vec<F>, F) -> bool) {
+  pub fn verify_final_result(&self, oracle: impl Fn(&Vec<F>, F) -> bool) {
     assert!(
       oracle(&self.challenges_sent, self.claim),
       "Verifier Abort: Final value of polynomial claimed by the Prover is incorrect"
@@ -214,13 +214,13 @@ impl<F: FiniteField> SumCheckVerifier<F> {
 
 /// Represents the entire sum-check protocol, including both prover and verifier.
 pub struct SumCheck<F: FiniteField> {
-  // The sum-check Prover object
+  /// The sum-check Prover object
   pub prover:         SumCheckProver<F>,
-  // The sum-check Verifier object
+  /// The sum-check Verifier object
   pub verifier:       SumCheckVerifier<F>,
-  // The multivariate polynomial being summed over
+  /// The multivariate polynomial being summed over
   pub multi_var_poly: MultiVarPolynomial<F>,
-  // A flag which allows which prints the entire protocol if set to `true`
+  /// A flag which allows which prints the entire protocol if set to `true`
   pub verbose:        bool,
 }
 impl<F: FiniteField> SumCheck<F> {
@@ -232,7 +232,7 @@ impl<F: FiniteField> SumCheck<F> {
   ///
   /// ## Returns:
   /// - A new `SumCheck` instance.
-  fn new(poly: MultiVarPolynomial<F>, verbose: bool) -> Self {
+  pub fn new(poly: MultiVarPolynomial<F>, verbose: bool) -> Self {
     let prover = SumCheckProver::new(poly.clone());
     let claimed_sum = prover.sum_poly();
     let verifier = SumCheckVerifier::new(claimed_sum, poly.degree.clone());
