@@ -28,6 +28,10 @@ ark-poly     ={ git="https://github.com/arkworks-rs/algebra/" }
 ark-serialize={ git="https://github.com/arkworks-rs/algebra/" }
 ark-std      ={ git="https://github.com/arkworks-rs/std/" }
 
+[[bin]]
+name = "hmac_sha256_bin"
+path = "src/hmac/bin/hmac_sha256_bin.rs"
+
 [[example]]
 name="aes_chained_cbc"
 
