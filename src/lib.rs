@@ -30,6 +30,7 @@ pub mod curve;
 pub mod ecdsa;
 pub mod encryption;
 pub mod hashes;
+pub mod hmac;
 pub mod kzg;
 pub mod polynomial;
 pub mod tree;
