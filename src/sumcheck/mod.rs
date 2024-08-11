@@ -1,9 +1,7 @@
 use rand::thread_rng;
 
 use super::*;
-use crate::{
-  algebra::field::FiniteField, multi_var_poly::MultiVarPolynomial, polynomial::Polynomial,
-};
+use crate::{algebra::field::FiniteField, multi_var_poly::MultiVarPolynomial};
 
 pub struct SumCheckProver<F: FiniteField> {
   pub multi_var_poly: MultiVarPolynomial<F>,
@@ -154,13 +152,14 @@ pub struct SumCheck<F: FiniteField> {
   pub prover:         SumCheckProver<F>,
   pub verifier:       SumCheckVerifier<F>,
   pub multi_var_poly: MultiVarPolynomial<F>,
+  pub verbose:        bool,
 }
 impl<F: FiniteField> SumCheck<F> {
-  fn new(poly: MultiVarPolynomial<F>) -> Self {
+  fn new(poly: MultiVarPolynomial<F>, verbose: bool) -> Self {
     let prover = SumCheckProver::new(poly.clone());
     let claimed_sum = prover.sum_poly();
     let verifier = SumCheckVerifier::new(claimed_sum, poly.degree.clone());
-    Self { prover, verifier, multi_var_poly: poly }
+    Self { prover, verifier, multi_var_poly: poly, verbose }
   }
 
   pub fn evaluation_oracle(&self, r: &Vec<F>, claim: F) -> bool {
@@ -168,16 +167,51 @@ impl<F: FiniteField> SumCheck<F> {
   }
 
   pub fn run_interactive_protocol(&mut self) {
+    if self.verbose {
+      println!("Starting Sum-Check Protocol");
+      println!("Initial claim: {:?}", self.verifier.claim);
+    }
     for i in 0..self.multi_var_poly.num_var() {
-      assert_eq!(i, self.prover.current_round);
-      assert_eq!(i, self.verifier.current_round);
-
       let rnd_poly = self.prover.send_poly();
+      if self.verbose {
+        println!("Round {}", i + 1);
+        println!("P ----> V: {}", format_polynomial(&rnd_poly));
+      }
+
       let challenge = self.verifier.verify_internal_rounds(rnd_poly);
+      if self.verbose {
+        println!("V ----> P: r_{} = {:?}", i + 1, challenge);
+      }
       self.prover.reduce_poly(challenge);
+    }
+    if self.verbose {
+      println!("Final verification:");
+      println!("Challenges: {:?}", self.verifier.challenges_sent);
+      println!("Claimed value at this point: {:?}", self.verifier.claim);
     }
     let oracle = |r: &Vec<F>, claim: F| self.evaluation_oracle(r, claim);
     self.verifier.verify_final_result(oracle);
+    if self.verbose {
+      println!("Protocol completed successfully");
+    }
+  }
+}
+
+fn format_polynomial<F: FiniteField>(coeffs: &[F]) -> String {
+  let mut terms: Vec<String> = Vec::new();
+  for (i, coeff) in coeffs.iter().enumerate() {
+    if *coeff != F::ZERO {
+      match i {
+        0 => terms.push(format!("{:?}", coeff)),
+        1 => terms.push(format!("{:?} X", coeff)),
+        _ => terms.push(format!("{:?} X^{}", coeff, i)),
+      }
+    }
+  }
+  if terms.is_empty() {
+    "0".to_string()
+  } else {
+    terms.join(" + ")
   }
 }
 

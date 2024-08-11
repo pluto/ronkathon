@@ -30,7 +30,22 @@ fn test_sumcheck_protocol() {
   // While summing over binary values for the variables remember a term is non-zero only if all
   // the variables making it are 1. This way you can calculate the following:
   let expected_sum = F::from(57);
-  let mut sumcheck = SumCheck::new(poly);
+  let mut sumcheck = SumCheck::new(poly, true);
   sumcheck.run_interactive_protocol();
   assert_eq!(sumcheck.verifier.result, expected_sum);
+}
+
+#[test]
+#[should_panic]
+fn test_sumcheck_protocol_incorrect() {
+  let poly = create_test_polynomial();
+  let incorrect_sum = F::from(58); // Intentionally incorrect sum
+  let mut sumcheck = SumCheck::new(poly, true);
+
+  // Override the verifier's initial claim with the incorrect sum
+  sumcheck.verifier.claim = incorrect_sum;
+  sumcheck.verifier.result = incorrect_sum;
+
+  // This should panic due to the incorrect sum
+  sumcheck.run_interactive_protocol();
 }
