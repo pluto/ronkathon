@@ -1,3 +1,13 @@
+---
+name: Bounty
+about: Create a bounty for contributors
+title: ''
+labels: 'bounty'
+assignees: ''
+
+---
+
+
 **Bounty description**
 
 A clear and concise description of the project; should be accessible to a contributor with minimal context.
