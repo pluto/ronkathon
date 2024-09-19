@@ -1,9 +1,13 @@
 //! Implementation of [`GHASH`] algorithm which is used in AES-GCM.
 //! Based on GCM specification given by NIST:
-//! [The Galois/Counter Mode of Operation (GCM)](http://www.csrc.nist.gov/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf
+//! [The Galois/Counter Mode of Operation (GCM)](http://www.csrc.nist.gov/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf)
 
+use core::array;
+
+use super::constants::GCMF_IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS;
 use crate::{
   algebra::field::{extension::GaloisField, prime::AESField},
+  polynomial::{Monomial, Polynomial},
   Field,
 };
 
@@ -13,15 +17,16 @@ type GCMField = GaloisField<128, 2>;
 /// Helper function which turns [`num`], u64, value to vector of [`AESField`] elements
 /// The result is aligned to [`length`] by padding with AESField::ZERO.
 fn to_bool_vec(mut num: u64, length: usize) -> Vec<AESField> {
-  let mut result = Vec::new();
+  let mut result = vec![AESField::ZERO; length];
+  let mut idx = length;
   while num > 0 {
-    result.push(match num & 1 {
+    result[idx - 1] = match num & 1 {
       0 => AESField::ZERO,
       _ => AESField::ONE,
-    });
+    };
     num >>= 1;
+    idx -= 1;
   }
-  result.extend(std::iter::repeat(AESField::ZERO).take(length - result.len()));
   result
 }
 
@@ -29,11 +34,11 @@ fn to_bool_vec(mut num: u64, length: usize) -> Vec<AESField> {
 impl From<&[u8]> for GCMField {
   fn from(value: &[u8]) -> Self {
     let mut result = Vec::<AESField>::new();
-    result.extend(std::iter::repeat(AESField::ZERO).take(128 - value.len() * 8));
-    for &b in value.iter().rev() {
+    for &b in value.iter() {
       let b_f: Vec<AESField> = to_bool_vec(b as u64, 8);
       result.extend(b_f);
     }
+    result.extend(std::iter::repeat(AESField::ZERO).take(128 - value.len() * 8));
     Self { coeffs: result.try_into().unwrap() }
   }
 }
@@ -46,18 +51,18 @@ impl From<GCMField> for Vec<u8> {
       let mut byte: u8 = 0;
       for i in 0..8 {
         if block[i] == AESField::ONE {
-          byte += (1 << i) as u8;
+          byte += (1 << (7 - i)) as u8;
         }
       }
       bytes.push(byte);
     }
-    bytes.into_iter().rev().collect()
+    bytes
   }
 }
 
 /// Represents the GHASH object which holds `H`, a GCMField element, which in
 /// context of GCM represents the hash key and is equal to E(K, 0^128), where E
-/// is AES encryption.
+/// is AES encryption and K, the key.
 pub struct GHASH {
   h: GCMField,
 }
@@ -75,8 +80,7 @@ impl GHASH {
 
   /// Get the hash digest using using two u8 slices [`a`] and [`c`].
   /// In context of AES-GCM they correspond to,
-  /// ['a'] - additional authenticated data,
-  /// ['c'] - ciphertext encrypted using AES.
+  /// ['a'] - additional authenticated data, ['c'] - ciphertext encrypted using AES.
   pub fn digest(&self, a: &[u8], c: &[u8]) -> [u8; 16] {
     let mut j = GCMField::default();
 
@@ -92,34 +96,53 @@ impl GHASH {
 
     let mut a_len = to_bool_vec((a.len() * 8) as u64, 64);
     let mut c_len = to_bool_vec((c.len() * 8) as u64, 64);
-    c_len.append(&mut a_len);
-    let len = GCMField { coeffs: c_len.try_into().unwrap() };
+    a_len.append(&mut c_len);
+    let len = GCMField { coeffs: a_len.try_into().unwrap() };
     j = Self::poly_multiply(j + len, self.h);
 
     let j_bytes: Vec<u8> = j.into();
     j_bytes.try_into().unwrap()
   }
 
+  /// Returns the result of multiplication of two GCMField elements,
+  /// modulo the field polynomial, f = 1 + α + α^2 + α^7 + α^128
+  fn poly_multiply(x: GCMField, y: GCMField) -> GCMField {
+    let x_coeffs: [AESField; 128] = x.coeffs.try_into().unwrap();
+    let y_coeffs: [AESField; 128] = y.coeffs.try_into().unwrap();
+    let poly_x = Polynomial::<Monomial, AESField, 128>::from(x_coeffs);
+    let poly_y = Polynomial::<Monomial, AESField, 128>::from(y_coeffs);
+    let poly_f =
+      Polynomial::<Monomial, AESField, 129>::from(GCMF_IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS);
+
+    let poly_z = (poly_x * poly_y) % poly_f;
+    let res: [AESField; 128] =
+      array::from_fn(|i| poly_z.coefficients.get(i).cloned().unwrap_or(AESField::ZERO));
+
+    GCMField::new(res)
+  }
+
   /// Multiply two elements in GCMField modulo the field polynomial f.
   /// The field polynomial is fixed and is given by, f = 1 + α + α^2 + α^7 + α^128
   /// The function uses the algorithm given in the GCM spec.
-  fn poly_multiply(x: GCMField, y: GCMField) -> GCMField {
+  /// NOTE: We do not use this function in our GHASH algorithm, it is for reference only.
+  #[allow(dead_code)]
+  fn poly_multiply_spec(x: GCMField, y: GCMField) -> GCMField {
     let mut r_coeffs = to_bool_vec(0xe1, 128);
-    r_coeffs.rotate_right(120);
+    r_coeffs.rotate_left(120);
     let r = GCMField { coeffs: r_coeffs.try_into().unwrap() };
 
     let mut z = GCMField::from(0 as usize);
     let mut v = y;
 
-    for &bit in x.coeffs.iter().rev() {
+    for bit in x.coeffs {
       if bit == AESField::ONE {
         z = z + v;
       }
 
       let mut v1 = v.coeffs.to_vec();
-      v1.rotate_left(1);
       let v1_bit = v1.pop().unwrap();
       v1.push(AESField::ZERO);
+      v1.rotate_right(1);
 
       v = GCMField { coeffs: v1.try_into().unwrap() };
 
@@ -195,5 +218,29 @@ mod tests {
     let digest_hex = encode_hex(&digest);
     println!("GHASH:{}\nExpected:{}", digest_hex, expected);
     assert!(digest_hex == expected);
+  }
+
+  #[rstest]
+  #[case(1, 1)]
+  #[case(2, 3)]
+  #[case(113, 117)]
+  #[case(0xca, 0xfe)]
+  fn test_poly_multiply(#[case] x: u64, #[case] y: u64) {
+    let x_coeffs: Vec<AESField> = to_bool_vec(x, 128).into_iter().rev().collect();
+    let xf = GCMField { coeffs: x_coeffs.try_into().unwrap() };
+    let y_coeffs = to_bool_vec(y, 128);
+    let yf = GCMField { coeffs: y_coeffs.try_into().unwrap() };
+
+    let zf = GHASH::poly_multiply(xf, yf);
+
+    let z_coeffs: Vec<u8> = zf.try_into().unwrap();
+    let z_hex = encode_hex(&z_coeffs);
+
+    let expected_zf = GHASH::poly_multiply_spec(xf, yf);
+    let expected_z_coeffs: Vec<u8> = expected_zf.try_into().unwrap();
+    let expected_z_hex = encode_hex(&expected_z_coeffs);
+
+    println!("Got: {z_hex}\nExp: {expected_z_hex}");
+    assert!(expected_z_hex == z_hex);
   }
 }
