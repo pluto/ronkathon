@@ -12,10 +12,15 @@ use crate::{
 };
 
 type GCMField = GaloisField<128, 2>;
-/// Note: ['AESField'] is a alias for [`PrimeField<2>`]
+/// Note: ['AESField'] is an alias for [`PrimeField<2>`]
 
 /// Helper function which turns [`num`], u64, value to vector of [`AESField`] elements
 /// The result is aligned to [`length`] by padding with AESField::ZERO.
+/// For example:
+/// If num = 5 and length = 8, the result is:
+/// {ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ZERO, ONE}
+/// where the rightmost value is the least significant bit(=2^0)
+/// and `ZERO` and `ONE` are `AESField` elements.
 fn to_bool_vec(mut num: u64, length: usize) -> Vec<AESField> {
   let mut result = vec![AESField::ZERO; length];
   let mut idx = length;
@@ -60,45 +65,56 @@ impl From<GCMField> for Vec<u8> {
   }
 }
 
-/// Represents the GHASH object which holds `H`, a GCMField element, which in
-/// context of GCM represents the hash key and is equal to E(K, 0^128), where E
-/// is AES encryption and K, the key.
+/// Represents the GHASH object which holds `hash_key`, a GCMField element, which in
+/// context of AES-GCM is equal to E(K, 0^128), where E is AES encryption and K, the key.
 pub struct GHASH {
-  h: GCMField,
+  hash_key: GCMField,
 }
 
 impl GHASH {
-  /// Construct GHASH object using ['h'], the hash key(in bytes).
-  /// In context of AES-GCM, h = AES(K, 0^128), that is 128-bit string of zeros
+  /// Construct GHASH object using 'h', the hash key(in bytes).
+  /// In context of AES-GCM, h = AES(K, 0^128), that is enc 128-bit string of zeros
   /// encrypted using AES.
   pub fn new(h: &[u8]) -> Self {
     if h.len() != 16 {
       panic!("The hash key should be 128-bits, or 16 u8 values! Got {} u8 vals", h.len());
     }
-    Self { h: GCMField::from(h) }
+    Self { hash_key: GCMField::from(h) }
   }
 
-  /// Get the hash digest using using two u8 slices [`a`] and [`c`].
+  /// Get the hash digest using using two u8 slices `a` and `c`.
   /// In context of AES-GCM they correspond to,
-  /// ['a'] - additional authenticated data, ['c'] - ciphertext encrypted using AES.
-  pub fn digest(&self, a: &[u8], c: &[u8]) -> [u8; 16] {
+  /// 'aad' - additional authenticated data(AAD)
+  /// 'ct' - ciphertext encrypted using AES.
+  ///
+  /// The result is a 128-bit digest, returned as an `[u8; 16]` array.
+  pub fn digest(&self, aad: &[u8], ct: &[u8]) -> [u8; 16] {
+    // The variable where the final digest is accumulated.
     let mut j = GCMField::default();
 
-    for block in a.chunks(16) {
+    // Process each 16-byte block from the aad
+    for block in aad.chunks(16) {
       let a = GCMField::from(block);
-      j = Self::poly_multiply(a + j, self.h);
+      // ADD a block of `aad` into the result and then MULTIPLY with hash_key.
+      // ADD interestingly is same as XOR in our field.
+      // MULTIPLY is a polynomial multiplication modulo a fixed field polynomial. See
+      // `poly_multiply`
+      j = Self::poly_multiply(a + j, self.hash_key);
     }
 
-    for block in c.chunks(16) {
+    // Do the same stuff as the previous loop but with ciphertext.
+    for block in ct.chunks(16) {
       let a = GCMField::from(block);
-      j = Self::poly_multiply(a + j, self.h);
+      j = Self::poly_multiply(a + j, self.hash_key);
     }
 
-    let mut a_len = to_bool_vec((a.len() * 8) as u64, 64);
-    let mut c_len = to_bool_vec((c.len() * 8) as u64, 64);
-    a_len.append(&mut c_len);
-    let len = GCMField { coeffs: a_len.try_into().unwrap() };
-    j = Self::poly_multiply(j + len, self.h);
+    // The final block consists of length of `aad` in bits and length of `ct` in bits, each in
+    // 64-bit format.
+    let mut aad_len = to_bool_vec((aad.len() * 8) as u64, 64);
+    let mut ct_len = to_bool_vec((ct.len() * 8) as u64, 64);
+    aad_len.append(&mut ct_len);
+    let len = GCMField { coeffs: aad_len.try_into().unwrap() };
+    j = Self::poly_multiply(j + len, self.hash_key);
 
     let j_bytes: Vec<u8> = j.into();
     j_bytes.try_into().unwrap()
@@ -216,6 +232,7 @@ mod tests {
     let digest = gh.digest(&a, &c);
 
     let digest_hex = encode_hex(&digest);
+
     println!("GHASH:{}\nExpected:{}", digest_hex, expected);
     assert!(digest_hex == expected);
   }

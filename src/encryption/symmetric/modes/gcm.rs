@@ -32,6 +32,7 @@ where [(); C::BLOCK_SIZE - 4]:
   /// A `GCM` instance ready for encryption or decryption.
   pub fn new(key: C::Key) -> Self {
     assert_eq!(C::BLOCK_SIZE, 16, "GCM only supports 128-bit block size.");
+    // The GHASH algorithms requires the encryption of 128-bits of zeros.
     let zero_string = C::Block::from(vec![0u8; 16]);
     let hash_key = C::encrypt_block(&key, &zero_string);
     let ghash = GHASH::new(hash_key.as_ref());
@@ -42,55 +43,71 @@ where [(); C::BLOCK_SIZE - 4]:
   /// (AAD).
   ///
   /// # Parameters
-  /// - `nonce`: A unique nonce for the encryption process (should be `C::BLOCK_SIZE - 4` bytes
+  /// - `nonce`: A unique nonce for the encryption process (should be '12' bytes
   ///   long).
   /// - `plaintext`: The data to be encrypted.
   /// - `aad`: Additional authenticated data (AAD) that will be included in the authentication tag
   ///   but not encrypted.
   ///
   /// # Returns
-  /// A `Result` containing a tuple `(ciphertext, tag)`:
+  /// A tuple `(ciphertext, tag)`:
   /// - `ciphertext`: The encrypted data.
   /// - `tag`: The authentication tag that verifies the integrity and authenticity of the ciphertext
   ///   and AAD.
   ///
-  /// Returns a `String` error if encryption fails.
+  /// A `String` error if encryption fails.
   pub fn encrypt(
     &self,
     nonce: &[u8],
     plaintext: &[u8],
     aad: &[u8],
   ) -> Result<(Vec<u8>, Vec<u8>), String> {
-    let counter_start: [u8; 4];
-    let new_nonce: [u8; C::BLOCK_SIZE - 4];
-    let mut counter_block;
 
+    // The `initial_block` is the first block that is encrypted.
+    // This is used in the tag generation step.
+    // It consists of two parts, a 96-bit nonce value and 32-bit counter value, which is
+    // incremented for each block to be encrypted.
+    let mut initial_block;
+    // `counter_start` is the start value for the 32-bit counter.
+    let counter_start: [u8; 4];
+    // `new_nonce` is the 96-bit nonce value. 
+    // That is C::BLOCK_SIZE(=16 bytes) - 4 bytes = 12 bytes = 96-bits!
+    // Also NOTE: the compiler is not happy if I write 12 bytes instead of `C::BLOCK_SIZE - 4`. :(
+    let new_nonce: [u8; C::BLOCK_SIZE - 4];
+
+    // The GCM specification recommends a 96-bit(or 12-byte) nonce, but it may not be 96-bit.
     if nonce.len() != 12 {
-      counter_block = self.ghash.digest(&[], nonce);
-      new_nonce = counter_block[..12].try_into().unwrap();
-      counter_start = counter_block[12..].try_into().unwrap();
+      // If the nonce is not 96-bit, we GHASH the nonce, which outputs a 128-bit value.
+      // The first 96-bit is used as new nonce(hence named `new_nonce`).
+      // The rest of the 32-bits are used as the start of counter value!
+      initial_block = self.ghash.digest(&[], nonce);
+      new_nonce = initial_block[..12].try_into().unwrap();
+      counter_start = initial_block[12..].try_into().unwrap();
     } else {
       new_nonce = nonce.try_into().unwrap();
+      // The counter starts with `1`.
       counter_start = [0, 0, 0, 1];
-      counter_block = [0u8; 16];
-      counter_block[..12].copy_from_slice(&new_nonce);
-      counter_block[12..].copy_from_slice(&counter_start);
+      initial_block = [0u8; 16];
+      initial_block[..12].copy_from_slice(&new_nonce);
+      initial_block[12..].copy_from_slice(&counter_start);
     }
 
-    // Step 1: Incremenet the counter
+    // Step 1: Increment the counter
     let mut counter = Counter(counter_start);
     counter.increment()?;
 
-    // Step 2: Encrypt the plaintext.
+    // Step 2: Encrypt the plaintext using the `CTR` object.
     let ctr = CTR::<C, 4>::new(new_nonce.try_into().unwrap());
     let ciphertext = ctr.encrypt(&self.key, &counter, plaintext)?;
 
     // Step3: Generate Tag
-    let y0_block = C::Block::from(counter_block.to_vec());
+    // The tag is the XOR of the `initial_block` and ghash of ciphertext.
+    let y0_block = C::Block::from(initial_block.to_vec());
     let y0_enc = C::encrypt_block(&self.key, &y0_block);
     let hash = self.ghash.digest(aad, ciphertext.as_ref());
     let mut tag = Vec::new();
 
+    // XOR the ghash of ciphertext and `initial_block`
     for (x, y) in hash.iter().zip(y0_enc.as_ref()) {
       tag.push(x ^ y);
     }
@@ -98,27 +115,30 @@ where [(); C::BLOCK_SIZE - 4]:
     Ok((ciphertext.to_vec(), tag))
   }
 
-  /// Decrypts the given ciphertext using the specified nonce and additional authenticated data
+  /// Decrypt the given ciphertext using the specified nonce and additional authenticated data
   /// (AAD).
   ///
   /// # Parameters
-  /// - `nonce`: A unique nonce used during encryption (should be `C::BLOCK_SIZE - 4` bytes long).
+  /// - `nonce`: A unique nonce used during encryption (should be 12 bytes long).
   /// - `ciphertext`: The encrypted data to be decrypted.
   /// - `aad`: Additional authenticated data (AAD) used during encryption.
   ///
   /// # Returns
-  /// A `Result` containing a tuple `(plaintext, tag)`:
+  /// A tuple `(plaintext, tag)`:
   /// - `plaintext`: The decrypted data.
   /// - `tag`: The authentication tag to verify the integrity and authenticity of the decrypted
   ///   data.
   ///
-  /// Returns a `String` error if decryption fails.
+  /// A `String` error if decryption fails.
   pub fn decrypt(
     &self,
     nonce: &[u8],
     ciphertext: &[u8],
     aad: &[u8],
   ) -> Result<(Vec<u8>, Vec<u8>), String> {
+    // The decryption algorithm is the same as the encryption algorithm but the tag is generated
+    // first and then is move on to the encryption.
+
     let counter_start: [u8; 4];
     let new_nonce: [u8; C::BLOCK_SIZE - 4];
     let mut counter_block;
@@ -135,7 +155,7 @@ where [(); C::BLOCK_SIZE - 4]:
       counter_block[12..].copy_from_slice(&counter_start);
     }
 
-    // Step 1: Generate Tag
+    // Step 1: Generate Tag (same as the encryption)
     let y0 = C::Block::from(counter_block.to_vec());
     let y0_enc = C::encrypt_block(&self.key, &y0);
     let hash = self.ghash.digest(aad, ciphertext.as_ref());
