@@ -2,20 +2,22 @@
 
 use crate::encryption::symmetric::{counter::Counter, BlockCipher};
 
-/// [`BlockCipher`] counter mode of operation
-pub struct CTR<C: BlockCipher>
-where [(); C::BLOCK_SIZE / 2]: {
-  nonce: [u8; C::BLOCK_SIZE / 2],
+/// [`BlockCipher`] counter mode of operation with two parameters:
+/// - `C`, a cipher that implements the `BlockCipher` trait.
+/// - `M`, a usize const that indicates the size of counter in bytes.
+pub struct CTR<C: BlockCipher, const M: usize>
+where [(); C::BLOCK_SIZE - M]: {
+  nonce: [u8; C::BLOCK_SIZE - M]
 }
 
-impl<C: BlockCipher> CTR<C>
-where [(); C::BLOCK_SIZE / 2]:
+impl<C: BlockCipher, const M: usize> CTR<C, M>
+where [(); C::BLOCK_SIZE - M]:
 {
   /// Create a CTR mode of operation object
   /// # Arguments
-  /// - `nonce`: *Non-repeating* IV of [`BlockCipher::BLOCK_SIZE`]/2 bytes. Nonce is concatenated
-  ///   with [`Counter`] to generate a keystream that does not repeat for a long time.
-  pub fn new(nonce: [u8; C::BLOCK_SIZE / 2]) -> Self { Self { nonce } }
+  /// - `nonce`: *Non-repeating* IV of [`BlockCipher::BLOCK_SIZE`] - M bytes. Nonce is concatenated
+  ///   with [`Counter`], of M bytes, to generate a keystream that does not repeat for a long time.
+  pub fn new(nonce: [u8; C::BLOCK_SIZE - M]) -> Self { Self { nonce } }
 
   /// Encrypt a plaintext with [`BlockCipher::Key`] and [`Counter`]
   /// ## Arguments
@@ -37,10 +39,10 @@ where [(); C::BLOCK_SIZE / 2]:
   /// let mut rng = thread_rng();
   /// let rand_key: [u8; 16] = rng.gen();
   /// let key = Key::<128>::new(rand_key);
-  /// let nonce: [u8; AES::<128>::BLOCK_SIZE / 2] = rng.gen();
-  /// let counter: Counter<{ AES::<128>::BLOCK_SIZE / 2 }> = Counter::from(0);
+  /// let nonce: [u8; AES::<128>::BLOCK_SIZE - 4] = rng.gen();
+  /// let counter: Counter<4> = Counter::from(0);
   ///
-  /// let ctr = CTR::<AES<128>>::new(nonce);
+  /// let ctr = CTR::<AES<128>, 4>::new(nonce);
   /// let plaintext = b"Hello World!";
   ///
   /// let ciphertext = ctr.encrypt(&key, &counter, plaintext).unwrap();
@@ -48,7 +50,7 @@ where [(); C::BLOCK_SIZE / 2]:
   pub fn encrypt(
     &self,
     key: &C::Key,
-    counter: &Counter<{ C::BLOCK_SIZE / 2 }>,
+    counter: &Counter<M>,
     plaintext: &[u8],
   ) -> Result<Vec<u8>, String> {
     let mut ciphertext = Vec::new();
@@ -56,8 +58,8 @@ where [(); C::BLOCK_SIZE / 2]:
 
     for chunk in plaintext.chunks(C::BLOCK_SIZE) {
       let mut block = [0u8; C::BLOCK_SIZE];
-      block[..C::BLOCK_SIZE / 2].copy_from_slice(&self.nonce);
-      block[C::BLOCK_SIZE / 2..].copy_from_slice(&cipher_counter.0);
+      block[..{C::BLOCK_SIZE - M}].copy_from_slice(&self.nonce);
+      block[{C::BLOCK_SIZE - M}..].copy_from_slice(&cipher_counter.0);
       cipher_counter.increment()?;
 
       let encrypted = C::encrypt_block(key, &C::Block::from(block.to_vec()));
@@ -70,7 +72,7 @@ where [(); C::BLOCK_SIZE / 2]:
     Ok(ciphertext)
   }
 
-  /// Decrypt a ciphertext with counter of size [`BlockCipher::BLOCK_SIZE`]/2 bytes
+  /// Decrypt a ciphertext with counter of size [`BlockCipher::BLOCK_SIZE`] - M bytes
   /// ## Usage
   /// ```
   /// #![allow(incomplete_features)]
@@ -86,10 +88,10 @@ where [(); C::BLOCK_SIZE / 2]:
   /// let mut rng = thread_rng();
   /// let rand_key: [u8; 16] = rng.gen();
   /// let key = Key::<128>::new(rand_key);
-  /// let nonce: [u8; AES::<128>::BLOCK_SIZE / 2] = rng.gen();
-  /// let counter: Counter<{ AES::<128>::BLOCK_SIZE / 2 }> = Counter::from(0);
+  /// let nonce: [u8; 12] = rng.gen();
+  /// let counter: Counter<4> = Counter::from(0);
   ///
-  /// let ctr = CTR::<AES<128>>::new(nonce);
+  /// let ctr = CTR::<AES<128>, 4>::new(nonce);
   /// let plaintext = b"Hello World!";
   ///
   /// let ciphertext = ctr.encrypt(&key, &counter, plaintext).unwrap();
@@ -98,7 +100,7 @@ where [(); C::BLOCK_SIZE / 2]:
   pub fn decrypt(
     &self,
     key: &C::Key,
-    counter: &Counter<{ C::BLOCK_SIZE / 2 }>,
+    counter: &Counter<M>,
     ciphertext: &[u8],
   ) -> Result<Vec<u8>, String> {
     self.encrypt(key, counter, ciphertext)
@@ -130,10 +132,10 @@ mod tests {
   fn ctr(rand_key: Key<128>) {
     for _ in 0..10 {
       let mut rng = thread_rng();
-      let nonce: [u8; AES::<128>::BLOCK_SIZE / 2] = rng.gen();
-      let counter: Counter<{ AES::<128>::BLOCK_SIZE / 2 }> = Counter::from(0);
+      let nonce: [u8; AES::<128>::BLOCK_SIZE - 4] = rng.gen();
+      let counter: Counter<4> = Counter::from(0);
 
-      let ctr = CTR::<AES<128>>::new(nonce);
+      let ctr = CTR::<AES<128>, 4>::new(nonce);
 
       let plaintext = rand_message(rng.gen_range(1000..10000));
       let ciphertext = ctr.encrypt(&rand_key, &counter, &plaintext).unwrap();

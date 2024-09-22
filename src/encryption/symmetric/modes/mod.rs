@@ -6,3 +6,4 @@
 #![doc = include_str!("./README.md")]
 pub mod cbc;
 pub mod ctr;
+pub mod gcm;
