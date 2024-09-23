@@ -81,8 +81,9 @@ X_{i} =
 \end{cases}
 $$
 
-$B_{i}$ represents blocks of AAD followed by blocks of ciphertext followed by special length block.
+$B_{i}$ represents blocks of AAD followed by blocks of ciphertext followed by a special length block.
 The length block consists of 64-bit lengths(in bits) of AAD and ciphertext.
+$H$ called the hash key, is the encryption of 128-bit of zeros using the chosen cipher and key.
 
 The interesting thing to note here is that the multiplication($*$) and addition($\oplus$) are operations of the Galois(finite) field of order $2^{128}$. 
 A brief summary of finite field arithmetic,
