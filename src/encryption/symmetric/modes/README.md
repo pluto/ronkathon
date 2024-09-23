@@ -8,21 +8,46 @@ Appropriate padding has to be performed for some modes, as block ciphers only wo
 
 Let's go into detail about Block cipher's [mode of operation](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation):
 
-## ECB: Electronic codebook
-- deterministic, so not CPA-secure.
-- can be parallelised easily.
-## CBC: cipher block chaining
-- IV chosen uniformly and $c_{0}=IV$, then $c_{i}=F_{k}(c_{i-1} \oplus m_{i})$
-- sequential in nature, although decryption can be parallelised as inputs to block cipher's encryption is just the ciphertext
-- chained CBC, where ciphertext is chained for subsequent encryptions.
-  - But it's not CPA secure, as attacker can distinguish between PRF and uniform random function by choosing appropriate text in second encryption.
+## ECB: Electronic codebook (INSECURE)
+
+![ECB](./figure_ecb.svg)
+
+- It is the simplest mode of encryption but is not secure.
+- In this we independently apply the block cipher on each block of plaintext. 
+- The algorithm is deterministic, so not secure against Chosen-plaintext Attack(CPA).
+- It can be parallelised easily.
+
+## CBC: Cipher Block Chaining
+
+![CBC](./figure_cbc.svg)
+
+- It is a CPA-secure mode of operation.
+- The first ciphertext block is called an Initialisation Vector(IV), which is chosen uniformly.
+- It is defined as,
+
+$$
+C_{0}=IV, \\
+C_{i}=Enc_{K}(C_{i-1} \oplus M_{i})
+$$
+where,
+    + $C_{i}$ represents blocks of ciphertext.
+    + $Enc_{K}$ is the block cipher with key $K$
+    + $M_{i}$ represents the i-th plaintext block
+
+- It is sequential in nature, although decryption can be parallelised as inputs to block cipher's encryption is just the ciphertext.
+- **Chained CBC**: A variant of CBC where ciphertext is chained for subsequent encryptions.
+  + But it's not CPA secure, as attacker can distinguish between PRF and uniform random function by choosing appropriate text in second encryption.
+  + See the [code example](../../../../examples/aes_chained_cbc.rs) that demonstrates this!
+
 ## OFB: output feedback
+
 - IV is chosen uniformly and $y_{0}:=IV$, then $y_{i}=F_{k}(y_{i-1})$ and $c_{i}=y_{i} \oplus m_{i}$.
 - this allows $F_{k}$ to not be invertible, and can be simply a PRF.
 - Due to this, OFB can be used to encrypt plaintext of arbitrary lengths and not have to be multiple of block length.
 - pseudorandom stream can be preprocessed and then encryption can be really fast.
 - it's stateful variant can be used to instantiate stream cipher's synchronised mode of operation and is secure.
 ## CTR: counter mode
+
 - can be viewed as unsynchronised stream cipher mode, where $y_{i}=F_{k}(\langle IV \parallel i\rangle)$ for binary string $i = 1,2,\dots,$ and $c_{i}=y_{i}\oplus m_{i}$.
 - this again allows $F_{k}$ to not be invertible and can be instantiated with a Pseudorandom function.
 - can be fully parallelised.
