@@ -35,6 +35,18 @@ IV4["IV||2"]-->Fk2[F_k]-->xor2["⨁"]-->c2
 m2-->xor2
 ```
 
+## GCM: Galois/Counter Mode
+
+Here is a figure that gives a complete overview of the GCM mode of operation. In the figure, the size of plaintext is 3 * 128-bit = 384 bits or 48 bytes, Additionally Authenticated Data
+(AAD) is of 2 * 128-bit = 248 bits or 32 bytes.
+
+![GCM](./figure_full_gcm.svg)
+<img src="./figure_full_gcm.svg">
+
+If you look at the figure carefully, you will notice that the GCM mode is composed of two main parts:
+- Encryption: In this part, we encrypt the plaintext and generate the ciphertext. This part is the same as the CTR mode of operation, with minor changes to the counter block.
+- Authentication: In this part, we generate an authentication tag based on Galois Field multiplication.
+
 ## Next Steps
 Implement more modes, and subsequent attacks/vulnerabilities:
 - [ ] CFB
