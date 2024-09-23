@@ -37,21 +37,43 @@ m2-->xor2
 
 ## GCM: Galois/Counter Mode
 
-Here is a figure that gives a complete overview of the GCM mode of operation. In the figure, the size of plaintext is 3 * 128-bit = 384 bits or 48 bytes, Additionally Authenticated Data
-(AAD) is of 2 * 128-bit = 248 bits or 32 bytes. Note that, this section describes GCM for 128-bit block ciphers.
+GCM is a block cipher mode of operation that provides both confidentiality and authentication.
+To provide confidentiality, it uses CTR mode for encryption and decryption.
+To provide authentication, it uses a universal hash function, GHASH.
+Authentication is provided not only for confidential data but also other associated data.
+
+In this section, we will give an informal overview of GCM mode for 128-bit block cipher.
+*To see the formal definition of the operations of GCM, I recommend reading the original paper. [The Galois/Counter Mode of Operation (GCM)](https://csrc.nist.rip/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf)*
+
+The two operations of GCM are authenticated encryption and authenticated decryption.
+
+Here is a figure that gives a complete overview of the authenticated encryption in GCM. 
+
+In the figure, we have taken
+- the size of plaintext is `3 * 128-bit = 384 bits or 48 bytes`, 
+- Additionally Authenticated Data(AAD) is of `2 * 128-bit = 248 bits or 32 bytes`.
 
 ![GCM](./figure_full_gcm.svg)
 
 If you look at the figure carefully, you will notice that the GCM mode is composed of two main parts:
 - Encryption: This part is the same as the CTR mode of operation, with minor changes to the counter block.
-- Authentication: In this part, we generate an authentication tag for the ciphertext along with some additional data, which we refer to as Additionally Authenticated Data(AAD).
+- Authentication: In this part, we generate an authentication tag for the ciphertext and some additional data, which we refer to as Additionally Authenticated Data(AAD).
 
-The authenication algorithm itself has two parts:
-- GHASH: We hash the ciphertext with AAD, This can be viewed as a series of `ADD and MULTIPLY`, mathematically, $J_{i} = ( J_{i-1} \oplus X_{i} ) * H$, where $J$ represents the GHASH,
-$J_{0} = 0$ and $X_{i}$ are 128-bit blocks of AAD followed by ciphertext which is then followed by a block consisting of length of AAD and ciphertext. Also $H$ called the hash key,
-which is 128-bit string of zeros encrypted with our block cipher and key.
-- The GHASH value is XOR-ed with encryption of first counter block.
+The authentication algorithm itself has two parts.
+- GHASH: We hash the ciphertext along with AAD. This can be viewed as a series of `ADD and MULTIPLY`, mathematically, $J_{i} = ( J_{i-1} \oplus X_{i} ) * H$
+- The GHASH value is XOR-ed with the encryption of `Counter Block 0` to generate the final tag.
 
+The interesting thing to note here is that the multiplication($*$) and addition($\oplus$) are operations of the Galois(finite) field of order $2^{128}$. 
+A brief summary of finite field arithmetic is, 
+- The elements of the field can be represented as polynomials.
+- Addition in a finite field is equivalent to bitwise XOR.
+- Multiplication in a finite field is the multiplication of corresponding polynomials divided by an irreducible reducing polynomial.
+
+In GCM the reducing polynomial is $f = 1 + x + x^2 + x^7 + x^128$
+
+If you want to read about Finite Field, the Wikipedia article on [Finite Field Arithemtic](https://en.wikipedia.org/wiki/Galois/Counter_Mode) is pretty good!
+
+Authenticated decryption operation is identical to authenticated encryption, except the tag is generated before the decryption.
 
 ## Next Steps
 Implement more modes, and subsequent attacks/vulnerabilities:
