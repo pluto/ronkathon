@@ -220,7 +220,6 @@ where [(); N / 8]:
         .try_into()
         .unwrap(),
     );
-    assert!(state != State::default(), "State is not instantiated");
 
     // Round 0 - add round key
     Self::add_round_key(&mut state, round_keys.next().unwrap());
