@@ -10,6 +10,8 @@ Let's go into detail about Block cipher's [mode of operation](https://en.wikiped
 
 ## ECB: Electronic codebook (INSECURE)
 
+The encryption operation in ECB can be viewed as,
+
 ![ECB](./figure_ecb.svg)
 
 - It is the simplest mode of encryption but is not secure.
@@ -18,6 +20,8 @@ Let's go into detail about Block cipher's [mode of operation](https://en.wikiped
 - It can be parallelized easily.
 
 ## CBC: Cipher Block Chaining
+
+The encryption operation in CBC can be viewed as,
 
 ![CBC](./figure_cbc.svg)
 
@@ -37,6 +41,8 @@ where,
 
 ## OFB: output feedback
 
+The encryption operation in OFB can be viewed as,
+
 ![OFB](./figure_ofb.svg)
 
 - IV is chosen uniformly and $Y_{0}:=IV$, then $Y_{i}=Enc_{k}(Y_{i-1})$ and $C_{i}=Y_{i} \oplus M_{i}$.
@@ -46,6 +52,8 @@ where,
 - It's stateful variant can be used to instantiate stream cipher's synchronised mode of operation and is secure.
 
 ## CTR: counter mode
+
+The encryption operation in CTR can be viewed as,
 
 ![CTR](./figure_ctr.svg)
 
