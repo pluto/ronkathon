@@ -43,8 +43,7 @@ where [(); C::BLOCK_SIZE - 4]:
   /// (AAD).
   ///
   /// # Parameters
-  /// - `nonce`: A unique nonce for the encryption process (should be '12' bytes
-  ///   long).
+  /// - `nonce`: A unique nonce for the encryption process (should be '12' bytes long).
   /// - `plaintext`: The data to be encrypted.
   /// - `aad`: Additional authenticated data (AAD) that will be included in the authentication tag
   ///   but not encrypted.
@@ -62,7 +61,6 @@ where [(); C::BLOCK_SIZE - 4]:
     plaintext: &[u8],
     aad: &[u8],
   ) -> Result<(Vec<u8>, Vec<u8>), String> {
-
     // The `initial_block` is the first block that is encrypted.
     // This is used in the tag generation step.
     // It consists of two parts, a 96-bit nonce value and 32-bit counter value, which is
@@ -70,7 +68,7 @@ where [(); C::BLOCK_SIZE - 4]:
     let mut initial_block;
     // `counter_start` is the start value for the 32-bit counter.
     let counter_start: [u8; 4];
-    // `new_nonce` is the 96-bit nonce value. 
+    // `new_nonce` is the 96-bit nonce value.
     // That is C::BLOCK_SIZE(=16 bytes) - 4 bytes = 12 bytes = 96-bits!
     // Also NOTE: the compiler is not happy if I write 12 bytes instead of `C::BLOCK_SIZE - 4`. :(
     let new_nonce: [u8; C::BLOCK_SIZE - 4];
