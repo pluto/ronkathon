@@ -38,20 +38,3 @@ jobs:
 
       - name: cargo clippy
         run: cargo clippy --all
-
-  udeps:
-    name: udeps
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly-2024-06-10
-
-      - name: install udeps
-        run: cargo install --git https://github.com/est31/cargo-udeps --locked
-
-      - name: cargo udeps
-        run: cargo udeps

@@ -2,4 +2,4 @@
 # https://rust-lang.github.io/rust-clippy/master/index.html 
 
 # Don't warn for functions with too many arguments. Default: 7
-too-many-arguments-threshold = 10
+too-many-arguments-threshold=10
