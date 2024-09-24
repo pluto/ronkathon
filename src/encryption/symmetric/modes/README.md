@@ -6,7 +6,15 @@ Some operations require *Initialisation vector* (IV) that must not repeat for su
 
 Appropriate padding has to be performed for some modes, as block ciphers only work of fixed size blocks. Since, most of the ciphers are used with [MAC](https://en.wikipedia.org/wiki/Message_authentication_code) that provides integrity guarantees and prevent Chosen-Ciphertext attacks on the protocol, so, [any](https://crypto.stackexchange.com/questions/62379/choice-of-padding-scheme-to-prevent-cbc-padding-oracle-attacks) padding scheme works, most common is PKCS#7 or even null byte padding. Note that, without use of MACs, almost all block ciphers with padding are susceptible to [Padding Oracle Attacks](https://en.wikipedia.org/wiki/Padding_oracle_attack) and should be handled with utmost care.
 
-Let's go into detail about Block cipher's [mode of operation](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation):
+Let's go into detail about Block cipher's [mode of operation](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation).
+
+**Notation**
+
+- $C_{i}$ represents the i-th ciphertext block.
+- $Enc_{K}$ is the block cipher with key $K$
+- $M_{i}$ represents the i-th plaintext block
+
+*Also note that in the figures yellow diamonds represent functions/algorithms and the small rectangle with a blue outline represents blocks of data.*
 
 ## ECB: Electronic codebook (INSECURE)
 
@@ -28,11 +36,7 @@ The encryption operation in CBC can be viewed as,
 - It is a CPA-secure mode of operation.
 - The first ciphertext block is called an Initialisation Vector(IV), which is chosen uniformly at random.
 - It is defined as, $$C_{0}=IV, \quad C_{i}=Enc_{K}(C_{i-1} \oplus M_{i}) $$
-where,
-    + $C_{i}$ represents blocks of ciphertext.
-    + $Enc_{K}$ is the block cipher with key $K$
-    + $M_{i}$ represents the $i$-th plaintext block
-    + and $i$ ranges from 1 to N, the number of blocks required by the plaintext.
+where $i$ ranges from 1 to N, the number of blocks required by the plaintext.
 
 - It is sequential in nature, although decryption can be parallelized as inputs to block cipher's encryption is just the ciphertext.
 - **Chained CBC**: A variant of CBC where ciphertext is chained for subsequent encryptions.
@@ -124,6 +128,26 @@ In GCM the reducing polynomial is $f = 1 + x + x^2 + x^7 + x^{128}$
 If you want to read about Finite Field, the Wikipedia article on [Finite Field Arithemtic](https://en.wikipedia.org/wiki/Galois/Counter_Mode) is pretty good!
 
 The authenticated decryption operation is identical to authenticated encryption, except the tag is generated before the decryption.
+
+## Nonce Reuse Attack
+
+In all modes of operation discussed above, the Initialisation Vector(nonce) should be used only once.
+In case where the nonce is reused, we will be able to obtain the XOR of plaintexts. So, if an adversary has knowledge of one of plaintexts,
+like Known-plaintext attacks, they will be able to obtain the other plaintext.
+
+Let's look that this in action using GCM mode.
+
+Consider the scenario, where the adversary has knowledge of a plaintext, $m_1$ and its corresponding ciphertext, say $c_1 = GCM_{K}(m_1)$ , where $K$ is some key.
+
+Now if the adversary intercepts another ciphertext, say $c_2$, encrypted using the same key $K$ and same nonce. Since GCM (and CTR) is like a stream cipher,
+where ciphertext is obtained by XOR of keystream and the plaintext. So, $c_1 = r_1 \oplus m_1$ and $c_2 = r_2 \oplus m_2$ , where $r_1$ , $r_2$ are some pseudorandom keystreams.
+
+But the same key and nonce pair produce the same keystream, thus, $r_1 = r_2 = r$.
+```math
+c_1 = r \oplus m_1 \quad \text{and} \quad c_2 = r \oplus m_2 \\ \implies c_1 \oplus m_1 = c_2 \oplus m_2  \\ \implies m_2 = c_1 \oplus c_2 \oplus m_1
+```
+So, after some rearrangment we get that message $m_2$ is the XOR of ciphertexts, $c_1$ and $c_2$ and the known plaintext, $m_1$.
+Since adversary has the knowledge of all the required information, the adversary can obtain the original plaintext upto the length of the $m_1$.
 
 ## Next Steps
 Implement more modes, and subsequent attacks/vulnerabilities:
