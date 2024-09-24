@@ -37,3 +37,6 @@ name="aes_chained_cbc"
 
 [[example]]
 name="symmetric_group"
+
+[[example]]
+name="aes_gcm"
