@@ -127,28 +127,23 @@ The authenticated decryption operation is identical to authenticated encryption,
 
 ## Nonce Reuse Attack
 
-In all modes of operation discussed above, the Initialisation Vector(nonce) should be used only once. In case where the nonce is reused, we will be able to obtain the
-XOR of plaintexts, which will be XOR of the ciphertexts. So, if an adversary has knowledge of one of plaintexts, like Known-plaintext attacks, they will be able to obtain the other plaintext.
+In all modes of operation discussed above, the Initialisation Vector(nonce) should be used only once.
+In case where the nonce is reused, we will be able to obtain the XOR of plaintexts. So, if an adversary has knowledge of one of plaintexts,
+like Known-plaintext attacks, they will be able to obtain the other plaintext.
+
 Let's look that this in action using GCM mode.
 
-Consider the scenario, where the adversary has knowledge of a plaintext, $m_1$ and its corresponding ciphertext, say $c_1 = GCM_{K}(m_1)$, where $K$ is some key.
+Consider the scenario, where the adversary has knowledge of a plaintext, $m_1$ and its corresponding ciphertext, say $c_1 = GCM_{K}(m_1)$ , where $K$ is some key.
 
-Now if the adversary intercepts another ciphertext, say $ct_2$, encrypted using the same key $K$ and same nonce.
-Since GCM (and CTR) is like a stream cipher, where ciphertext is obtained by XOR of keystream and the plaintext.
-So, $c_1 = r_1 \oplus m_1$ and $c_2 = r_2 \oplus m_2$, where $r_1, r_2$ is some pseudorandom keystream. 
+Now if the adversary intercepts another ciphertext, say $c_2$, encrypted using the same key $K$ and same nonce. Since GCM (and CTR) is like a stream cipher,
+where ciphertext is obtained by XOR of keystream and the plaintext. So, $c_1 = r_1 \oplus m_1$ and $c_2 = r_2 \oplus m_2$ , where $r_1$ , $r_2$ are some pseudorandom keystreams
 
 But the same key and nonce pair produce the same keystream, thus, $r_1 = r_2 = r$.
-$$
-\begin
-c_1 = r \oplus m_1 \quad \text{and} \quad c_2 = r \oplus m_2 \\
-\implies c_1 \oplus \m_1 = c_2 \oplus m_2 \\
-\implies m_2 = c_1 \oplus c_2 \oplus m_1 
-\end
-$$
-
-So, after some rearrangment we get that unknown plaintext is the XOR of ciphertexts and the known plaintext.
-This way, the adversary can obtain the original plaintext upto the length of the $m_1$.
-
+```math
+c_1 = r \oplus m_1 \quad \text{and} \quad c 2 = r \oplus m 2 \\ \implies c_1 \oplus m_1 = c_2 \oplus m_2  \\ \implies m_2 = c_1 \oplus c_2 \oplus m_1
+```
+So, after some rearrangment we get that message $m_2$ is the XOR of ciphertexts, $c_1$ and $c_2$ and the known plaintext, $m_1$.
+Since adversary has the knowledge of all the required quantities, the adversary can obtain the original plaintext upto the length of the $m_1$.
 
 ## Next Steps
 Implement more modes, and subsequent attacks/vulnerabilities:
