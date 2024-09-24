@@ -1,5 +1,35 @@
 //! Implementation of GCM cipher mode of operation based on NIST GCM specification.
 //! [The Galois/Counter Mode of Operation (GCM)](http://www.csrc.nist.gov/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf)
+//!
+//! GCM has two parts GCTR (used of encryption/decryption) and GHASH (used for authentication).
+//!
+//! GCTR is similar to CTR mode of operation. ASCII diagram of GCTR, courtesy of
+//! @0xJepsen.
+//!            -------------           inc           -------------
+//!            |    ICB    | ----------------------> |    CB2    |
+//!            -------------                         -------------
+//!                  |                                      |
+//!                  v                                      v
+//!            ------------                           ------------
+//!            |  CIPH_K  |                           |  CIPH_K  |
+//!            ------------                           ------------
+//!                  |                                      |
+//!                  v                                      v
+//!             ------------                           ------------
+//!             |    X1    |                           |     X2   |
+//!             ------------                           ------------
+//!                   |                                      |
+//!                   v                       ---------      v
+//!                  XOR                   -->|  Y_1  |---> XOR
+//!                   |                    |  ---------      |
+//!                   v                    |                 v
+//!               --------                 |              --------
+//!               |  Y1  |------------------              |  Y2  |
+//!               --------                                --------
+//!                   |                                       |
+//!                   v                                       v
+//!
+//! GCTR_K (ICB, X1 || X2 || ... || X_n*) = Y1 || Y2 || ... || Y_n*.
 
 use super::ctr::CTR;
 use crate::{

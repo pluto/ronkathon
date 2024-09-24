@@ -50,10 +50,18 @@ to run example code.
 
 ### Encryption
 
+####  Asymmetric
 - [RSA](src/encryption/asymmetric/rsa/README.md)
-- [DES](src/encryption/symmetric/des/README.md)
-- [AES](src/encryption/symmetric/aes/README.md)
-- [ChaCha](src/encryption/symmetric/chacha/README.md)
+
+#### Symmetric
+
+- **Ciphers:**
+    + [DES](src/encryption/symmetric/des/README.md)
+    + [AES](src/encryption/symmetric/aes/README.md)
+    + [ChaCha](src/encryption/symmetric/chacha/README.md)
+
+- [**Modes of Operation**](src/encryption/symmetric/modes/README.md)
+    + ECB, CBC, CTR, GCM
 
 ### Hash
 
