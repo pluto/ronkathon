@@ -6,7 +6,15 @@ Some operations require *Initialisation vector* (IV) that must not repeat for su
 
 Appropriate padding has to be performed for some modes, as block ciphers only work of fixed size blocks. Since, most of the ciphers are used with [MAC](https://en.wikipedia.org/wiki/Message_authentication_code) that provides integrity guarantees and prevent Chosen-Ciphertext attacks on the protocol, so, [any](https://crypto.stackexchange.com/questions/62379/choice-of-padding-scheme-to-prevent-cbc-padding-oracle-attacks) padding scheme works, most common is PKCS#7 or even null byte padding. Note that, without use of MACs, almost all block ciphers with padding are susceptible to [Padding Oracle Attacks](https://en.wikipedia.org/wiki/Padding_oracle_attack) and should be handled with utmost care.
 
-Let's go into detail about Block cipher's [mode of operation](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation):
+Let's go into detail about Block cipher's [mode of operation](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation).
+
+**Notation**
+
+- $C_{i}$ represents the i-th ciphertext block.
+- $Enc_{K}$ is the block cipher with key $K$
+- $M_{i}$ represents the i-th plaintext block
+
+*Also note that in the figures yellow diamonds represent functions/algorithms and the small rectangle with a blue outline represents blocks of data.*
 
 ## ECB: Electronic codebook (INSECURE)
 
@@ -28,11 +36,7 @@ The encryption operation in CBC can be viewed as,
 - It is a CPA-secure mode of operation.
 - The first ciphertext block is called an Initialisation Vector(IV), which is chosen uniformly at random.
 - It is defined as, $$C_{0}=IV, \quad C_{i}=Enc_{K}(C_{i-1} \oplus M_{i}) $$
-where,
-    + $C_{i}$ represents blocks of ciphertext.
-    + $Enc_{K}$ is the block cipher with key $K$
-    + $M_{i}$ represents the $i$-th plaintext block
-    + and $i$ ranges from 1 to N, the number of blocks required by the plaintext.
+where $i$ ranges from 1 to N, the number of blocks required by the plaintext.
 
 - It is sequential in nature, although decryption can be parallelized as inputs to block cipher's encryption is just the ciphertext.
 - **Chained CBC**: A variant of CBC where ciphertext is chained for subsequent encryptions.
