@@ -41,7 +41,7 @@ impl<F: FiniteField> SumCheckProver<F> {
   ///
   /// ## Returns:
   /// - The sum of the polynomial over the boolean hypercube.
-  pub fn sum_poly(&self) -> F { return self.multi_var_poly.sum_over_bool_hypercube(); }
+  pub fn sum_poly(&self) -> F { self.multi_var_poly.sum_over_bool_hypercube() }
 
   /// Generates the univariate polynomial to be sent to the Verifier in the current round of the
   /// protocol.
@@ -74,9 +74,9 @@ impl<F: FiniteField> SumCheckProver<F> {
             .sum_over_bool_hypercube(),
         );
       }
-      return poly_to_send;
+      poly_to_send
     } else {
-      return self.multi_var_poly.coefficients.clone();
+      self.multi_var_poly.coefficients.clone()
     }
   }
 
@@ -113,7 +113,7 @@ impl<F: FiniteField> SumCheckProver<F> {
       self.multi_var_poly = new_multi_var_poly;
     } else {
       self.multi_var_poly =
-        MultiVarPolynomial::new(vec![0], vec![self.multi_var_poly.evaluation(&vec![r])]).unwrap();
+        MultiVarPolynomial::new(vec![0], vec![self.multi_var_poly.evaluation(&[r])]).unwrap();
     }
     self.current_round += 1;
   }
@@ -170,8 +170,8 @@ impl<F: FiniteField> SumCheckVerifier<F> {
     );
     let h_poly_at_0 = h_poly[0];
     let mut h_poly_at_1 = F::ZERO;
-    for i in 0..h_poly.len() {
-      h_poly_at_1 += h_poly[i];
+    for item in h_poly.clone() {
+      h_poly_at_1 += item;
     }
     let sum = h_poly_at_0 + h_poly_at_1;
     assert_eq!(
@@ -187,14 +187,14 @@ impl<F: FiniteField> SumCheckVerifier<F> {
     // we are implementing univariate polynomial evaluation here, since we can't use existing
     // [`Polynomial`] with variable size degree
     let mut new_claim = F::ZERO;
-    for i in 0..h_poly.len() {
-      new_claim += h_poly[i] * challenge.pow(i);
+    for (i, coeff) in h_poly.iter().enumerate() {
+      new_claim += *coeff * challenge.pow(i);
     }
     self.claim = new_claim;
     self.current_round += 1;
     self.challenges_sent.push(challenge);
 
-    return challenge;
+    challenge
   }
 
   /// Verifies the final result of the protocol using the provided oracle.
@@ -247,8 +247,8 @@ impl<F: FiniteField> SumCheck<F> {
   ///
   /// ## Returns:
   /// - A boolean indicating whether the evaluation matches the claim.
-  pub fn evaluation_oracle(&self, r: &Vec<F>, claim: F) -> bool {
-    return self.multi_var_poly.evaluation(r) == claim;
+  pub fn evaluation_oracle(&self, r: &[F], claim: F) -> bool {
+    self.multi_var_poly.evaluation(r) == claim
   }
 
   /// Runs the interactive sum-check protocol between the prover and verifier.

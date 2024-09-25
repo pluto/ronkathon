@@ -125,7 +125,7 @@ where [(); C::BLOCK_SIZE - 4]:
     counter.increment()?;
 
     // Step 2: Encrypt the plaintext using the `CTR` object.
-    let ctr = CTR::<C, 4>::new(new_nonce.try_into().unwrap());
+    let ctr = CTR::<C, 4>::new(new_nonce.into());
     let ciphertext = ctr.encrypt(&self.key, &counter, plaintext)?;
 
     // Step3: Generate Tag
@@ -198,7 +198,7 @@ where [(); C::BLOCK_SIZE - 4]:
     counter.increment()?;
 
     // Step 3: Decrypt ciphertext.
-    let ctr = CTR::<C, 4>::new(new_nonce.try_into().unwrap());
+    let ctr = CTR::<C, 4>::new(new_nonce.into());
     let plaintext = ctr.decrypt(&self.key, &counter, ciphertext)?;
 
     Ok((plaintext.to_vec(), tag))

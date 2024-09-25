@@ -54,10 +54,10 @@ pub struct MultiVarPolynomial<F: FiniteField> {
 fn generate_cartesian_product(l: Vec<usize>) -> Vec<Vec<usize>> {
   let mut result = vec![vec![]];
 
-  for i in 0..l.len() {
+  for element in &l {
     let mut new_result = Vec::new();
     for item in result.iter() {
-      for j in 0..l[i] {
+      for j in 0..*element {
         let mut new_item = item.clone();
         new_item.push(j);
         new_result.push(new_item);
@@ -148,22 +148,20 @@ impl<F: FiniteField> MultiVarPolynomial<F> {
   ///
   /// ## Returns:
   /// - The result of evaluating the polynomial at the given point.
-  pub fn evaluation(&self, r: &Vec<F>) -> F {
+  pub fn evaluation(&self, r: &[F]) -> F {
     assert_eq!(r.len(), self.num_var());
     let degree_plus_1 = self.degree.iter().map(|x| x + 1).collect();
     let cartesian_prod = generate_cartesian_product(degree_plus_1);
     let mut result = F::ZERO;
-    for i in 0..cartesian_prod.len() {
-      let cood = &cartesian_prod[i];
-      let coeff = self.coefficients[i].clone();
+    for (cood, coeff) in cartesian_prod.iter().zip(&self.coefficients) {
       let mut eval_term = F::ONE;
       for j in 0..cood.len() {
         let exp = cood[j];
-        eval_term = eval_term * (r[j].pow(exp));
+        eval_term *= r[j].pow(exp);
       }
-      result += coeff * eval_term;
+      result += *coeff * eval_term;
     }
-    return result;
+    result
   }
 
   /// Returns the number of variables in the polynomial.
@@ -182,7 +180,7 @@ impl<F: FiniteField> MultiVarPolynomial<F> {
       let cood_f: Vec<F> = cood.iter().map(|&x| F::from(x)).collect();
       sum += self.evaluation(&cood_f);
     }
-    return sum;
+    sum
   }
 
   /// Multiplies the polynomial by a scalar.

@@ -73,8 +73,8 @@ impl From<GCMField> for Vec<u8> {
     let mut bytes = Vec::new();
     for block in value.coeffs.chunks(8) {
       let mut byte: u8 = 0;
-      for i in 0..8 {
-        if block[i] == AESField::ONE {
+      for (i, &b) in block.iter().take(8).enumerate() {
+        if b == AESField::ONE {
           byte += (1 << (7 - i)) as u8;
         }
       }
@@ -142,8 +142,8 @@ impl GHASH {
   /// Returns the result of multiplication of two GCMField elements,
   /// modulo the field polynomial, f = 1 + α + α^2 + α^7 + α^128
   fn poly_multiply(x: GCMField, y: GCMField) -> GCMField {
-    let x_coeffs: [AESField; 128] = x.coeffs.try_into().unwrap();
-    let y_coeffs: [AESField; 128] = y.coeffs.try_into().unwrap();
+    let x_coeffs: [AESField; 128] = x.coeffs;
+    let y_coeffs: [AESField; 128] = y.coeffs;
     let poly_x = Polynomial::<Monomial, AESField, 128>::from(x_coeffs);
     let poly_y = Polynomial::<Monomial, AESField, 128>::from(y_coeffs);
     let poly_f =
@@ -166,12 +166,12 @@ impl GHASH {
     r_coeffs.rotate_left(120);
     let r = GCMField { coeffs: r_coeffs.try_into().unwrap() };
 
-    let mut z = GCMField::from(0 as usize);
+    let mut z = GCMField::from(0_usize);
     let mut v = y;
 
     for bit in x.coeffs {
       if bit == AESField::ONE {
-        z = z + v;
+        z += v;
       }
 
       let mut v1 = v.coeffs.to_vec();
@@ -182,7 +182,7 @@ impl GHASH {
       v = GCMField { coeffs: v1.try_into().unwrap() };
 
       if v1_bit == AESField::ONE {
-        v = v + r;
+        v += r;
       }
     }
 
@@ -269,11 +269,11 @@ mod tests {
 
     let zf = GHASH::poly_multiply(xf, yf);
 
-    let z_coeffs: Vec<u8> = zf.try_into().unwrap();
+    let z_coeffs: Vec<u8> = zf.into();
     let z_hex = encode_hex(&z_coeffs);
 
     let expected_zf = GHASH::poly_multiply_spec(xf, yf);
-    let expected_z_coeffs: Vec<u8> = expected_zf.try_into().unwrap();
+    let expected_z_coeffs: Vec<u8> = expected_zf.into();
     let expected_z_hex = encode_hex(&expected_z_coeffs);
 
     println!("Got: {z_hex}\nExp: {expected_z_hex}");

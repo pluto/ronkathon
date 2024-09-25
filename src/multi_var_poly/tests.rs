@@ -16,7 +16,7 @@ fn test_multivar_polynomial_evaluation() {
   let poly = MultiVarPolynomial::<PlutoBaseField>::new(degree, coefficients).unwrap();
 
   // Evaluate the polynomial at (x, y) = (2, 3)
-  let result = poly.evaluation(&vec![PlutoBaseField::new(2), PlutoBaseField::new(3)]);
+  let result = poly.evaluation(&[PlutoBaseField::new(2), PlutoBaseField::new(3)]);
 
   // Calculate the expected result
   let expected = PlutoBaseField::new(43);
@@ -41,7 +41,7 @@ fn test_multivar_from_coods() {
   let poly = MultiVarPolynomial::from_coordinates(coordinates, coefficients).unwrap();
 
   // Evaluate the polynomial at (x, y) = (2, 3)
-  let result = poly.evaluation(&vec![PlutoBaseField::new(2), PlutoBaseField::new(3)]);
+  let result = poly.evaluation(&[PlutoBaseField::new(2), PlutoBaseField::new(3)]);
 
   // Calculate the expected result
   let expected = PlutoBaseField::new(43);
