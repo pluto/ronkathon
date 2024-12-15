@@ -53,7 +53,7 @@ step.
 Merkle Proof, which is a set of hashes, may contain additional information about which branch, left or right, each hash value belonged to.
 
 So, Merkle Proof for $x_3$ will look like:
-{($h_4$, Right), ($h_{0-1}$, Left), ($h_{4-7}$, Right)}
+{($h_4$, Right), ($h_{1-2}$, Left), ($h_{5-8}$, Right)}
 
 You can see for yourself by running the *merkle_tree.r*s example in examples folder.
 
