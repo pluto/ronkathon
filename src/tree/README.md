@@ -21,7 +21,7 @@ To create a Merkle Tree, Bob follows the following steps-
 2. In the next step, we concatenate adjacent hashes and hash it again. Now we are left with 4 hashes.
 3. We repeat the last step, until a single hash is left. This final hash is called the Merkle root hash.
 
-![](./ConstructMerkleTree.mp4)
+![](./ConstructMerkleTree.gif)
 
 Voila! Bob has have created a Merkle tree!
 
