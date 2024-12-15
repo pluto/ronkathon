@@ -125,12 +125,12 @@ impl std::fmt::Display for MerkleTree {
 
 impl std::fmt::Display for Proof {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-      let mut proof_str = String::new();
+    let mut proof_str = String::new();
 
-      for x in self.0.iter() {
-          proof_str.push_str(&format!("{:?}", (hex::encode(x.0), x.1)));
-      }
-      write!(f, "{proof_str}")
+    for x in self.0.iter() {
+      proof_str.push_str(&format!("{:?}", (hex::encode(x.0), x.1)));
+    }
+    write!(f, "{proof_str}")
   }
 }
 
