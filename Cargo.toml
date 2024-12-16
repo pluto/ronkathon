@@ -38,3 +38,6 @@ name="aes_chained_cbc"
 
 [[example]]
 name="symmetric_group"
+
+[[example]]
+name="merkle_tree"
