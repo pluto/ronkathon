@@ -1,6 +1,6 @@
 # Tiny RSA
 
-RSA was one of the firs assymetric cryptographic primitives in which the key used for encryption is different from the key used for decryption.
+RSA was one of the first asymmetric cryptographic primitives in which the key used for encryption is different from the key used for decryption.
 The security of RSA is based on the difficulty of factoring large integers.
 
 ## Key Generation
