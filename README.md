@@ -82,7 +82,7 @@ We have found the following resources helpful in understanding the foundational 
 - [Plonk by Hand P2](https://research.metastate.dev/plonk-by-hand-part-2-the-proof/)
 - [Plonk by Hand P3](https://research.metastate.dev/plonk-by-hand-part-3-verification/)
 
-### Code Refrences
+### Code References
 
 - [Plonkathon](https://github.com/0xPARC/plonkathon/blob/main/README.md)
 - [Plonky3](https://github.com/Plonky3/Plonky3)
