@@ -19,7 +19,7 @@ print(IntegerMod(F101, -1))
 # Lets make our elliptic curve
 E = EllipticCurve(F101, [0, 3])
 
-# lets print out the points, notice they print (x,y,z) the difference between homogenious points and affine points is that to use affine you just divide x,y by z.
+# lets print out the points, notice they print (x,y,z) the difference between homogeneous points and affine points is that to use affine you just divide x,y by z.
 # We can see here that for all points in the curve group z = 1 except the zero point at infinity. So for this field they are the same
 print(E.points())
 
@@ -49,7 +49,7 @@ N = 17
 G2 = E2([36, 31 *X])
 print(G2)
 
-# Now Lets generate the structured refrence string (SRS),
+# Now Lets generate the structured reference string (SRS),
 # we will use the "random" number 2 for the example but in practice it should be strong random.
 # a circuit with n gates requires an SRS with at least
 # n + 5 elements as below
