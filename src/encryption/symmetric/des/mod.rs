@@ -148,7 +148,7 @@ impl DES {
   fn feistel_substitution(data: Block) -> Word {
     let mut output = [0u8; 4];
 
-    // perform 8 substitions
+    // perform 8 substitutions
     for (i, entry) in data.iter().enumerate() {
       // parse row as 6th and 1st bit
       let row = ((entry & 0b100000) >> 4) | (entry & 1);
