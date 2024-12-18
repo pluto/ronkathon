@@ -29,7 +29,7 @@ Returns `None` if the element is zero.
 The `ExtensionField` trait is used to define an extension field of a finite field.
 It inherits from the `FiniteField` trait and enforces that algebraic operations from the base field are implemented.
 It is generic over the prime `P` of the underlying base field as well as the degree `N` of the extension intended.
-The only additional constraint aside from the `FiniteField` trait and adherance to algebraic operations on the base field is:
+The only additional constraint aside from the `FiniteField` trait and adherence to algebraic operations on the base field is:
 - `const IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS: [PrimeField<P>; N + 1]` - The coefficients of the irreducible polynomial that defines the extension field.
 
 We will discuss `PrimeField<P>` momentarily.

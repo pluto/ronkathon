@@ -125,7 +125,7 @@ A brief summary of finite field arithmetic,
 
 In GCM the reducing polynomial is $f = 1 + x + x^2 + x^7 + x^{128}$
 
-If you want to read about Finite Field, the Wikipedia article on [Finite Field Arithemtic](https://en.wikipedia.org/wiki/Galois/Counter_Mode) is pretty good!
+If you want to read about Finite Field, the Wikipedia article on [Finite Field Arithmetic](https://en.wikipedia.org/wiki/Galois/Counter_Mode) is pretty good!
 
 The authenticated decryption operation is identical to authenticated encryption, except the tag is generated before the decryption.
 
@@ -146,7 +146,7 @@ But the same key and nonce pair produce the same keystream, thus, $r_1 = r_2 = r
 ```math
 c_1 = r \oplus m_1 \quad \text{and} \quad c_2 = r \oplus m_2 \\ \implies c_1 \oplus m_1 = c_2 \oplus m_2  \\ \implies m_2 = c_1 \oplus c_2 \oplus m_1
 ```
-So, after some rearrangment we get that message $m_2$ is the XOR of ciphertexts, $c_1$ and $c_2$ and the known plaintext, $m_1$.
+So, after some rearrangement we get that message $m_2$ is the XOR of ciphertexts, $c_1$ and $c_2$ and the known plaintext, $m_1$.
 Since adversary has the knowledge of all the required information, the adversary can obtain the original plaintext upto the length of the $m_1$.
 
 ## Next Steps

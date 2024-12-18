@@ -20,7 +20,7 @@
 //!
 //! let mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField, Init> = PoseidonSponge::new(WIDTH, ALPHA, NUM_P, NUM_F, rate, rc,mds)
 //!
-//! // peform absorption any number of times
+//! // perform absorption any number of times
 //! let mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField, Absorbing> = pluto_poseidon_sponge.start_absorbing();
 //!  let _ = pluto_poseidon_sponge.absorb(&input);
 //! let absorb_res = pluto_poseidon_sponge.absorb(&input);
@@ -142,7 +142,7 @@ impl<F: Field> PoseidonSponge<F, Absorbing> {
   pub fn absorb(&mut self, elements: &[F]) -> Result<&mut Self, &str> {
     let mut remaining_elements = elements;
 
-    // new elements not enough for proceesing in chunks
+    // new elements not enough for processing in chunks
     if self.parameters.absorb_index + remaining_elements.len() <= self.parameters.rate {
       // if new elements doesn't complete current partially filled chunk
       for (i, element) in remaining_elements.iter().enumerate() {
@@ -230,7 +230,7 @@ impl<F: Field> PoseidonSponge<F, Squeezing> {
   ///
   /// let mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField, Init> = PoseidonSponge::new(WIDTH, ALPHA, NUM_P, NUM_F, rate, rc,mds)
   ///
-  /// // peform absorption any number of times
+  /// // perform absorption any number of times
   /// let mut pluto_poseidon_sponge: PoseidonSponge<PlutoBaseField, Absorbing> = pluto_poseidon_sponge.start_absorbing();
   ///  let _ = pluto_poseidon_sponge.absorb(&input);
   /// let absorb_res = pluto_poseidon_sponge.absorb(&input);

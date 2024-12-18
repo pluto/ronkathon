@@ -58,7 +58,7 @@ pub const fn ch(x: u32, y: u32, z: u32) -> u32 { (x & y) ^ (!x & z) }
 
 /// The [Maj](https://en.wikipedia.org/wiki/SHA-2) function used in SHA-256.
 /// This is a logical function used in the hash computation used to select the "majority" of the
-/// calues of `x`, `y`, and `z`.
+/// values of `x`, `y`, and `z`.
 pub const fn maj(x: u32, y: u32, z: u32) -> u32 { (x & y) ^ (x & z) ^ (y & z) }
 
 /// An empty struct to encapsulate the SHA-256 hash function.

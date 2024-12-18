@@ -7,7 +7,7 @@ The Reed-Solomon encoding is a kind of error-correcting code that works by overs
 Our specific case takes a `Message<K, P>` that is a list of `K` field elements for the `PrimeField<P>`. 
 We can then call the `encode::<N>()` method on the `Message<K, P>` to get a `Codeword<N, K, P>` that is an encoded version of message with redundancy added.
 
-First, we create a polynomial in `Monomial` form from our messsage by having each element of the message be a coefficient of the polynomial.
+First, we create a polynomial in `Monomial` form from our message by having each element of the message be a coefficient of the polynomial.
 To do this encoding, we get the `N`th root of unity in the field and evaluate the polynomial at each of the powers of that root of unity.
 We then store these evaluations in the codeword along with the point at which they were evaluated.
 In effect, this is putting  polynomial into the Lagrange basis where the node points are the `N`th roots of unity.

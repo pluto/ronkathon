@@ -29,7 +29,7 @@ fn attacker<'a>(key: &Key<128>, iv: &Block, ciphertext: Vec<u8>) -> &'a [u8] {
   // first blocks' ciphertext
   let c1 = &ciphertext[..16];
 
-  // select new IV as last blocks' ciphertext and intiate CBC with AES again with new IV
+  // select new IV as last blocks' ciphertext and initiate CBC with AES again with new IV
   let new_iv: [u8; 16] = ciphertext[ciphertext.len() - 16..].try_into().unwrap();
   let cbc2 = CBC::<AES<128>>::new(Block(new_iv));
 

@@ -11,7 +11,7 @@
 
 ## Implementation details
 
-- limbs of `8 bits` are used to denote different types, i.e. `64, 56, 48, 32` in the encrpytion function.
+- limbs of `8 bits` are used to denote different types, i.e. `64, 56, 48, 32` in the encryption function.
 - all data is represented in **big-endian** order.
 - Refer to [tests](./tests.rs) for detailed examples and attack vectors.
   - Known-plaintext attack: brute force approach using exhaustive key search on the complete key space, i.e $[0,1<<2^{56}-1]$.
@@ -86,11 +86,11 @@ classDef hidden display: none;
 - Feistel function (F): applies substitution and permutation to key
 - Mixing: mix two halves together
 - Switching: switches left and right halves
-- Final Permuation (FP)
+- Final Permutation (FP)
 
 ### Feistel function
 
-Applies substitution, permutation to key which adds to the complexity of the function and increases cryptanalysis difficulty. For subsitution, DES uses S-boxes that takes as input 8-bits and output is of length 6-bits.
+Applies substitution, permutation to key which adds to the complexity of the function and increases cryptanalysis difficulty. For substitution, DES uses S-boxes that takes as input 8-bits and output is of length 6-bits.
 
 ```mermaid
 flowchart TB
@@ -120,7 +120,7 @@ P--32 bits-->Output:::hidden
 - use **Expansion** permutation to increase bits to **48**
 - Mix the expanded key with round's subkey using xor
 - Divides 48-bit output into 8 6-bits elements
-- Applies subsitution using 8 S-boxes to each element
+- Applies substitution using 8 S-boxes to each element
 - Applies permutation using permutation table to get **32-bit** output
 
 
