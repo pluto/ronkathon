@@ -63,5 +63,13 @@
   description: "Needs discussion or decisions"
 
 - name: "bounty 🏴‍☠️"
-  color: "#fef2c0"
+  color: "fef2c0"
   description: "Closing this rewards a bounty!"
+
+- name: "attack 🤺"
+  color: "ff2c2c"
+  description: "An attack on a given implementation"
+
+- name: "needs more information 🙋"
+  color: "ccff00"
+  description: "More needed to clarify the issue"
