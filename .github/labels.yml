@@ -1,0 +1,67 @@
+- name: "bug 🐛"
+  color: "d73a4a"
+  description: "Something isn't working"
+
+- name: "documentation 📜"
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: "feature ✨"
+  color: "a2eeef"
+  description: "New feature or request"
+
+- name: "performance ⚡"
+  color: "fbca04"
+  description: "Benchmarks or performance improvements"
+
+- name: "question ❓"
+  color: "5319e7"
+  description: "Further information is requested"
+
+- name: "structure 🧱"
+  color: "0052cc"
+  description: "Structure refactors or changes"
+
+- name: "test ✏️"
+  color: "0e8a16"
+  description: "Testing improvements"
+
+- name: "priority-high 🔥"
+  color: "b60205"
+  description: "High priority tasks"
+
+- name: "priority-medium ⚡"
+  color: "fbca04"
+  description: "Medium priority tasks"
+
+- name: "priority-low 🌱"
+  color: "0e8a16"
+  description: "Low priority tasks"
+
+- name: "good first issue 👋"
+  color: "7057ff"
+  description: "Good for newcomers"
+
+- name: "help wanted 🆘"
+  color: "008672"
+  description: "Extra attention is needed"
+
+- name: "tech debt 🏗️"
+  color: "ff7619"
+  description: "Technical debt and cleanup tasks"
+
+- name: "ci/cd 🔄"
+  color: "44cc11"
+  description: "Changes to CI/CD pipeline"
+
+- name: "dependencies 📦"
+  color: "cb7eed"
+  description: "Dependency updates and maintenance"
+
+- name: "discussion 💭"
+  color: "5319e7"
+  description: "Needs discussion or decisions"
+
+- name: "bounty 🏴‍☠️"
+  color: "#fef2c0"
+  description: "Closing this rewards a bounty!"
