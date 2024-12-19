@@ -61,3 +61,7 @@
 - name: "discussion 💭"
   color: "5319e7"
   description: "Needs discussion or decisions"
+
+- name: "bounty 🏴‍☠️"
+  color: "#fef2c0"
+  description: "Closing this rewards a bounty!"
