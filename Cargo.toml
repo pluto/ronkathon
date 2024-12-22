@@ -1,6 +1,6 @@
 [package]
-authors    =["Pluto Authors"]
-description="""ronkathon"""
+authors    =["Pluto Community"]
+description="Cryptography Educational Foundations"
 edition    ="2021"
 license    ="Apache2.0 OR MIT"
 name       ="ronkathon"
