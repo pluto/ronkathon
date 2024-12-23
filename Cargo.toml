@@ -1,26 +1,26 @@
 [package]
-authors    =["Pluto Authors"]
-description="""ronkathon"""
+authors    =["Pluto Community"]
+description="Cryptography Educational Foundations"
 edition    ="2021"
-license    ="Apache2.0 OR MIT"
+license    ="MIT OR Apache-2.0"
 name       ="ronkathon"
 repository ="https://github.com/pluto/ronkathon"
 version    ="0.1.0"
-exclude    =["CHANGELOG.md"]
+exclude    =["CHANGELOG.md", "src/tree/ConstructMerkleTree.gif"]
 
 [dependencies]
-rand     ="0.8.5"
-itertools="0.13.0"
-hex      ="0.4.3"
+rand     ="0.8"
+itertools="0.13"
+hex      ="0.4"
 
 [dev-dependencies]
-rstest               ="0.23.0"
-pretty_assertions    ="1.4.1"
-sha2                 ="0.10.8"
+rstest               ="0.23"
+pretty_assertions    ="1.4"
+sha2                 ="0.10"
 ark-ff               ={ version="0.5", features=["std"] }
 ark-crypto-primitives={ version="0.5", features=["sponge"] }
-des                  ="0.8.1"
-chacha20             ="0.9.1"
+des                  ="0.8"
+chacha20             ="0.9"
 
 [[bin]]
 name="hmac_sha256_bin"
