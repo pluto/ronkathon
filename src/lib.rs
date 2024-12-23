@@ -32,6 +32,7 @@ pub mod encryption;
 pub mod hashes;
 pub mod hmac;
 pub mod kzg;
+pub mod lwe;
 pub mod multi_var_poly;
 pub mod polynomial;
 pub mod sumcheck;
