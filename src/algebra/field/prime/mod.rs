@@ -36,7 +36,7 @@ pub type AESField = PrimeField<2>;
 
 /// The [`PrimeField`] struct represents elements of a field with prime order. The field is defined
 /// by a prime number `P`, and the elements are integers modulo `P`.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default, PartialOrd)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
 pub struct PrimeField<const P: usize> {
   pub(crate) value: usize,
 }
