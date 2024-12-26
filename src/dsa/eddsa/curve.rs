@@ -2,7 +2,8 @@
 //!
 //! References (with abbreviation used in the code)
 //! [RFC8032] "Edwards-Curve Digital Signature Algorithm (EdDSA)"
-//! [EdwardsRevisited] "Twisted Edwards Curves Revisited", Hisil, H., Wong, K., Carter, G., and E. Dawson
+//! [EdwardsRevisited] "Twisted Edwards Curves Revisited", Hisil, H., Wong, K., Carter, G., and E.
+//! Dawson
 use std::ops::{Add, AddAssign, Mul};
 
 use crypto_bigint::{
@@ -58,7 +59,7 @@ pub const SF_ZERO64: ScalarField64 = ScalarField64::new(&U512::ZERO);
 /// '1' of type `ScalarField`
 pub const SF_ONE: ScalarField = ScalarField::new(&U256::ONE);
 
-/// Represents a point on the Ed25519 curve in extended homogenous coordinates.
+/// Represents a point on the Ed25519 curve in extended homogeneous coordinates.
 #[derive(Debug, Clone, Copy)]
 pub struct Coordinate {
   x: BaseField,
@@ -106,7 +107,6 @@ pub fn sqrt(val: &BaseField) -> Option<BaseField> {
   } else {
     return None;
   }
-
 }
 
 impl Coordinate {
@@ -118,7 +118,7 @@ impl Coordinate {
     Self { x, y, t, z }
   }
 
-  /// Double the `Coordinate` using the equations for the extended homogenous coordinates which
+  /// Double the `Coordinate` using the equations for the extended homogeneous coordinates which
   /// avoid the expensive field inversion operations given in the section 3.3 of [EdwardsRevisited]
   pub fn double(&self) -> Self {
     let a = self.x.square();
@@ -138,7 +138,7 @@ impl Coordinate {
     Self { x, y, t, z }
   }
 
-  /// Encode a `Coordinate` on the curve for a compact represetation.
+  /// Encode a `Coordinate` on the curve for a compact representation.
   pub fn encode(&self) -> [u8; 32] {
     let x = self.x * inv(self.z);
     let y = self.y * inv(self.z);
@@ -182,7 +182,7 @@ impl Coordinate {
 
 impl PartialEq for Coordinate {
   fn eq(&self, other: &Self) -> bool {
-    // Convert the extended homogenous coordinates to affine coordinates before comparison.
+    // Convert the extended homogeneous coordinates to affine coordinates before comparison.
     let x1 = self.x * inv(self.z);
     let y1 = self.y * inv(self.z);
 
@@ -196,7 +196,7 @@ impl PartialEq for Coordinate {
 impl Add for Coordinate {
   type Output = Self;
 
-  /// Add two `Coordinate`s, using the equations for the extended homogenous coordinates which
+  /// Add two `Coordinate`s, using the equations for the extended homogeneous coordinates which
   /// avoid the expensive field inversion operation given the section 3.2 of [EdwardsRevisited]
   fn add(self, rhs: Self) -> Self::Output {
     let a = (self.y - self.x) * (rhs.y - rhs.x);
