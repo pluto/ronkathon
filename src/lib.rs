@@ -27,7 +27,7 @@ pub mod algebra;
 pub mod codes;
 pub mod compiler;
 pub mod curve;
-pub mod ecdsa;
+pub mod dsa;
 pub mod encryption;
 pub mod hashes;
 pub mod hmac;
