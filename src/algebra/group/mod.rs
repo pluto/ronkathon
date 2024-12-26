@@ -66,6 +66,6 @@ pub trait AbelianGroup: Group {
 #[const_trait]
 /// Finite cyclic group trait defined by a generator element and order of the group
 pub trait FiniteCyclicGroup: FiniteGroup + AbelianGroup {
-  /// primtive element of group
+  /// primitive element of group
   const GENERATOR: Self;
 }

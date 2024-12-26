@@ -60,7 +60,7 @@ pub trait StreamCipher {
 
 /// Trait for block ciphers that works on bytes of specific sizes
 pub trait BlockCipher {
-  /// Block size in bytes for cipher oprations
+  /// Block size in bytes for cipher operations
   const BLOCK_SIZE: usize;
   /// Block acted upon by the cipher
   type Block: AsRef<[u8]> + AsMut<[u8]> + From<Vec<u8>> + Copy + PartialEq;

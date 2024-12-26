@@ -54,7 +54,7 @@ pub struct Cell {
 }
 
 impl Cell {
-  /// Assign a domain value to a cell where `row` represents power of primtive root of unity and
+  /// Assign a domain value to a cell where `row` represents power of primitive root of unity and
   /// `column` represents coset value: $k*\omega^(row)$
   fn label(&self, group_order: usize) -> PlutoScalarField {
     let col: u32 = self.column as u32;

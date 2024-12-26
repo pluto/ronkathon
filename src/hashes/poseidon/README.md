@@ -50,12 +50,12 @@ MDS (Maximally distance separable) matrix are uses in the linear layer of the ro
 
 Each hash functions' state is divided into two sections:
 - `rate`: rate at which new elements are absorbed by the sponge
-- `capacity`: remanining elements in sponge state.
+- `capacity`: remaining elements in sponge state.
 
 Sponge behavior, based on `Sponge` metaphor which can be explained by following functions:
 - `Absorb`: absorbs new field elements $\mathbb{F}_p$ into sponge state.
   - For example: if sponge width is `10` units and sponge rate is `3`, then if a `15` unit input is entered, its divided into `5` chunks of `3` units and added to sponge state.
-  - After each chunk addition, permutation is peformed, until all chunks are absorbed.
+  - After each chunk addition, permutation is performed, until all chunks are absorbed.
 - `Squeeze`: after the absorption, hash's output is returned using squeezing of sponge state.
   - For example: for a sponge with width of `10` units and rate of `3`, if hash output of `25` units is required, then:
   - `width` number of elements are squeezed out of sponge state at each iteration.

@@ -41,7 +41,7 @@ pub type ChaCha12 = ChaCha<12, 2, 2>;
 /// [Original](https://cr.yp.to/chacha/chacha-20080128.pdf) ChaCha variant with 8 rounds
 pub type ChaCha8 = ChaCha<8, 2, 2>;
 
-/// Nothing-up-my-sleeve constant used as first four words in encrpytion state:
+/// Nothing-up-my-sleeve constant used as first four words in encryption state:
 /// `["expa", "nd 3", "2-by", "te-k"]`
 pub const STATE_CONSTS: [u32; 4] = [0x61707865, 0x3320646e, 0x79622d32, 0x6b206574];
 
@@ -49,7 +49,7 @@ pub const STATE_CONSTS: [u32; 4] = [0x61707865, 0x3320646e, 0x79622d32, 0x6b2065
 pub type Key = [u32; 8];
 
 /// ChaCha cipher counter consisting of big-endian integer using 32 bits limbs, usually 2 for
-/// orignal variant and 1 for IETF variant
+/// original variant and 1 for IETF variant
 #[derive(Debug, Clone, Copy)]
 pub struct Counter<const C: usize> {
   value: [u32; C],
