@@ -5,15 +5,12 @@
 **What are digital signatures?** 
 
 Just like its name, **Digital Signatures** are digital analogs of physical signatures. For example, when you want to write a cheque you have to "sign" it for authentication purposes. But think about how you would do the same over the internet. 
-Here is where **Digital Signatures** come into the picture. Just like physical signatures, digital signatures provide *authenticity*. Like how physical signatures on a cheque provide
-a way to "verify" the identity of a signer.
-Digital signatures also provide integrity. That is, they provide a mechanism to detect unauthorized modification.
-Digital signatures also have another nice property: non-repudiation. Once a signer signs a message or a document, they cannot deny having done so.
+Here is where **Digital Signatures** come into the picture. 
 
-In conclusion, **Digital Signatures** have the following properties:
-1. Integrity
-2. Authenticity
-3. Non-repudiation
+**Digital Signatures** have the following properties:
+1. **Authenticity**: Just like physical signatures, digital signatures provide a way to verify the identity of a signer.
+2. **Integrity**: Digital signatures provide a mechanism to detect unauthorized modification to a message.
+3. **Non-repudiation**: Digital signatures have a nice property that once a signer signs a message, they cannot deny having done so.
 
 **How does a digital signature scheme look like?**
 
@@ -28,13 +25,14 @@ It outputs bit 1 if the signature is valid for the given message and public key,
 
 To explain how digital signature schemes are used, let's take the example of two people, Bobby and Alex.
 Bobby is the one whose signature is required, so Bobby will run the $Gen(1^n)$ algorithm to obtain, $pk, sk$. 
-Then, the public key, $pk$, is publicized as belonging to Bobby. This way it can be verified that $pk$ actually belongs to Bobby. This one of the critical parts of a secure digital signature scheme. 
+Then, the public key, $pk$, is publicized as belonging to Bobby. This not only provides authentication but also ensures non-repudiation. This one of the critical parts of a secure digital signature scheme. 
 You can read more on this here: [Public key infrastructure](https://en.wikipedia.org/wiki/Public_key_infrastructure)
 
 ![](./keygen.gif)
 
 Now when Alex sends a message(document, contract, etc.), $m$, for Bobby to sign, they compute the signature, $s$ as, $s\leftarrow Sign(sk,m)$ and sents $s$ to Alex or any other party who wants to take a look.
-Now, any party who wants to see if Bobby signed the document or not, applies the verification algorithm using the public key as $Verify(pk,m,s)$.
+Now, any party who wants to see if Bobby signed the document or not, applies the verification algorithm using the public key as $Verify(pk,m,s)$. Thus Alex or any other party can be sure of the authenicity of
+the signature as well as the integrity of the message.
 
 ![](./sign_and_verify.gif)
 
