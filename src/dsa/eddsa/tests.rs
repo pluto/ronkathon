@@ -10,6 +10,15 @@ use test::Bencher;
 
 use super::*;
 
+#[test]
+fn test_simple() {
+  let (sk, pk) = Ed25519::keygen(None);
+  let msg = b"Hello World";
+
+  let signature = Ed25519::sign(sk, pk, msg);
+  assert!(Ed25519::verify(pk, msg, signature));
+}
+
 /// Test the `Ed25519` digital signature scheme using the test vectors given in Section 7.1 of RFC
 /// 8032.
 #[rstest]
@@ -49,7 +58,7 @@ fn test_small(
   #[case] msg: &[u8],
   #[case] expected_signature: [u8; 64],
 ) {
-  let (_, public_key) = Ed25519::keygen(secret_key);
+  let (_, public_key) = Ed25519::keygen(Some(secret_key));
   assert_eq!(public_key, expected_public_key);
 
   let signature = Ed25519::sign(secret_key, public_key, msg);
@@ -82,7 +91,7 @@ fn test_large() {
 
     let msg = decode_hex(&v[2]).unwrap();
 
-    let (_, public_key) = Ed25519::keygen(secret_key);
+    let (_, public_key) = Ed25519::keygen(Some(secret_key));
     assert_eq!(public_key, expected_public_key);
 
     let signature = Ed25519::sign(secret_key, public_key, &msg);
@@ -101,7 +110,7 @@ fn bench_keygen(b: &mut Bencher) {
 
   b.iter(|| {
     let sk = test::black_box(sk_b);
-    Ed25519::keygen(sk)
+    Ed25519::keygen(Some(sk))
   });
 }
 
@@ -113,7 +122,7 @@ macro_rules! bench_sign {
       let sk_v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
       let mut sk_b = [0u8; 32];
       sk_b.copy_from_slice(&sk_v);
-      let (_, pk_b) = Ed25519::keygen(sk_b);
+      let (_, pk_b) = Ed25519::keygen(Some(sk_b));
 
       let msg_v: Vec<_> = (0..$n).map(|_| rng.gen_range(0..=255)).collect();
       let mut msg_b = [0u8; $n];
@@ -147,7 +156,7 @@ macro_rules! bench_verify {
       let sk_v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
       let mut sk_b = [0u8; 32];
       sk_b.copy_from_slice(&sk_v);
-      let (_, pk_b) = Ed25519::keygen(sk_b);
+      let (_, pk_b) = Ed25519::keygen(Some(sk_b));
 
       let msg_v: Vec<_> = (0..$n).map(|_| rng.gen_range(0..=255)).collect();
       let mut msg_b = [0u8; $n];

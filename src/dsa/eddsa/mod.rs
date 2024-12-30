@@ -4,6 +4,7 @@
 //!     1. [RFC8032] "Edwards-Curve Digital Signature Algorithm (EdDSA)".
 use crypto_bigint::{Encoding, U256, U512};
 use curve::{Coordinate, ScalarField, ScalarField64, GENERATOR, ORDER};
+use rand::Rng;
 use sha2::{Digest, Sha512};
 
 pub mod curve;
@@ -46,18 +47,29 @@ fn reduce_by_order(x: [u8; 64]) -> [u8; 32] {
 pub struct Ed25519;
 
 impl Ed25519 {
-  /// Generates the `public_key` given the `private_key`.
+  /// Generates the `public_key` using the `private_key`, if given, otherwise randomly generates
+  /// one.
   ///
-  /// The `private_key` should be a randomly generated 32-byte array.
   /// Returns both the keys as a (private_key, public_key) tuple.
-  pub fn keygen(private_key: [u8; 32]) -> ([u8; 32], [u8; 32]) {
-    let keyhash = sha512_hash(&private_key);
+  pub fn keygen(private_key: Option<[u8; 32]>) -> ([u8; 32], [u8; 32]) {
+    let pk = match private_key {
+      Some(pk) => pk,
+      None => {
+        let mut rng = rand::thread_rng();
+        let v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
+        let mut a = [0u8; 32];
+        a.copy_from_slice(&v);
+        a
+      },
+    };
+
+    let keyhash = sha512_hash(&pk);
     let mut h = [0u8; 32];
     h.copy_from_slice(&keyhash[..32]);
 
     let a = ScalarField::new(&U256::from_le_bytes(clamp(h)));
     let public_key = GENERATOR * a;
-    (private_key, public_key.encode())
+    (pk, public_key.encode())
   }
 
   /// Sign the `message` using the `public_key` and `private_key`.
