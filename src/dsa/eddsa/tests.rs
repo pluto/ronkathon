@@ -1,8 +1,12 @@
+extern crate test;
+
 use std::num::ParseIntError;
 
 use hex_literal::hex;
 use pretty_assertions::assert_eq;
+use rand::Rng;
 use rstest::*;
+use test::Bencher;
 
 use super::*;
 
@@ -87,3 +91,85 @@ fn test_large() {
     assert!(Ed25519::verify(public_key, &msg, signature));
   }
 }
+
+#[bench]
+fn bench_keygen(b: &mut Bencher) {
+  let mut rng = rand::thread_rng();
+  let sk_v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
+  let mut sk_b = [0u8; 32];
+  sk_b.copy_from_slice(&sk_v);
+
+  b.iter(|| {
+    let sk = test::black_box(sk_b);
+    Ed25519::keygen(sk)
+  });
+}
+
+macro_rules! bench_sign {
+    ($($test_name:ident, $n:literal)+) => {
+    $(#[bench]
+    fn $test_name(b: &mut Bencher) {
+      let mut rng = rand::thread_rng();
+      let sk_v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
+      let mut sk_b = [0u8; 32];
+      sk_b.copy_from_slice(&sk_v);
+      let (_, pk_b) = Ed25519::keygen(sk_b);
+
+      let msg_v: Vec<_> = (0..$n).map(|_| rng.gen_range(0..=255)).collect();
+      let mut msg_b = [0u8; $n];
+      msg_b.copy_from_slice(&msg_v);
+
+      b.iter(|| {
+        let sk = test::black_box(sk_b);
+        let pk = test::black_box(pk_b);
+        let msg = test::black_box(msg_b);
+
+        Ed25519::sign(sk, pk, &msg)
+      });
+    }
+    )+
+  };
+}
+
+bench_sign![
+    bench_sign_100, 100
+    bench_sign_1000, 1000
+    bench_sign_10000, 10000
+    bench_sign_100000, 100000
+];
+
+macro_rules! bench_verify {
+  ($($name:ident, $n:literal)+) => {
+    $(
+    #[bench]
+    fn $name(b: &mut Bencher) {
+      let mut rng = rand::thread_rng();
+      let sk_v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
+      let mut sk_b = [0u8; 32];
+      sk_b.copy_from_slice(&sk_v);
+      let (_, pk_b) = Ed25519::keygen(sk_b);
+
+      let msg_v: Vec<_> = (0..$n).map(|_| rng.gen_range(0..=255)).collect();
+      let mut msg_b = [0u8; $n];
+      msg_b.copy_from_slice(&msg_v);
+
+      let sig_b = Ed25519::sign(sk_b, pk_b, &msg_b);
+
+      b.iter(|| {
+        let pk = test::black_box(pk_b);
+        let msg = test::black_box(msg_b);
+        let sign = test::black_box(sig_b);
+
+        Ed25519::verify(pk, &msg, sign)
+      });
+    }
+    )+
+  };
+}
+
+bench_verify![
+    bench_verify_100, 100
+    bench_verify_1000, 1000
+    bench_verify_10000, 10000
+    bench_verify_100000, 100000
+];
