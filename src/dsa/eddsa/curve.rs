@@ -1,9 +1,9 @@
 //! Contains code related the Ed25519 curve and field as given in [RFC8032]
 //!
 //! References (with abbreviation used in the code)
-//! [RFC8032] "Edwards-Curve Digital Signature Algorithm (EdDSA)"
-//! [EdwardsRevisited] "Twisted Edwards Curves Revisited", Hisil, H., Wong, K., Carter, G., and E.
-//! Dawson
+//!     1. [RFC8032] "Edwards-Curve Digital Signature Algorithm (EdDSA)"
+//!     2. [EdwardsRevisited] "Twisted Edwards Curves Revisited", Hisil, H., Wong, K., Carter, G.,
+//!       and E. Dawson
 use std::ops::{Add, AddAssign, Mul};
 
 use crypto_bigint::{
@@ -12,18 +12,18 @@ use crypto_bigint::{
   Encoding, U256, U512,
 };
 
-// The prime number defining the base field
+// `P`: Prime number defining the base field
 impl_modulus!(P, U256, "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed");
 
-/// The prime `P` minus 2. This is used for calculation of the inverse.
+/// `P` minus 2. Used for calculation of the inverse.
 pub const P_2: U256 =
   U256::from_be_hex("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeb");
 
-/// The order of subgroup.
+/// Subgroup order for the Ed25519 curve.
 pub const ORDER: U256 =
   U256::from_be_hex("1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed");
 
-// The modulus used by `ScalarField64`
+// Modulus used by `ScalarField64`
 impl_modulus!(
     L64,
     U512,
@@ -31,32 +31,33 @@ impl_modulus!(
     1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed"
 );
 
-// The modulus used by 'ScalarField'
+// Modulus used by 'ScalarField'
 impl_modulus!(L, U256, "1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed");
 
-/// Type of a 256-bit element of Ed25519 curve's base field
+/// Type representing a 256-bit element in the Ed25519 curve's base field.
 pub type BaseField = ConstMontyForm<P, { U256::LIMBS }>;
-/// Type of a 512-bit element of Ed25519 curve's scalar field
+/// Type representing a 512-bit element in the Ed25519's scalar field.
 pub type ScalarField64 = ConstMontyForm<L64, { U512::LIMBS }>;
-/// Type of a 256-bit element of Ed25519 curve's scalar field
+/// Type representing a 256-bit element in the Ed25519 curve's scalar field.
 pub type ScalarField = ConstMontyForm<L, { U256::LIMBS }>;
 
-/// '0' of type `BaseField`
+/// Constant representing zero in the base field.
 pub const BF_ZERO: BaseField = BaseField::new(&U256::ZERO);
-/// '1' of type `BaseField`
+/// Constant representing one in the base field.
 pub const BF_ONE: BaseField = BaseField::new(&U256::ONE);
-/// '2' of type `BaseField`
-pub const BF_TWO: BaseField = ConstMontyForm::add(&BF_ONE, &BF_ONE);
+/// Constant representing one in the base field.
+pub const BF_TWO: BaseField = BaseField::new(&U256::from_u8(2u8));
 
+/// Constant 'd' used in curve operations (refer to [RFC8032] for details).
 const D: BaseField = BaseField::new(&U256::from_be_hex(
   "52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3",
 ));
 
-/// '0' of type `ScalarField`
+/// Constant representing zero in the `ScalarField` type.
 pub const SF_ZERO: ScalarField = ScalarField::new(&U256::ZERO);
-/// '0' of type `ScalarField64`
+/// Constant representing zero in the `ScalarField64` type.
 pub const SF_ZERO64: ScalarField64 = ScalarField64::new(&U512::ZERO);
-/// '1' of type `ScalarField`
+/// Constant representing one in the `ScalarField` type.
 pub const SF_ONE: ScalarField = ScalarField::new(&U256::ONE);
 
 /// Represents a point on the Ed25519 curve in extended homogeneous coordinates.
@@ -70,7 +71,8 @@ pub struct Coordinate {
 
 /// The additive identity of the Ed25519 curve group.
 pub const IDENTITY: Coordinate = Coordinate::new(BF_ZERO, BF_ONE);
-/// The point on the Ed25519 curve used as a generator or base point.
+
+/// The point on the Ed25519 curve used as a generator or base point as defined in [RFC8032]
 pub const GENERATOR: Coordinate = Coordinate::new(
   BaseField::new(&U256::from_be_hex(
     "216936d3cd6e53fec0a4e231fdd6dc5c692cc7609525a7b2c9562d608f25d51a",
@@ -82,44 +84,51 @@ pub const GENERATOR: Coordinate = Coordinate::new(
 
 #[inline]
 fn get_sign_bit(x: &BaseField) -> u8 { x.retrieve().to_le_bytes()[0] & 1 }
+
+/// Inverse of a element in the BaseField.
+/// Calculated as: x^(-1) = x^(P-2) (mod P), where P is modulus of the field.
 #[inline]
 fn inv(x: BaseField) -> BaseField { x.pow(&P_2) }
 
 /// Find the square root of an element of the `BaseField`
 /// It uses the algorithm given in Section 5.1.1 of [RFC8032] utilizing the special case of
 /// `P = 5 (mod 8)`. To read more, see: (https://en.wikipedia.org/wiki/Quadratic_residue#Prime_or_prime_power_modulus)
-pub fn sqrt(val: &BaseField) -> Option<BaseField> {
+pub fn sqrt(x: &BaseField) -> Option<BaseField> {
   const TWO: U256 = U256::from_u8(2u8);
   const THREE: U256 = U256::from_u8(3u8);
 
   let mut exp = (P::MODULUS.get() + THREE).shr(3);
-  let y = val.pow(&exp);
+  let y1 = x.pow(&exp);
 
-  if y * y == *val {
-    return Some(y);
+  if y1 * y1 == *x {
+    return Some(y1);
   }
 
   exp = (P::MODULUS.get() - U256::ONE).shr(2);
   let z = BaseField::new(&TWO).pow(&exp);
-  let x = y * z;
-  if x * x == *val {
-    return Some(x);
+  let y2 = y1 * z;
+  if y2 * y2 == *x {
+    return Some(y2);
   } else {
     return None;
   }
 }
 
 impl Coordinate {
-  /// Create an instance of the `Coordinate` given the affine coordinates of a point on the Ed25519
-  /// curve.
+  /// Creates a new `Coordinate` point on the Ed25519 curve from its affine coordinates (x, y).
+
+  /// **Note:** This constructor assumes the provided `x` and `y` coordinates represent a valid
+  /// point on the Ed25519 curve.
   pub const fn new(x: BaseField, y: BaseField) -> Self {
     let z = BF_ONE;
     let t = ConstMontyForm::mul(&x, &y);
     Self { x, y, t, z }
   }
 
-  /// Double the `Coordinate` using the equations for the extended homogeneous coordinates which
-  /// avoid the expensive field inversion operations given in the section 3.3 of [EdwardsRevisited]
+  /// Doubles the current `Coordinate` point.
+  ///
+  /// This method uses the efficient extended homogeneous coordinates doubling formula from
+  /// Section 3.3 of [EdwardsRevisited] to avoid expensive field inversion.
   pub fn double(&self) -> Self {
     let a = self.x.square();
     let b = self.y.square();
@@ -138,40 +147,51 @@ impl Coordinate {
     Self { x, y, t, z }
   }
 
-  /// Encode a `Coordinate` on the curve for a compact representation.
+  /// Encodes the `Coordinate` point into a compact 32-byte representation.
+  ///
+  /// This encoding scheme represents the y-coordinate directly and encodes the x-coordinate's
+  /// sign in the highest bit of the last byte.
   pub fn encode(&self) -> [u8; 32] {
     let x = self.x * inv(self.z);
     let y = self.y * inv(self.z);
+
     let mut s = y.retrieve().to_le_bytes();
-    if get_sign_bit(&x) == 1u8 {
-      s[31] |= 1 << 7;
-    }
+
+    // Set the highest bit the y to the sign of x.
+    s[31] |= get_sign_bit(&x) << 7;
     s
   }
 
-  /// Decode a `Coordinate` on the curve which is encoded using the `encode` method.
+  /// Decodes a `Coordinate` point from its compact 32-byte representation.
+  ///
+  /// Returns `None` if the decoding process fails.
   pub fn decode(mut bytes: [u8; 32]) -> Option<Self> {
     let xsign = bytes[31] >> 7;
     bytes[31] &= !(1 << 7);
     let raw_y = U256::from_le_bytes(bytes);
 
+    // Check if raw_y is valid.
     if raw_y >= P::MODULUS.get() {
       return None;
     }
 
     let y = BaseField::new(&raw_y);
+    // Find x^2, given the value of y on the curve.
     let y2 = y * y;
     let x2 = (y2 - BF_ONE) * inv(D * y2 + BF_ONE);
 
+    // Find the square root of x2 if there is one, other return None
     let mut x = match sqrt(&x2) {
       Some(x) => x,
       None => return None,
     };
 
+    // There is only one correct value of sign of '0' in the basefield.
     if x == BF_ZERO && get_sign_bit(&x) != xsign {
       return None;
     }
 
+    // Correct the sign of x.
     if get_sign_bit(&x) != xsign {
       x = -x;
     }
@@ -181,6 +201,7 @@ impl Coordinate {
 }
 
 impl PartialEq for Coordinate {
+  /// Checks for equality of two `Coordinate` points on the Ed25519 curve.
   fn eq(&self, other: &Self) -> bool {
     // Convert the extended homogeneous coordinates to affine coordinates before comparison.
     let x1 = self.x * inv(self.z);
@@ -196,8 +217,10 @@ impl PartialEq for Coordinate {
 impl Add for Coordinate {
   type Output = Self;
 
-  /// Add two `Coordinate`s, using the equations for the extended homogeneous coordinates which
-  /// avoid the expensive field inversion operation given the section 3.2 of [EdwardsRevisited]
+  /// Adds two `Coordinate` points on the Ed25519 curve.
+  ///
+  /// This implementation uses the efficient extended homogeneous coordinates addition formula
+  /// from Section 3.2 of [EdwardsRevisited] to avoid expensive field inversions.
   fn add(self, rhs: Self) -> Self::Output {
     let a = (self.y - self.x) * (rhs.y - rhs.x);
     let b = (self.y + self.x) * (rhs.y + rhs.x);
@@ -218,13 +241,16 @@ impl Add for Coordinate {
 }
 
 impl AddAssign for Coordinate {
+  /// Adds another `Coordinate` point to the current point in-place.
   fn add_assign(&mut self, rhs: Self) { *self = *self + rhs; }
 }
 
 impl Mul<ScalarField> for Coordinate {
   type Output = Self;
 
-  /// Multiply a `Coordinate` with a `ScalarField`.
+  /// Performs scalar multiplication on a `Coordinate` point.
+  ///
+  /// This implementation uses the double-and-add algorithm for efficient scalar multiplication.
   fn mul(self, rhs: ScalarField) -> Self::Output {
     if rhs == SF_ZERO {
       return IDENTITY;

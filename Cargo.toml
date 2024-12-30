@@ -6,7 +6,7 @@ license    ="MIT OR Apache-2.0"
 name       ="ronkathon"
 repository ="https://github.com/pluto/ronkathon"
 version    ="0.1.0"
-exclude    =["CHANGELOG.md", "src/tree/ConstructMerkleTree.gif"]
+exclude    =["CHANGELOG.md", "src/tree/ConstructMerkleTree.gif", "src/dsa/keygen.gif", "src/dsa/sign_and_verify.gif"]
 
 [dependencies]
 rand          ="0.8"
@@ -14,7 +14,6 @@ itertools     ="0.13"
 hex           ="0.4"
 crypto-bigint ="0.6.0-rc.6"
 sha2          ="0.10"
-hex-literal   ="0.4"
 
 [dev-dependencies]
 rstest               ="0.23"
@@ -23,6 +22,7 @@ ark-ff               ={ version="0.5", features=["std"] }
 ark-crypto-primitives={ version="0.5", features=["sponge"] }
 des                  ="0.8"
 chacha20             ="0.9"
+hex-literal   ="0.4"
 
 [[bin]]
 name="hmac_sha256_bin"

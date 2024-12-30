@@ -6,6 +6,8 @@ use rstest::*;
 
 use super::*;
 
+/// Test the `Ed25519` digital signature scheme using the test vectors given in Section 7.1 of RFC
+/// 8032.
 #[rstest]
 #[case(
     hex!("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"),
@@ -56,8 +58,9 @@ pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
   (0..s.len()).step_by(2).map(|i| u8::from_str_radix(&s[i..i + 2], 16)).collect()
 }
 
+/// Test against the 1024 test vectors given in the ["Ed25519 test vectors", Bernstein et al.
+/// 2011] (http://ed25519.cr.yp.to/python/sign.input)
 #[test]
-// #[ignore]
 fn test_large() {
   let file = include_str!("./test.input");
   let lines: Vec<&str> = file.split('\n').collect();
