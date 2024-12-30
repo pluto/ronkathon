@@ -1,6 +1,6 @@
 # Digital Signature Algorithms (DSA)
 
-### What are digital signatures?** 
+### What are digital signatures?
 
 Like its name, **Digital Signatures** are digital analogs of physical signatures. For example, when you want to write a cheque you have to "sign" it for authentication purposes. But think about how you would do the same over the internet. 
 Here is where **Digital Signatures** come into the picture. 
