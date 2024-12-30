@@ -1,10 +1,8 @@
 # Digital Signature Algorithms (DSA)
 
-## Introduction
+### What are digital signatures?** 
 
-**What are digital signatures?** 
-
-Just like its name, **Digital Signatures** are digital analogs of physical signatures. For example, when you want to write a cheque you have to "sign" it for authentication purposes. But think about how you would do the same over the internet. 
+Like its name, **Digital Signatures** are digital analogs of physical signatures. For example, when you want to write a cheque you have to "sign" it for authentication purposes. But think about how you would do the same over the internet. 
 Here is where **Digital Signatures** come into the picture. 
 
 **Digital Signatures** have the following properties:
@@ -12,7 +10,7 @@ Here is where **Digital Signatures** come into the picture.
 2. **Integrity**: Digital signatures provide a mechanism to detect unauthorized modification to a message.
 3. **Non-repudiation**: Digital signatures have a nice property that once a signer signs a message, they cannot deny having done so.
 
-**How does a digital signature scheme look like?**
+### How does a digital signature scheme look like?
 
 Digital signature schemes consists of three algorithms **Gen**, **Sign**, **Verify**, such that:
 
@@ -21,7 +19,7 @@ Digital signature schemes consists of three algorithms **Gen**, **Sign**, **Veri
 3. The verification algorithm **Verify**, takes as input the public key, a message, and a signature. 
 It outputs bit 1 if the signature is valid for the given message and public key, otherwise 0.
 
-**How is a digital signature scheme used?** 
+### How is a digital signature scheme used?
 
 To explain how digital signature schemes are used, let's take the example of two people, Bobby and Alex.
 Bobby is the one whose signature is required, so Bobby will run the $Gen(1^n)$ algorithm to obtain, $pk, sk$. 
@@ -35,6 +33,15 @@ Now, any party who wants to see if Bobby signed the document or not, applies the
 the signature as well as the integrity of the message.
 
 ![](./sign_and_verify.gif)
+
+### When is a signature scheme said to be secure?
+
+A digital signature scheme is said to be secure if an adversary is unable to generate a forgery, that is, a message (not previously signed) and a valid signature for a fixed public key, in any case.
+
+### Examples of digital signature scheme
+
+1. Elliptic Curve Digital Signature Scheme(ECDSA)
+2. Edwards-Curve Digital Signature Scheme(EdDSA)
 
 ## References
 
