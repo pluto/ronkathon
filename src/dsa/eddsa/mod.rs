@@ -5,20 +5,12 @@
 use crypto_bigint::{Encoding, U256, U512};
 use curve::{Coordinate, ScalarField, ScalarField64, GENERATOR, ORDER};
 use rand::Rng;
-use sha2::{Digest, Sha512};
+
+use crate::hashes::sha512::Sha512;
 
 pub mod curve;
 
 #[cfg(test)] mod tests;
-
-/// Calculates the 64-byte SHA-512 hash.
-fn sha512_hash(bytes: &[u8]) -> [u8; 64] {
-  let mut hasher = Sha512::new();
-  hasher.update(bytes);
-  let mut output: [u8; 64] = [0u8; 64];
-  output.copy_from_slice(&hasher.finalize());
-  output
-}
 
 fn clamp(mut bytes: [u8; 32]) -> [u8; 32] {
   // Set the first three bits to zero.
@@ -63,7 +55,7 @@ impl Ed25519 {
       },
     };
 
-    let keyhash = sha512_hash(&pk);
+    let keyhash = Sha512::digest(&pk);
     let mut h = [0u8; 32];
     h.copy_from_slice(&keyhash[..32]);
 
@@ -89,7 +81,7 @@ impl Ed25519 {
   ///
   /// The 32-byte R and S are concatenated to form the 64-byte signature.
   pub fn sign(private_key: [u8; 32], public_key: [u8; 32], message: &[u8]) -> [u8; 64] {
-    let keyhash = sha512_hash(&private_key);
+    let keyhash = Sha512::digest(&private_key);
 
     let mut s1: [u8; 32] = [0u8; 32];
     s1.copy_from_slice(&keyhash[..32]);
@@ -99,14 +91,14 @@ impl Ed25519 {
     prefix.copy_from_slice(&keyhash[32..]);
 
     let r1 = [&prefix, message].concat();
-    let r2 = sha512_hash(&r1);
+    let r2 = Sha512::digest(&r1);
     let r3 = reduce_by_order(r2);
     let r = ScalarField::new(&U256::from_le_bytes(r3));
 
     let big_r = (GENERATOR * r).encode();
 
     let k1 = [&big_r, &public_key, message].concat();
-    let k2 = sha512_hash(&k1);
+    let k2 = Sha512::digest(&k1);
     let k = ScalarField::new(&U256::from_le_bytes(reduce_by_order(k2)));
 
     let s1 = r + k * s;
@@ -157,7 +149,7 @@ impl Ed25519 {
     };
 
     let k1 = [&big_r, &public_key, message].concat();
-    let k2 = sha512_hash(&k1);
+    let k2 = Sha512::digest(&k1);
     let k = ScalarField::new(&U256::from_le_bytes(reduce_by_order(k2)));
 
     let mut rhs = r + a * k;

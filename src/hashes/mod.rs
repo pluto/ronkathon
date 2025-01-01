@@ -4,6 +4,7 @@
 //! Currently, the only supported algorithm is SHA-256.
 #![doc = include_str!("./README.md")]
 pub mod sha256;
+pub mod sha512;
 use crate::Field;
 pub mod constants;
 pub mod ghash;
