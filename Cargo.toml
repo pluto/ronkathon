@@ -10,7 +10,7 @@ exclude    =["CHANGELOG.md", "src/tree/ConstructMerkleTree.gif"]
 
 [dependencies]
 rand     ="0.8"
-itertools="0.13"
+itertools="0.14"
 hex      ="0.4"
 
 [dev-dependencies]
