@@ -6,6 +6,8 @@ pub mod counter;
 pub mod des;
 pub mod modes;
 
+// TODO (autoparallel): All of these could be simplified and combined given the
+// `AsymmetricEncryption` trait added.
 /// Trait for symmetric encryption primitive
 pub trait SymmetricEncryption {
   /// Key represents the secret key or subkeys used during the encryption algorithm
