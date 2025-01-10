@@ -26,13 +26,13 @@ Bobby is the one whose signature is required, so Bobby will run the $\text{Gen(n
 Then, the public key, $\text{pk}$, is publicized as belonging to Bobby. This not only provides authentication but also ensures non-repudiation. This one of the critical parts of a secure digital signature scheme. 
 You can read more on this here: [Public key infrastructure](https://en.wikipedia.org/wiki/Public_key_infrastructure)
 
-![](./keygen.gif)
+![](../../assets/keygen.gif)
 
-Now when Alex sends a message(document, contract, etc.), $m$, for Bobby to sign, they compute the signature, $s$ as, $s\leftarrow\text{Sign(sk,m}** and sents $s$ to Alex or any other party who wants to take a look.
+Now when Alex sends a message(document, contract, etc.), $m$, for Bobby to sign, they compute the signature, $s$ as, $s\leftarrow\text{Sign(sk,m)}$ and sents $s$ to Alex or any other party who wants to take a look.
 Now, any party who wants to see if Bobby signed the document or not, applies the verification algorithm using the public key as $\text{Verify(pk,m,s)}$. Thus Alex or any other party can be sure of the authenicity of
 the signature as well as the integrity of the message.
 
-![](./sign_and_verify.gif)
+![](../../assets/sign_and_verify.gif)
 
 ### When is a signature scheme said to be secure?
 
