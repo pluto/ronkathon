@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/pluto/ronkathon/compare/v0.1.0...v0.1.1) - 2025-01-07
+
+### Other
+
+- *(deps)* bump itertools from 0.13.0 to 0.14.0 (#180)
+- *(deps)* bump rstest from 0.23.0 to 0.24.0 (#181)
+
 ## [0.1.0](https://github.com/pluto/ronkathon/releases/tag/v0.1.0) - 2024-09-30
 
 ### Added
