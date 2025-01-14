@@ -1,0 +1,18 @@
+[book]
+authors = ["Vaibhav Pathak"]
+language = "en"
+multilingual = false
+src = "book"
+title = "Ronkathon Docs"
+
+[build]
+build-dir = "docs"
+use-default-preprocessors = true
+create-missing = true
+
+[preprocessor.katex]
+after = ["links"]
+
+[output.html]
+default-theme = "dark"
+preferred-dark-theme = "coal"

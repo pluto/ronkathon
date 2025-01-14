@@ -21,7 +21,7 @@ To create a Merkle Tree, Bob follows the following steps-
 2. In the next step, we concatenate adjacent hashes and hash it again using $H$. Now we are left with 4 hashes.
 3. We repeat the last step until a single hash is left. This final hash is called the Merkle root hash.
 
-![](./ConstructMerkleTree.gif)
+![](../../assets/ConstructMerkleTree.gif)
 
 Voila! 
 
@@ -48,7 +48,7 @@ at the current node with the sibling and hash the resultant. Thus, if we are onl
 In the image below, the nodes marked in yellow will be part of the Merkle Proof and the red nodes will recomputed during the verification
 step.
 
-![](./MerkleProof.png)
+![](../../assets/MerkleProof.png)
 
 Merkle Proof, which is a set of hashes, may contain additional information about which branch, left or right, each hash value belonged to.
 
