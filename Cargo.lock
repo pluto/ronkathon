@@ -717,6 +717,7 @@ dependencies = [
  "itertools 0.14.0",
  "pretty_assertions",
  "rand",
+ "regex",
  "rstest",
  "sha2",
 ]

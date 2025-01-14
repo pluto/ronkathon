@@ -1,6 +1,6 @@
 ## Binary Fields
 
-[Binary fields](https://en.wikipedia.org/wiki/GF%282%29) denoted as $GF(2)=Z/2Z$, i.e. quotient ring of integers modulo ring of 2 integers $\{0,1\}, are a special class of Finite Fields, with modulus = $2$. Main properties exhibited by Binary fields are:
+[Binary fields](https://en.wikipedia.org/wiki/GF%282%29) denoted as $GF(2)=Z/2Z$, i.e. quotient ring of integers modulo ring of 2 integers $\{0,1\}$, are a special class of Finite Fields, with modulus = $2$. Main properties exhibited by Binary fields are:
 - Addition corresponds to bitwise XOR
 - Multiplication corresponds to bitwise AND
 - since, $x+x=0\implies x=-x$, i.e. negation of a number is itself

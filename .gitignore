@@ -33,3 +33,9 @@ dump
 
 # coverage files
 lcov.info
+
+# mdbook
+create_mdbook
+book
+mdbook
+docs

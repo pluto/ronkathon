@@ -34,8 +34,8 @@ to run example code.
 
 ## Primitives
 
-- [Finite Group](src/field/group.rs)
-- [Fields and Their Extensions](src/field/README.md)
+- [Finite Group](src/algebra/group/README.md)
+- [Fields and Their Extensions](src/algebra/field/README.md)
   - [Binary Fields](src/field/binary_towers/README.md)
 - [Curves and Their Pairings](src/curve/README.md)
 - [Polynomials](src/polynomial/mod.rs)
