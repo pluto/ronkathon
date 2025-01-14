@@ -36,7 +36,7 @@ fn main() -> io::Result<()> {
     let dest = Path::new(DEST).join(src);
     let dest_folder = dest.parent().unwrap();
     if !dest_folder.exists() {
-      fs::create_dir_all(&dest_folder)?;
+      fs::create_dir_all(dest_folder)?;
     }
     let src_file = File::open(src)?;
     let reader = BufReader::new(src_file);
@@ -46,8 +46,8 @@ fn main() -> io::Result<()> {
     for line in reader.lines() {
       let before = line.unwrap();
       let after = readme_re.replace_all(&before, "index.md");
-      dest_file.write(after.as_bytes())?;
-      dest_file.write(b"\n")?;
+      dest_file.write_all(after.as_bytes())?;
+      dest_file.write_all(b"\n")?;
     }
   }
 
