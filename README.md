@@ -46,7 +46,9 @@ to run example code.
 
 ### Signatures
 
-- [Tiny ECDSA](src/ecdsa.rs)
+- [Digital Signature Algorithms](src/dsa/README.md)
+    - [Elliptic Curve Digital Signature Algorithm(ECDSA)](src/dsa/ecdsa.rs)
+    - [Edwards-Curve Digital Signature Algorithm(EdDSA)](src/dsa/eddsa/mod.rs)
 
 ### Encryption
 
@@ -67,10 +69,6 @@ to run example code.
 
 - [Sha256 Hash](src/hashes/README.md)
 - [Poseidon Hash](src/hashes/poseidon/README.md)
-
-## In Progress
-
-- [ ] Edwards curve Signatures (EdDSA)
 
 ## Resources
 

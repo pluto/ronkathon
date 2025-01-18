@@ -1,9 +1,10 @@
 [book]
-authors = ["Vaibhav Pathak"]
+authors = ["Contributors to Ronkathon"]
 language = "en"
 multilingual = false
 src = "book"
 title = "Ronkathon Docs"
+description = "Cryptography Educational Foundations"
 
 [build]
 build-dir = "docs"
@@ -16,3 +17,4 @@ after = ["links"]
 [output.html]
 default-theme = "dark"
 preferred-dark-theme = "coal"
+git-repository-url = "https://github.com/pluto/ronkathon"

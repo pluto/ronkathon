@@ -1,3 +1,6 @@
+/// Read SUMMARY.md and copy `README.md` files given in it from `src` to `book` directory.
+/// Additionally, change the links to other `README.md` files to `index.md`, so that link
+/// points to correct file in the mdbook.
 use std::{
   fs::{self, File},
   io::{self, BufRead, BufReader, Write},
@@ -22,7 +25,7 @@ fn main() -> io::Result<()> {
 
   for line in reader.lines() {
     for (_, [link]) in re.captures_iter(&line?).map(|c| c.extract()) {
-      if link != "" {
+      if !link.is_empty() {
         readmes.push(PathBuf::from(link));
       }
     }

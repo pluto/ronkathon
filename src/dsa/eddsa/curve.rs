@@ -108,9 +108,9 @@ pub fn sqrt(x: &BaseField) -> Option<BaseField> {
   let z = BaseField::new(&TWO).pow(&exp);
   let y2 = y1 * z;
   if y2 * y2 == *x {
-    return Some(y2);
+    Some(y2)
   } else {
-    return None;
+    None
   }
 }
 
