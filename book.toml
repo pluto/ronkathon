@@ -3,7 +3,7 @@ authors = ["Contributors to Ronkathon"]
 language = "en"
 multilingual = false
 src = "book"
-title = "Ronkathon Docs"
+title = "Ronkathon: Cryptography Educational Foundations"
 description = "Cryptography Educational Foundations"
 
 [build]
