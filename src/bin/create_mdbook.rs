@@ -1,4 +1,4 @@
-/// Read SUMMARY.md and copy `README.md` files given in it from `src` to `book` directory.
+/// Read SUMMARY.md and copy `README.md` files given in it to `book` directory.
 /// Additionally, change the links to other `README.md` files to `index.md`, so that link
 /// points to correct file in the mdbook.
 use std::{

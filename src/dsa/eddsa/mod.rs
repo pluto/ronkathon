@@ -39,12 +39,12 @@ fn reduce_by_order(x: [u8; 64]) -> [u8; 32] {
 pub struct Ed25519;
 
 impl Ed25519 {
-  /// Generates the `public_key` using the `private_key`, if given, otherwise randomly generates
+  /// Generates the `public_key` using the `secret_key`, if given, otherwise randomly generates
   /// one.
   ///
-  /// Returns both the keys as a (private_key, public_key) tuple.
-  pub fn keygen(private_key: Option<[u8; 32]>) -> ([u8; 32], [u8; 32]) {
-    let pk = match private_key {
+  /// Returns both the keys as a (secret_key, public_key) tuple.
+  pub fn keygen(secret_key: Option<[u8; 32]>) -> ([u8; 32], [u8; 32]) {
+    let pk = match secret_key {
       Some(pk) => pk,
       None => {
         let mut rng = rand::thread_rng();
@@ -64,24 +64,25 @@ impl Ed25519 {
     (pk, public_key.encode())
   }
 
-  /// Sign the `message` using the `public_key` and `private_key`.
+  /// Sign the `message` using the `public_key` and `secret_key`.
   ///
   /// It uses the algorithm given in Section 5.1.6 of [RFC8032], which is as follows:
-  ///       Notation: H <- SHA-512 hash function,
-  ///                 Enc <- Encoding function for a point on curve. See `curve.rs`
+  ///       Notation: `H` <- SHA-512 hash function,
+  ///                 `Enc` <- Encoding function for a point on curve. See `curve.rs`
   ///
-  /// 1. `h = H(private_key)`, 64-byte hash of private_key
-  /// 2. Split `h` into two 32-byte halves, `s` and `prefix`. `s` is used as a scalar.
-  /// 3. r = H(prefix | message), hash of prefix concatenated with the message. `r` is used as a
-  ///    scalar.
-  /// 4. R = Enc(r * B), the encoding of scalar multiplication of `B`, the generator the curve
+  /// 1. `h = H(secret_key)`, 64-byte hash of secret_key
+  /// 2. Split `h` into two 32-byte halves, `s` and `prefix`. `s` is converted to an element of the
+  ///    scalar field.
+  /// 3. `r = H(prefix | message)`, hash of prefix concatenated with the message. `r` is converted
+  ///    to an element of the scalar field.
+  /// 4. `R = Enc(r * B)`, the encoding of scalar multiplication of `B`, the generator the curve
   ///    group, with `r`, the scalar from the previous step.
-  /// 5. k = H(R | public_key | message), k is used as a scalar.
-  /// 6. S = r + k * s, where addition and multiplication are of the scalar field.
+  /// 5. `k = H(R | public_key | message)`, k is converted to an element of the scalar field.
+  /// 6. `S = r + k * s`, where addition and multiplication are of the scalar field.
   ///
   /// The 32-byte R and S are concatenated to form the 64-byte signature.
-  pub fn sign(private_key: [u8; 32], public_key: [u8; 32], message: &[u8]) -> [u8; 64] {
-    let keyhash = Sha512::digest(&private_key);
+  pub fn sign(secret_key: [u8; 32], public_key: [u8; 32], message: &[u8]) -> [u8; 64] {
+    let keyhash = Sha512::digest(&secret_key);
 
     let mut s1: [u8; 32] = [0u8; 32];
     s1.copy_from_slice(&keyhash[..32]);
@@ -118,11 +119,11 @@ impl Ed25519 {
   ///                 Decode <- Decoding function for a point on curve. See `curve.rs`
   ///
   /// 1. Split the signature into two 32-byte halves, R and S. R is decoded into a point on the
-  ///    curve. S is used as a scalar.
-  /// 2. A = Decode(public_key), decode the public_key to a point on the curve.
-  /// 3. k = H(R | public_key | message), hash of first 32-byte of signature concatenated with
-  ///    public_key and the message.
-  /// 4. Check if 8 * S * B == 8*(R + k*A).
+  ///    curve. S is converted to an element of the scalar field.
+  /// 2. `A = Decode(public_key)`, decode the public_key to a point on the curve.
+  /// 3. `k = H(R | public_key | message)`, hash of first 32-byte of signature concatenated with
+  ///    public_key and the message. `k` is then converted to an element of the scalar field.
+  /// 4. Check if `8 * S * B` == `8*(R + k*A)`.
   pub fn verify(public_key: [u8; 32], message: &[u8], signature: [u8; 64]) -> bool {
     let mut big_r = [0u8; 32];
     let mut big_s = [0u8; 32];

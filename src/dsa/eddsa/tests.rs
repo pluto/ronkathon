@@ -8,7 +8,7 @@ use rand::Rng;
 use rstest::*;
 use test::Bencher;
 
-use super::*;
+use super::Ed25519;
 
 #[test]
 fn test_simple() {
