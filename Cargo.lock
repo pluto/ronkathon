@@ -715,6 +715,7 @@ dependencies = [
  "hex",
  "hex-literal",
  "itertools 0.14.0",
+ "num-traits",
  "pretty_assertions",
  "rand",
  "regex",

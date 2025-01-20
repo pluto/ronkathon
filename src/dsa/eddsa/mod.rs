@@ -6,7 +6,7 @@ use crypto_bigint::{Encoding, U256, U512};
 use curve::{Coordinate, ScalarField, ScalarField64, GENERATOR, ORDER};
 use rand::Rng;
 
-use crate::hashes::sha512::Sha512;
+use crate::hashes::sha::Sha512;
 
 pub mod curve;
 
@@ -36,16 +36,19 @@ fn reduce_by_order(x: [u8; 64]) -> [u8; 32] {
 }
 
 /// Encapsulates the functions of [`Ed25519`] digital signature scheme.
-pub struct Ed25519;
+pub struct Ed25519 {
+  secret_key: [u8; 32],
+  public_key: [u8; 32],
+}
 
 impl Ed25519 {
   /// Generates the `public_key` using the `secret_key`, if given, otherwise randomly generates
   /// one.
   ///
-  /// Returns both the keys as a (secret_key, public_key) tuple.
-  pub fn keygen(secret_key: Option<[u8; 32]>) -> ([u8; 32], [u8; 32]) {
-    let pk = match secret_key {
-      Some(pk) => pk,
+  /// Returns an instance of Ed25519 struct with secret_key and public_key within it.
+  pub fn new(secret_key: Option<[u8; 32]>) -> Self {
+    let sk = match secret_key {
+      Some(sk) => sk,
       None => {
         let mut rng = rand::thread_rng();
         let v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
@@ -55,13 +58,14 @@ impl Ed25519 {
       },
     };
 
-    let keyhash = Sha512::digest(&pk);
+    let hashfunc = Sha512::new();
+    let keyhash = hashfunc.digest(&sk);
     let mut h = [0u8; 32];
     h.copy_from_slice(&keyhash[..32]);
 
     let a = ScalarField::new(&U256::from_le_bytes(clamp(h)));
     let public_key = GENERATOR * a;
-    (pk, public_key.encode())
+    Self { secret_key: sk, public_key: public_key.encode() }
   }
 
   /// Sign the `message` using the `public_key` and `secret_key`.
@@ -81,8 +85,9 @@ impl Ed25519 {
   /// 6. `S = r + k * s`, where addition and multiplication are of the scalar field.
   ///
   /// The 32-byte R and S are concatenated to form the 64-byte signature.
-  pub fn sign(secret_key: [u8; 32], public_key: [u8; 32], message: &[u8]) -> [u8; 64] {
-    let keyhash = Sha512::digest(&secret_key);
+  pub fn sign(&self, message: &[u8]) -> [u8; 64] {
+    let hashfunc = Sha512::new();
+    let keyhash = hashfunc.digest(&self.secret_key);
 
     let mut s1: [u8; 32] = [0u8; 32];
     s1.copy_from_slice(&keyhash[..32]);
@@ -92,15 +97,15 @@ impl Ed25519 {
     prefix.copy_from_slice(&keyhash[32..]);
 
     let r1 = [&prefix, message].concat();
-    let r2 = Sha512::digest(&r1);
-    let r3 = reduce_by_order(r2);
+    let r2 = hashfunc.digest(&r1);
+    let r3 = reduce_by_order(r2.try_into().unwrap());
     let r = ScalarField::new(&U256::from_le_bytes(r3));
 
     let big_r = (GENERATOR * r).encode();
 
-    let k1 = [&big_r, &public_key, message].concat();
-    let k2 = Sha512::digest(&k1);
-    let k = ScalarField::new(&U256::from_le_bytes(reduce_by_order(k2)));
+    let k1 = [&big_r, &self.public_key, message].concat();
+    let k2 = hashfunc.digest(&k1);
+    let k = ScalarField::new(&U256::from_le_bytes(reduce_by_order(k2.try_into().unwrap())));
 
     let s1 = r + k * s;
     let big_s = s1.retrieve().to_le_bytes();
@@ -124,7 +129,7 @@ impl Ed25519 {
   /// 3. `k = H(R | public_key | message)`, hash of first 32-byte of signature concatenated with
   ///    public_key and the message. `k` is then converted to an element of the scalar field.
   /// 4. Check if `8 * S * B` == `8*(R + k*A)`.
-  pub fn verify(public_key: [u8; 32], message: &[u8], signature: [u8; 64]) -> bool {
+  pub fn verify(&self, message: &[u8], signature: [u8; 64]) -> bool {
     let mut big_r = [0u8; 32];
     let mut big_s = [0u8; 32];
     big_r.copy_from_slice(&signature[..32]);
@@ -144,14 +149,15 @@ impl Ed25519 {
     let s = ScalarField::new(&s_uint);
 
     // Decode the public_key as a point.
-    let a = match Coordinate::decode(public_key) {
+    let a = match Coordinate::decode(self.public_key) {
       Some(x) => x,
       None => return false,
     };
 
-    let k1 = [&big_r, &public_key, message].concat();
-    let k2 = Sha512::digest(&k1);
-    let k = ScalarField::new(&U256::from_le_bytes(reduce_by_order(k2)));
+    let k1 = [&big_r, &self.public_key, message].concat();
+    let hashfunc = Sha512::new();
+    let k2 = hashfunc.digest(&k1);
+    let k = ScalarField::new(&U256::from_le_bytes(reduce_by_order(k2.try_into().unwrap())));
 
     let mut rhs = r + a * k;
     let mut lhs = GENERATOR * s;

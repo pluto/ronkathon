@@ -20,6 +20,7 @@
 #![feature(const_for)]
 #![feature(const_option)]
 #![feature(generic_const_exprs)]
+#![feature(generic_const_items)]
 #![feature(specialization)]
 #![feature(test)]
 #![warn(missing_docs)]
