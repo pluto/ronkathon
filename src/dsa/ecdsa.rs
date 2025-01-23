@@ -1,10 +1,8 @@
 //! ECDSA signature verification
 use std::hash::{DefaultHasher, Hasher};
 
-use algebra::field::FiniteField;
-use curve::CurveGroup;
-
 use super::*;
+use crate::{algebra::field::FiniteField, curve::CurveGroup};
 
 // PARAMETERS
 // *******************************************
@@ -118,9 +116,8 @@ fn hash_and_extract_bits<F: Field>(m: &[u8], bit_count: usize) -> F {
 
 #[cfg(test)]
 mod tests {
-  use algebra::{field::prime::PlutoScalarField, group::FiniteCyclicGroup, Finite};
-
   use super::*;
+  use crate::algebra::{field::prime::PlutoScalarField, group::FiniteCyclicGroup, Finite};
 
   #[test]
   fn test_sign_verify() {

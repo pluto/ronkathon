@@ -20,7 +20,7 @@ Let's go into detail about Block cipher's [mode of operation](https://en.wikiped
 
 The encryption operation in ECB can be viewed as,
 
-![ECB](./figure_ecb.svg)
+![ECB](../../../../assets/figure_ecb.svg)
 
 - It is the simplest mode of encryption but is not secure.
 - In this, we independently apply the block cipher on each block of plaintext. 
@@ -31,7 +31,7 @@ The encryption operation in ECB can be viewed as,
 
 The encryption operation in CBC can be viewed as,
 
-![CBC](./figure_cbc.svg)
+![CBC](../../../../assets/figure_cbc.svg)
 
 - It is a CPA-secure mode of operation.
 - The first ciphertext block is called an Initialisation Vector(IV), which is chosen uniformly at random.
@@ -47,7 +47,7 @@ where $i$ ranges from 1 to N, the number of blocks required by the plaintext.
 
 The encryption operation in OFB can be viewed as,
 
-![OFB](./figure_ofb.svg)
+![OFB](../../../../assets/figure_ofb.svg)
 
 - IV is chosen uniformly and $Y_{0}:=IV$, then $Y_{i}=Enc_{k}(Y_{i-1})$ and $C_{i}=Y_{i} \oplus M_{i}$.
 - This allows $Enc_{k}$ to not be invertible, and can be simply a PRF.
@@ -59,7 +59,7 @@ The encryption operation in OFB can be viewed as,
 
 The encryption operation in CTR can be viewed as,
 
-![CTR](./figure_ctr.svg)
+![CTR](../../../../assets/figure_ctr.svg)
 
 - Like OFB, CTR converts a block cipher to a stream cipher. where the keystream, called the Counter Block, is generated using the nonce/IV concatenated with a counter, which is 
 incremented for successive blocks.
@@ -85,7 +85,7 @@ In the figure, we have taken
 - the size of plaintext is `3 * 128-bit = 384 bits or 48 bytes`, 
 - Additionally Authenticated Data(AAD) is of `2 * 128-bit = 248 bits or 32 bytes`.
 
-![GCM](./figure_full_gcm.svg)
+![GCM](../../../../assets/figure_full_gcm.svg)
 *Note: The yellow diamonds represent functions/algorithms, the small rectangle with a blue outline represents 128-bit blocks.*
 Also,
 - *Enc(K)*: The encryption operation of the cipher used, for example AES, under the key K.

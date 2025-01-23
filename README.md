@@ -34,9 +34,10 @@ to run example code.
 
 ## Primitives
 
-- [Finite Group](src/field/group.rs)
-- [Fields and Their Extensions](src/field/README.md)
-  - [Binary Fields](src/field/binary_towers/README.md)
+- **Fundamental Algebraic Structures**
+    - [Group](src/algebra/group/README.md)
+    - [Fields and Their Extensions](src/algebra/field/README.md)
+        - [Binary Fields](src/field/binary_towers/README.md)
 - [Curves and Their Pairings](src/curve/README.md)
 - [Polynomials](src/polynomial/mod.rs)
 - [KZG Commitments](src/kzg/README.md)
@@ -46,7 +47,9 @@ to run example code.
 
 ### Signatures
 
-- [Tiny ECDSA](src/ecdsa.rs)
+- [Digital Signature Algorithms](src/dsa/README.md)
+    - [Elliptic Curve Digital Signature Algorithm(ECDSA)](src/dsa/ecdsa.rs)
+    - [Edwards-Curve Digital Signature Algorithm(EdDSA)](src/dsa/eddsa/mod.rs)
 
 ### Encryption
 
@@ -67,10 +70,6 @@ to run example code.
 
 - [Sha256 Hash](src/hashes/README.md)
 - [Poseidon Hash](src/hashes/poseidon/README.md)
-
-## In Progress
-
-- [ ] Edwards curve Signatures (EdDSA)
 
 ## Resources
 

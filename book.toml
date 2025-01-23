@@ -1,0 +1,20 @@
+[book]
+authors = ["Contributors to Ronkathon"]
+language = "en"
+multilingual = false
+src = "book"
+title = "Ronkathon: Cryptography Educational Foundations"
+description = "Cryptography Educational Foundations"
+
+[build]
+build-dir = "docs"
+use-default-preprocessors = true
+create-missing = true
+
+[preprocessor.katex]
+after = ["links"]
+
+[output.html]
+default-theme = "dark"
+preferred-dark-theme = "coal"
+git-repository-url = "https://github.com/pluto/ronkathon"

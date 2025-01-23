@@ -1,6 +1,6 @@
 //! An implementation of the HMAC using the SHA-256 hash function.
 
-use crate::hashes::sha256::Sha256;
+use crate::hashes::sha::Sha256;
 
 const SHA256_BLOCK_SIZE: usize = 64;
 const SHA256_OUTPUT_SIZE: usize = 32;
@@ -14,7 +14,8 @@ fn compute_block_sized_key(key: &[u8]) -> [u8; SHA256_BLOCK_SIZE] {
 
   if key.len() > SHA256_BLOCK_SIZE {
     // Hash the key and use only the first SHA256_BLOCK_SIZE bytes
-    let digest = Sha256::digest(key);
+    let hashfunc = Sha256::new();
+    let digest = hashfunc.digest(key);
     block_sized_key[..SHA256_OUTPUT_SIZE].copy_from_slice(&digest);
   } else {
     // Copy the key directly, padded with zeros if necessary
@@ -62,13 +63,14 @@ pub fn hmac_sha256(key: &[u8], message: &[u8]) -> [u8; SHA256_OUTPUT_SIZE] {
   let mut inner_hash_input = Vec::with_capacity(SHA256_BLOCK_SIZE + message.len());
   inner_hash_input.extend_from_slice(&i_key_pad);
   inner_hash_input.extend_from_slice(message);
-  let inner_hash = Sha256::digest(&inner_hash_input);
+  let hashfunc = Sha256::new();
+  let inner_hash = hashfunc.digest(&inner_hash_input);
 
   // Compute the outer hash: H((K ⊕ opad) | inner_hash)
   let mut outer_hash_input = Vec::with_capacity(SHA256_BLOCK_SIZE + SHA256_OUTPUT_SIZE);
   outer_hash_input.extend_from_slice(&o_key_pad);
   outer_hash_input.extend_from_slice(&inner_hash);
-  Sha256::digest(&outer_hash_input)
+  hashfunc.digest(&outer_hash_input).try_into().unwrap()
 }
 
 #[cfg(test)]

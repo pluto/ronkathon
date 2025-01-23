@@ -3,7 +3,7 @@
 //! This module contains implementations of various hashing algorithms.
 //! Currently, the only supported algorithm is SHA-256.
 #![doc = include_str!("./README.md")]
-pub mod sha256;
+pub mod sha;
 use crate::Field;
 pub mod constants;
 pub mod ghash;

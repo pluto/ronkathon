@@ -1,6 +1,6 @@
 //! A very basic Merkle tree data structure with means of building and checking proofs.
 
-use crate::hashes::sha256::Sha256;
+use crate::hashes::sha::Sha256;
 
 /// A very basic Merkle tree data structure.
 #[derive(Debug)]
@@ -29,9 +29,10 @@ impl MerkleTree {
   /// Creates a new Merkle tree from a list of leaf values.
   #[allow(clippy::new_without_default)]
   pub fn new(leaves: Vec<String>) -> Self {
+    let hashfunc = Sha256::new();
     let mut hashes = vec![];
     let leaf_hashes: Vec<[u8; 32]> =
-      leaves.iter().map(|leaf| Sha256::digest(leaf.as_bytes())).collect();
+      leaves.iter().map(|leaf| hashfunc.digest(leaf.as_bytes()).try_into().unwrap()).collect();
     let mut branch_nodes = leaf_hashes.clone();
     hashes.push(leaf_hashes);
 
@@ -42,12 +43,12 @@ impl MerkleTree {
       let remainder = chunks.remainder();
       for chunk in chunks {
         let combined = [chunk[0].as_slice(), chunk[1].as_slice()].concat();
-        let hash = Sha256::digest(&combined);
+        let hash = hashfunc.digest(&combined).try_into().unwrap();
         new_branch_nodes.push(hash);
       }
       if remainder.len() == 1 {
         let combined = [remainder[0].as_slice(), remainder[0].as_slice()].concat();
-        let hash = Sha256::digest(&combined);
+        let hash = hashfunc.digest(&combined).try_into().unwrap();
         new_branch_nodes.push(hash);
       }
       hashes.push(new_branch_nodes.clone());
@@ -81,7 +82,8 @@ impl MerkleTree {
 
   /// Verifies a [`Proof`] that a given `value` is in the Merkle tree.
   pub fn prove(&self, value: String, proof: Proof) -> bool {
-    let mut hash = Sha256::digest(value.as_bytes());
+    let hashfunc = Sha256::new();
+    let mut hash = hashfunc.digest(value.as_bytes());
 
     for (sibling_hash, position) in proof.0.into_iter() {
       let combined = if position == LeftOrRight::Left {
@@ -89,7 +91,7 @@ impl MerkleTree {
       } else {
         [hash.as_slice(), sibling_hash.as_slice()].concat()
       };
-      hash = Sha256::digest(&combined);
+      hash = hashfunc.digest(&combined);
     }
 
     hash == self.root_hash()
