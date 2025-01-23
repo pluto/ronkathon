@@ -14,7 +14,7 @@ Predominantly, we use the extension $F_{p^2}$ since we need this for the [Tate p
 We refer to $F_{101}$ as the `PlutoBaseField` and $F_{101^2}$ as the `PlutoBaseFieldExtension` within `ronkathon`.
 From which, we also use the terminology of `PlutoCurve` to refer to $E(F_{101})$ and `PlutoExtendedCurve` to refer to $E(F_{101^2})$.
 
-We also define a `CurveGroup`, an extension of [`FiniteGroup`](../field/group.rs) trait representing the group law of the curve.
+We also define a `CurveGroup`, an extension of [`FiniteGroup`](../algebra/group/mod.rs) trait representing the group law of the curve.
 
 ### Type B curve and type 1 pairing
 

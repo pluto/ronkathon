@@ -7,7 +7,7 @@
 - `FiniteCyclicGroup`: a finite group with a generator.
 
 ### `Group`
-[`Group`](./group.rs) represents a group with finite elements. It defines a binary operation on the set of elements of the group.
+[`Group`](./mod.rs) represents a group with finite elements. It defines a binary operation on the set of elements of the group.
 - `IDENTITY`: The identity element of the group.
 - `inverse(&self) -> Self`: inverse of the element.
 - `operation(a: &Self, b: &Self) -> Self`: the operation of the group.
@@ -27,4 +27,4 @@ It uses compile time assertions to check that $P$ is prime.
 
 ## Examples
 
-[PermutationGroup](/examples/permutation_group.rs) example showcases how `Group` trait is implemented for any struct.
+[Symmetric Group](../../../examples/symmetric_group.rs) example showcases how `Group` trait is implemented for any struct.
