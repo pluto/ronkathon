@@ -1,8 +1,7 @@
 /// 1. Read SUMMARY.md and copy `README.md` files given in it to `book` directory.
-/// 2. Change the links to other `README.md` files to `index.md`, so that link
-/// points to correct file in the mdbook.
+/// 2. Change the links to other `README.md` files to `index.md`, so that link points to
+///    correct file in the mdbook.
 /// 3. Change links that point to a '.rs' file to their github repo link.
-
 use std::{
   fs::{self, File},
   io::{self, BufRead, BufReader, Write},
@@ -42,7 +41,7 @@ fn main() -> io::Result<()> {
     println!("Working on: {}", src.display());
     let mut src_parent = src.parent().unwrap().to_str().unwrap().to_owned();
     if !src_parent.is_empty() {
-        src_parent.push_str("/");
+      src_parent.push('/');
     }
 
     let dest = Path::new(DEST).join(src);
@@ -59,11 +58,11 @@ fn main() -> io::Result<()> {
       let before = line.unwrap();
       let after1 = readme_re.replace_all(&before, "index.md");
       if before != after1 && SHOW_CHANGES {
-          println!("1. {before} -> {after1}");
+        println!("1. {before} -> {after1}");
       }
-      let after2 = rs_links.replace_all(&after1, format!("$t({}{}$l)", REPO_LINK, src_parent)); 
+      let after2 = rs_links.replace_all(&after1, format!("$t({}{}$l)", REPO_LINK, src_parent));
       if after1 != after2 && SHOW_CHANGES {
-          println!("2. {after1} -> {after2}");
+        println!("2. {after1} -> {after2}");
       }
       dest_file.write_all(after2.as_bytes())?;
       dest_file.write_all(b"\n")?;
