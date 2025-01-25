@@ -1,5 +1,5 @@
 //! Implementation of GCM cipher mode of operation based on NIST GCM specification.
-//! [The Galois/Counter Mode of Operation (GCM)](http://www.csrc.nist.gov/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf)
+//! [The Galois/Counter Mode of Operation (GCM)](https://csrc.nist.rip/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf)
 //!
 //! GCM has two parts GCTR (used of encryption/decryption) and GHASH (used for authentication).
 //!
