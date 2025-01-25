@@ -132,8 +132,8 @@ In production-level AES code, fast AES software uses special techniques called t
 
 ## References 
 
-- [FIPS197](fips197)
-- [Serious Cryptography - A Practical Introduction to Modern Cryptography](seriouscrypto)
+- [FIPS197][fips197]
+- [Serious Cryptography - A Practical Introduction to Modern Cryptography][seriouscrypto]
 
 [aes]: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
 [des]: ../des/README.md
