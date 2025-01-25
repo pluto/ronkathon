@@ -16,5 +16,5 @@ after = ["links"]
 
 [output.html]
 default-theme = "dark"
-preferred-dark-theme = "coal"
+preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/pluto/ronkathon"

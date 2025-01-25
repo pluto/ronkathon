@@ -29,20 +29,30 @@ jobs:
       MDBOOK_KATEX_VERSION: 0.9.2
     steps:
       - uses: actions/checkout@v4
-      - name: Install mdBook
+
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install rust
         run: |
           curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf -y | sh
           rustup update
-          cargo install --version ${MDBOOK_VERSION} mdbook
-          cargo install --version ${MDBOOK_KATEX_VERSION} mdbook-katex
+
+      - name: Install mdbook
+        run: |
+          cargo binstall --no-confirm --version ${MDBOOK_VERSION} mdbook
+          cargo binstall --no-confirm --version ${MDBOOK_KATEX_VERSION} mdbook-katex
+
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
+
       - name: Build with mdBook
         run: |
           cargo run --bin create_mdbook
           cp -r assets book/
           mdbook build
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

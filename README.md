@@ -94,6 +94,23 @@ To see computations used in the background, go to the `math/` directory.
 From there, you can run the `.sage` files in a SageMath environment.
 In particular, the `math/field.sage` computes roots of unity in the `PlutoField` which is of size 101. To install sage on your machine, follow the instructions [here](https://doc.sagemath.org/html/en/installation/index.html). If you are on a Mac, you can install it via homebrew with `brew install --cask sage`.
 
+## Building mdBook
+
+To locally build/serve the [mdBook](https://github.com/rust-lang/mdBook) site, install mdBook and [mdbook-katex](https://github.com/lzanini/mdbook-katex):
+```
+cargo install mdbook
+cargo install mdbook-katex
+```
+
+To build, run:
+```
+cargo run --bin create_mdbook
+cp -r assets book/
+mdbook build
+```
+
+If you want to serve locally, run `mdbook serve`.
+
 ## License
 
 Licensed under the Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
