@@ -11,42 +11,57 @@ use crate::{
   },
 };
 
-// PARAMETERS
-// *******************************************
-// CURVE	the elliptic curve field and equation used
-// P	    the generator point on the base curve
-// Q	    the generator point on the extended curve
-// d_A      the local secret
-// d_B      the remote secret of B (unknown to the local party)
-// d_C      the remote secret of C (unknown to the local party)
-// P_A      the public key d_a × G = P_A (point on the base curve)
-// P_B      the public key d_b × G = P_B (point on the base curve)
-// P_C      the public key d_c × G = P_C (point on the base curve)
-// Q_A      the public key d_a × G = Q_A (point on the extended curve)
-// Q_B      the public key d_b × G = Q_B (point on the extended curve)
-// Q_C      the public key d_c × G = Q_C (point on the extended curve)
-
-/// COMPUTE LOCAL PAIR
-/// *******************************************
-/// 1. Compute P_A = d_A × P
-/// 2. Compute Q_A = d_A × Q
+/// Compute a local pair of elliptic curve points to transmit.
+///
+/// The Single-Round, Tripartite Diffie-Hellman Key Exchange protocol requires each party to
+/// transmit a point from both the base curve `p_a` and the extended curve `q_a`. This function
+/// computes each from a local secret `d_a`.
+///
+/// ## Arguments
+///
+/// * `d_a` - The local secret.
+///
+/// ## Returns
+///
+/// A tuple containing the computed points `(p_a, q_a)`.
 pub fn compute_local_pair(
-  local_secret: PlutoScalarField,
+  d_a: PlutoScalarField,
 ) -> (AffinePoint<PlutoBaseCurve>, AffinePoint<PlutoExtendedCurve>) {
-  let p_a = AffinePoint::<PlutoBaseCurve>::GENERATOR * local_secret;
+  let p_a = AffinePoint::<PlutoBaseCurve>::GENERATOR * d_a;
 
-  let q_a = AffinePoint::<PlutoExtendedCurve>::GENERATOR * local_secret;
+  let q_a = AffinePoint::<PlutoExtendedCurve>::GENERATOR * d_a;
 
   (p_a, q_a)
 }
 
-/// COMPUTE SHARED SECRET
-/// *******************************************
-/// 1. Transform p_b to extension curve type
-/// 2. Compute pairing of the two foreign points
-/// 3. Compute shared secret
+/// Compute a shared secret from a local secret `d_a` and two foreign elliptic curve points `p_b`
+/// and `q_c`.
+///
+/// The protocol relies on the bilinearity of the pairing function as well as modular exponentiation
+/// to compute the shared sercret. We first compute the pairing with the input points, then
+/// exponentate the result to the power of the local secret `d_a`.
+///
+/// ## Arguments
+///
+/// * `d_a` - The local secret.
+/// * `p_b` - The foreign point on the base curve.
+/// * `q_c` - The foreign point on the extended curve.
+///
+/// ## Returns
+///
+/// The computed shared secret on the Pluto extension field.
+///
+/// ## Panics
+///
+/// Panics under the conditions of the underlying pairing function, [`pairing`].
+///
+/// ## Notes
+///
+/// The order of points does not matter, only that the first point is on the base curve and the
+/// second point is on the extended curve. That is to say, given two pairs of points, `(p_b, q_b)`
+/// and `(q_c, p_c)`, this function may be called with either `(p_b, q_c)` or `(p_c, q_b)`.
 pub fn compute_shared_secret(
-  local_secret: <PlutoBaseCurve as EllipticCurve>::ScalarField,
+  d_a: <PlutoBaseCurve as EllipticCurve>::ScalarField,
   p_b: AffinePoint<PlutoBaseCurve>,
   q_c: AffinePoint<PlutoExtendedCurve>,
 ) -> PlutoBaseFieldExtension {
@@ -54,7 +69,7 @@ pub fn compute_shared_secret(
 
   let pairing = pairing::<_, { PlutoBaseCurve::ORDER }>(p_b, q_c);
 
-  let shared_secret = pairing.pow(local_secret.value);
+  let shared_secret = pairing.pow(d_a.value);
 
   shared_secret
 }
