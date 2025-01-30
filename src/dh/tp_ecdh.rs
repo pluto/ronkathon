@@ -52,7 +52,7 @@ pub fn compute_shared_secret(
 ) -> PlutoBaseFieldExtension {
   let p_b = AffinePoint::<PlutoExtendedCurve>::from(p_b);
 
-  let pairing = pairing::<_, { PlutoExtendedCurve::ORDER }>(p_b, q_c);
+  let pairing = pairing::<_, { PlutoBaseCurve::ORDER }>(p_b, q_c);
 
   let shared_secret = pairing.pow(local_secret.value);
 
@@ -74,9 +74,9 @@ mod tests {
     let p = AffinePoint::<PlutoBaseCurve>::GENERATOR;
     let q = AffinePoint::<PlutoExtendedCurve>::GENERATOR;
 
-    let d_a = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
-    let d_b = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
-    let d_c = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
+    let d_a = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..PlutoScalarField::ORDER));
+    let d_b = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..PlutoScalarField::ORDER));
+    let d_c = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..PlutoScalarField::ORDER));
 
     let p_a = p * d_a;
     let p_b = p * d_b;
@@ -86,33 +86,17 @@ mod tests {
     let q_b = q * d_b;
     let q_c = q * d_c;
 
-    let shared_secret_a = compute_shared_secret(d_a, p_b, q_c);
-    let shared_secret_b = compute_shared_secret(d_b, p_c, q_a);
-    let shared_secret_c = compute_shared_secret(d_c, p_a, q_b);
+    let shared_secret_a0 = compute_shared_secret(d_a, p_b, q_c);
+    let shared_secret_a1 = compute_shared_secret(d_a, p_c, q_b);
+    let shared_secret_b0 = compute_shared_secret(d_b, p_c, q_a);
+    let shared_secret_b1 = compute_shared_secret(d_b, p_a, q_c);
+    let shared_secret_c0 = compute_shared_secret(d_c, p_a, q_b);
+    let shared_secret_c1 = compute_shared_secret(d_c, p_b, q_a);
 
-    // -- TMP ----------------------------------------
-    println!("p = {p:?}");
-    println!("q = {q:?}");
-
-    println!("d_a = {d_a:?}");
-    println!("d_b = {d_b:?}");
-    println!("d_c = {d_c:?}");
-
-    println!("p_a = {p_a:?}");
-    println!("p_b = {p_b:?}");
-    println!("p_c = {p_c:?}");
-
-    println!("q_a = {q_a:?}");
-    println!("q_b = {q_b:?}");
-    println!("q_c = {q_c:?}");
-
-    println!("shared_secret_a = {shared_secret_a:?}");
-    println!("shared_secret_b = {shared_secret_b:?}");
-    println!("shared_secret_c = {shared_secret_c:?}");
-
-    // -- TMP ----------------------------------------
-
-    assert_eq!(shared_secret_a, shared_secret_b);
-    assert_eq!(shared_secret_b, shared_secret_c);
+    assert_eq!(shared_secret_a0, shared_secret_a1);
+    assert_eq!(shared_secret_b0, shared_secret_b1);
+    assert_eq!(shared_secret_c0, shared_secret_c1);
+    assert_eq!(shared_secret_a0, shared_secret_b0);
+    assert_eq!(shared_secret_a0, shared_secret_c0);
   }
 }
