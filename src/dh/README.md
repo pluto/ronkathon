@@ -4,7 +4,7 @@
 
 The Diffie-Hellman key exchange protocol, named after Whitfield Diffie and Martin Hellman, is a protocol for two parties to create a shared secret over a public channel without revealing information about the key.
 
-The exchange is made possible by using commutativity in finite cyclic groups, particularly with ellitpic curve cyclic groups. That is to say, given a common generator point on an ellitpic curve over a finite field $G \in E(\mathbb{F}_p)$, two parties, alice and bob may choose secrets, $a \in \mathbb{F}_p$ and $b \in \mathbb{F}_p$ respectively, compute their respective elliptic curve points $[a]G = A \in E(\mathbb{F}_p)$ and $[b]G = B \in E(\mathbb{F}_p)$ (again respectively), and exchange these on a public channel. Finally, they may perform the elliptic curve point arithmetic on their received points with their secrets as follows.
+The exchange is made possible by using commutativity in finite cyclic groups, particularly with elliptic curve cyclic groups. That is to say, given a common generator point on an elliptic curve over a finite field $G \in E(\mathbb{F}_p)$, two parties, Alice and Bob may choose secrets, $a \in \mathbb{F}_p$ and $b \in \mathbb{F}_p$ respectively, compute their respective elliptic curve points $[a]G = A \in E(\mathbb{F}_p)$ and $[b]G = B \in E(\mathbb{F}_p)$ (again respectively), and exchange these on a public channel. Finally, they may perform the elliptic curve point arithmetic on their received points with their secrets as follows.
 
 Alice:
 
@@ -18,7 +18,7 @@ Finally:
 
 $$[ba]G = [ab]G$$
 
-As such, alice and bob have computed a shared secret $[ab]G \in E(\mathbb{F}_p)$ by sharing only $B$ and $A$ over a public channel, which, provided the ellitpic curve discrete log problem is intractable, leaks no useful information about $a, b \in \mathbb{F}_p$.
+As such, Alice and Bob have computed a shared secret $[ab]G \in E(\mathbb{F}_p)$ by sharing only $B$ and $A$ over a public channel, which, provided the elliptic curve discrete log problem is intractable, leaks no useful information about $a, b \in \mathbb{F}_p$.
 
 This protocol is often used to exchange a cryptographic key to be used in a symmetric encryption algorithm and is used in protocols such as SSH, HTTPS, and a variant of it in the Signal Protocol.
 
