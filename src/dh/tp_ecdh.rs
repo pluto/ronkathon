@@ -94,6 +94,7 @@ mod tests {
     let shared_secret_b = compute_shared_secret(d_b, p_c, q_a);
     let shared_secret_c = compute_shared_secret(d_c, p_a, q_b);
 
+    // -- TMP ----------------------------------------
     println!("p = {p:?}");
     println!("q = {q:?}");
 
@@ -112,6 +113,8 @@ mod tests {
     println!("shared_secret_a = {shared_secret_a:?}");
     println!("shared_secret_b = {shared_secret_b:?}");
     println!("shared_secret_c = {shared_secret_c:?}");
+  
+    // -- TMP ----------------------------------------
 
     assert_eq!(shared_secret_a, shared_secret_b);
     assert_eq!(shared_secret_b, shared_secret_c);
