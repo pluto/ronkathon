@@ -35,7 +35,7 @@ In practice, each of the two parties performs the following.
 
 ## Tripartite Diffie-Hellman
 
-A variant of the Diffie-Hellman key exchange protocol is the tripartite diffie hellman key exchange. There are a few variants with different tradeoffs, but we focus on single-round tripartite Diffie-Hellman, which enables a single transmission from each party, irrespective of ordering.
+A variant of the Diffie-Hellman key exchange protocol is the tripartite Diffie-Hellman key exchange. There are a few variants with different tradeoffs, but we focus on single-round tripartite Diffie-Hellman, which enables a single transmission from each party, irrespective of ordering.
 
 However, for the single-round tripartite Diffie-Hellman, we use the bilinearity of an elliptic curve pairing. The elliptic curves over which the pairing exists are $E(\mathbb{F}_p)$ as above and $E(\mathbb{F}_{p^2})$, which is the same elliptic curve function but with scalars as elements of a polynomial field extension $\mathbb{F}_{p^2}$. The ellipitic curve pairing function is $e : E(\mathbb{F}_p) \times E(\mathbb{F}_{p^2}) \rightarrow \mathbb{F}_{p^{12}}$, where the output is an element of a polynomial extension field of degree 12. Alice, Bob, and Charlie agree on two generator points $G_1 \in E(\mathbb{F}_p)$ and $G_2 \in E(\mathbb{F}_{p^2})$, each chose their respective secret scalar $a, b, c \in \mathbb{F}_p$, compute their respective points in both curves $[a]G_1, [b]G_1, [c]G_1 \in E(\mathbb{F}_p)$ and $[a]G_2, [b]G_2, [c]G_2 \in E(\mathbb{F}_{p^2})$, each transmits their respective pairs: $(A_1, A_2), (B_1, B_2), (C_1, C_2)$, then on receiving the other two pairs, compute the elliptic curve pairing and exponentiate the result by their own secret.
 
