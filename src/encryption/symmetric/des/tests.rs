@@ -19,7 +19,7 @@ fn exhaustive_key_search(
     let decrypted = DES::decrypt(&subkeys, ciphertext);
     let decrypted2 = DES::decrypt(&subkeys, ciphertext2);
 
-    if decrypted == *plaintext && decrypted2 == *plaintext2 {
+    if decrypted == Ok(*plaintext) && decrypted2 == Ok(*plaintext2) {
       return Some(key);
     }
   }

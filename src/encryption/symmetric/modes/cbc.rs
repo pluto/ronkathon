@@ -1,9 +1,9 @@
 //! Cipher block chaining mode of operation for [`BlockCipher`]
-use crate::encryption::symmetric::BlockCipher;
+use crate::encryption::{BlockOperations, Encryption};
 
 /// Cipher block chaining mode of operation that works on any [`BlockCipher`]. Initialisation
 /// Vector (IV) should not be reused for different plaintext.
-pub struct CBC<C: BlockCipher> {
+pub struct CBC<C: BlockOperations> {
   iv: C::Block,
 }
 
@@ -13,7 +13,7 @@ fn xor_blocks(a: &mut [u8], b: &[u8]) {
   }
 }
 
-impl<C: BlockCipher> CBC<C> {
+impl<C: BlockOperations> CBC<C> {
   /// creates a new [`CBC`] mode of operation for [`BlockCipher`]
   /// ## Arguments
   /// - `iv`: initialisation vector for randomising the state.
@@ -123,6 +123,7 @@ impl<C: BlockCipher> CBC<C> {
     plaintext
   }
 }
+
 
 #[cfg(test)]
 mod tests {

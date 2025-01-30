@@ -6,7 +6,7 @@ use std::ops::Mul;
 
 use itertools::Itertools;
 
-use super::{BlockCipher, SymmetricEncryption};
+use crate::encryption::{BlockOperations, Encryption};
 use crate::{
   algebra::field::{extension::AESFieldExtension, prime::AESField},
   encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX},
@@ -63,71 +63,6 @@ where [(); N / 8]:
   fn deref(&self) -> &Self::Target { &self.inner }
 }
 
-impl<const N: usize> SymmetricEncryption for AES<N>
-where [(); N / 8]:
-{
-  type Block = Block;
-  type Key = Key<N>;
-
-  /// Encrypt a message of size [`Block`] with a [`Key`] of size `N`-bits.
-  ///
-  /// ## Example
-  /// ```rust
-  /// #![allow(incomplete_features)]
-  /// #![feature(generic_const_exprs)]
-  ///
-  /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Block, Key, AES},
-  ///   SymmetricEncryption,
-  /// };
-  ///
-  /// let mut rng = thread_rng();
-  /// let key = Key::<128>::new(rng.gen());
-  /// let plaintext = rng.gen();
-  /// let encrypted = AES::encrypt(&key, &Block(plaintext));
-  /// ```
-  fn encrypt(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
-    let num_rounds = match N {
-      128 => 10,
-      192 => 12,
-      256 => 14,
-      _ => panic!("AES only supports key sizes 128, 192 and 256 bits. You provided: {N}"),
-    };
-
-    Self::aes_encrypt(&plaintext.0, key, num_rounds)
-  }
-
-  /// Decrypt a ciphertext of size [`Block`] with a [`Key`] of size `N`-bits.
-  ///
-  /// ## Example
-  /// ```rust
-  /// #![allow(incomplete_features)]
-  /// #![feature(generic_const_exprs)]
-  ///
-  /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Block, Key, AES},
-  ///   SymmetricEncryption,
-  /// };
-  ///
-  /// let mut rng = thread_rng();
-  /// let key = Key::<128>::new(rng.gen());
-  /// let plaintext = rng.gen();
-  /// let encrypted = AES::encrypt(&key, &Block(plaintext));
-  /// let decrypted = AES::decrypt(&key, &encrypted);
-  /// ```
-  fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
-    let num_rounds = match N {
-      128 => 10,
-      192 => 12,
-      256 => 14,
-      _ => panic!("AES only supports key sizes 128, 192 and 256 bits. You provided: {N}"),
-    };
-
-    Self::aes_decrypt(&ciphertext.0, key, num_rounds)
-  }
-}
 
 /// Contains the values given by [x^(i-1), {00}, {00}, {00}], with x^(i-1)
 /// being powers of x in the field GF(2^8).
@@ -148,7 +83,11 @@ const ROUND_CONSTANTS: [[u8; 4]; 10] = [
 
 /// A struct containing an instance of an AES encryption/decryption.
 #[derive(Clone)]
-pub struct AES<const N: usize> {}
+pub struct AES<const N: usize> 
+where [(); N / 8]:
+{
+  key : Key<N>
+}
 
 /// Instead of arranging its bytes in a line (array),
 /// AES operates on a grid, specifically a 4x4 column-major array:
@@ -495,21 +434,94 @@ where [(); N / 8]:
       "Wrong number of words output during key expansion"
     );
   }
+ 
 }
 
-impl<const N: usize> BlockCipher for AES<N>
+impl<const N: usize> Encryption for AES<N>
 where [(); N / 8]:
 {
-  type Block = Block;
-  type Key = Key<N>;
+    type Key = Key<N>;
+    type Error = String;
+    type Plaintext = Block;
+    type Ciphertext = Block;
+    type Block = Block;
 
-  const BLOCK_SIZE: usize = 16;
+    fn new(key: Self::Key) -> Result<Self, Self::Error> {
+        Ok(Self { key })
+    }
 
-  fn encrypt_block(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
-    Self::encrypt(key, plaintext)
+  /// Encrypt a message of size [`Block`] with a [`Key`] of size `N`-bits.
+  ///
+  /// ## Example
+  /// ```rust
+  /// #![allow(incomplete_features)]
+  /// #![feature(generic_const_exprs)]
+  ///
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::symmetric::{
+  ///   aes::{Block, Key, AES},
+  ///   SymmetricEncryption,
+  /// };
+  ///
+  /// let mut rng = thread_rng();
+  /// let key = Key::<128>::new(rng.gen());
+  /// let plaintext = rng.gen();
+  /// let encrypted = AES::encrypt(&key, &Block(plaintext));
+  /// ```
+  fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
+    let num_rounds = match N {
+      128 => 10,
+      192 => 12,
+      256 => 14,
+      _ => return Err("AES only supports key sizes 128, 192 and 256 bits".to_string()),
+    };
+
+        Ok(Self::aes_encrypt(&data.0, &self.key, num_rounds))
+    }
+
+
+    /// Decrypt a ciphertext of size [`Block`] with a [`Key`] of size `N`-bits.
+  ///
+  /// ## Example
+  /// ```rust
+  /// #![allow(incomplete_features)]
+  /// #![feature(generic_const_exprs)]
+  ///
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::symmetric::{
+  ///   aes::{Block, Key, AES},
+  ///   SymmetricEncryption,
+  /// };
+  ///
+  /// let mut rng = thread_rng();
+  /// let key = Key::<128>::new(rng.gen());
+  /// let plaintext = rng.gen();
+  /// let encrypted = AES::encrypt(&key, &Block(plaintext));
+  /// let decrypted = AES::decrypt(&key, &encrypted);
+  /// ```
+  fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error>  {
+    let num_rounds = match N {
+      128 => 10,
+      192 => 12,
+      256 => 14,
+      _ => return Err("AES only supports key sizes 128, 192 and 256 bits".to_string()),
+    };
+
+    Ok(Self::aes_decrypt(&data.0, &self.key, num_rounds))
   }
+  
+}
 
-  fn decrypt_block(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
-    Self::decrypt(key, ciphertext)
-  }
+impl<const N: usize> BlockOperations for AES<N>
+where [(); N / 8]:
+{
+    const BLOCK_SIZE: usize = 16;
+
+    fn encrypt_block(&self, block: &[u8; Self::BLOCK_SIZE]) -> Result<[u8; Self::BLOCK_SIZE], Self::Error> {
+        Ok(Self::aes_encrypt(block, &self.key, 10).0)
+    }
+
+    fn decrypt_block(&self, block: &[u8; Self::BLOCK_SIZE]) -> Result<[u8; Self::BLOCK_SIZE], Self::Error> {
+        Ok(Self::aes_decrypt(block, &self.key, 10).0)
+    }
 }

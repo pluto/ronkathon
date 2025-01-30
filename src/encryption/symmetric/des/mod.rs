@@ -6,7 +6,8 @@ pub mod constants;
 
 use constants::*;
 
-use super::SymmetricEncryption;
+
+use crate::encryption::Encryption;
 
 /// Block represents 64-bit sized message data
 pub type Block = [u8; 8];
@@ -21,7 +22,10 @@ pub type SubKeys = [Subkey; 16];
 
 /// DES encryption
 #[derive(Debug)]
-pub struct DES {}
+pub struct DES {
+  key: Block,
+  subkeys: SubKeys,
+}
 
 /// combine bits in first bit of `u8` into a u8
 #[inline(always)]
@@ -223,44 +227,57 @@ impl DES {
   }
 }
 
-impl SymmetricEncryption for DES {
-  type Block = Block;
-  type Key = SubKeys;
 
-  /// Encrypt a message of size [`Block`]
+
+impl Encryption for DES {
+    type Key = Block;
+    type Error = String;
+    type Plaintext = Block;
+    type Ciphertext = Block;
+
+    fn new(key: Self::Key) -> Result<Self, Self::Error> {
+        Ok(Self {
+            key,
+            subkeys: Self::generate_subkeys(key),
+        })
+    }
+
+     /// Encrypt a message of size [`Block`]
   ///
   /// ## Example
   /// ```rust
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{des::DES, SymmetricEncryption};
+  /// use ronkathon::encryption::symmetric::{des::DES,Encryption};
   /// let mut rng = thread_rng();
   /// let secret_key = rng.gen();
   ///
-  /// let subkeys = DES::setup(secret_key);
+  /// 
   ///
   /// let message = rng.gen();
   /// let encrypted = DES::encrypt(&subkeys, &message);
   /// ```
-  fn encrypt(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
-    Self::des(plaintext, key.iter())
-  }
+    fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
+        Ok(Self::des(data, &mut self.subkeys.iter()))
+    }
 
-  /// Decrypt a ciphertext of size [`Block`]
+     /// Decrypt a ciphertext of size [`Block`]
   ///
   /// ## Example
   /// ```rust
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{des::DES, SymmetricEncryption};
+  /// use ronkathon::encryption::symmetric::{des::DES, Encryption};
   /// let mut rng = thread_rng();
   /// let secret_key = rng.gen();
   ///
-  /// let subkeys = DES::setup(secret_key);
+  /// 
   ///
   /// let message = rng.gen();
   /// let encrypted = DES::encrypt(&subkeys, &message);
   /// let decrypted = DES::decrypt(&subkeys, &encrypted);
   /// ```
-  fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
-    Self::des(ciphertext, key.iter().rev())
-  }
+    fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
+        Ok( Self::des(data, &mut self.subkeys.iter().rev()))
+    }
+    
+    type Block=Block;
 }

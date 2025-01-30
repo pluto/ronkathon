@@ -10,7 +10,9 @@
 //! - [`IETFChaCha20`],[`IETFChaCha12`],[`IETFChaCha8`]: [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439)
 //!   with 20, 12, 8 rounds
 
-use super::StreamCipher;
+use crate::encryption::Encryption;
+
+use super::aes::Block;
 
 #[cfg(test)] mod tests;
 
@@ -272,45 +274,68 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   ///
   /// assert_eq!(decrypted, plaintext);
   /// ```
-  pub fn decrypt(&self, counter: &Counter<C>, ciphertext: &[u8]) -> Result<Vec<u8>, String> {
+  pub fn decrypt(&self, counter: &Counter<C>, ciphertext: &[u8]) ->Result<Vec<u8>, <Self as Encryption>::Error> {
     self.encrypt(counter, ciphertext)
   }
-}
-
-impl<const R: usize, const N: usize, const C: usize> StreamCipher for ChaCha<R, N, C> {
-  type Counter = Counter<C>;
-  type Error = String;
-  type Key = Key;
-  type Nonce = Nonce<N>;
-
-  fn new(key: &Self::Key, nonce: &Self::Nonce) -> Result<Self, Self::Error>
-  where Self: Sized {
-    Ok(ChaCha::new(key, nonce))
-  }
-
-  fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>, Self::Error> {
+ 
+  fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>, <Self as Encryption>::Error> {
     let counter = Counter::new([0u32; C]);
     self.encrypt(&counter, plaintext)
   }
 
-  fn decrypt(&self, ciphertext: &[u8]) -> Result<Vec<u8>, Self::Error> {
+  fn decrypt(&self, ciphertext: &[u8]) -> Result<Vec<u8>, <Self as Encryption>::Error> {
     let counter = Counter::new([0u32; C]);
     self.decrypt(&counter, ciphertext)
   }
 
   fn encrypt_with_counter(
     &self,
-    counter: &Self::Counter,
+    counter: &Counter<C>,
     plaintext: &[u8],
-  ) -> Result<Vec<u8>, Self::Error> {
+  ) -> Result<Vec<u8>, <Self as Encryption>::Error> {
     self.encrypt(counter, plaintext)
   }
 
   fn decrypt_with_counter(
     &self,
-    counter: &Self::Counter,
+    counter: &Counter<C>,
     ciphertext: &[u8],
-  ) -> Result<Vec<u8>, Self::Error> {
+  ) -> Result<Vec<u8>, <Self as Encryption>::Error> {
     self.decrypt(counter, ciphertext)
   }
+   
+
 }
+
+
+
+impl<const R: usize, const N: usize, const C: usize> Encryption for ChaCha<R, N, C> {
+    type Block = Block;
+    type Key = Key;
+    type Error = String;
+    type Plaintext = Vec<u8>;
+    type Ciphertext = Vec<u8>;
+
+    fn new(key: Self::Key) -> Result<Self, Self::Error> {
+        Ok(Self {
+            key,
+            nonce: [0; N],
+        })
+    }
+
+    fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
+        let counter = Counter::new([0u32; C]);
+        self.encrypt(&counter, data)
+    }
+
+    fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
+        let counter = Counter::new([0u32; C]);
+        self.decrypt(&counter, data)
+    }
+     
+}
+
+
+
+
+    

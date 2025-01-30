@@ -33,7 +33,7 @@
 
 use super::ctr::CTR;
 use crate::{
-  encryption::symmetric::{counter::Counter, BlockCipher},
+  encryption::{symmetric::counter::Counter, Encryption},
   hashes::ghash::GHASH,
 };
 
@@ -45,12 +45,12 @@ use crate::{
 ///
 /// # Generics
 /// - `C`: A block cipher that implements the `BlockCipher` trait.
-pub struct GCM<C: BlockCipher> {
+pub struct GCM<C: Encryption> {
   ghash: GHASH,
   key:   C::Key,
 }
 
-impl<C: BlockCipher> GCM<C>
+impl<C: Encryption> GCM<C>
 where [(); C::BLOCK_SIZE - 4]:
 {
   /// Constructs a new `GCM` instance with the given key.

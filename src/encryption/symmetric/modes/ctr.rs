@@ -1,16 +1,16 @@
 //! Contains implementation for Counter (CTR) mode of operation in block ciphers
 
-use crate::encryption::symmetric::{counter::Counter, BlockCipher};
+use crate::encryption::{symmetric::counter::Counter, Encryption};
 
 /// [`BlockCipher`] counter mode of operation with two parameters:
 /// - `C`, a cipher that implements the `BlockCipher` trait.
 /// - `M`, a usize const that indicates the size of counter in bytes.
-pub struct CTR<C: BlockCipher, const M: usize>
+pub struct CTR<C: Encryption, const M: usize>
 where [(); C::BLOCK_SIZE - M]: {
   nonce: [u8; C::BLOCK_SIZE - M],
 }
 
-impl<C: BlockCipher, const M: usize> CTR<C, M>
+impl<C: Encryption, const M: usize> CTR<C, M>
 where [(); C::BLOCK_SIZE - M]:
 {
   /// Create a CTR mode of operation object
