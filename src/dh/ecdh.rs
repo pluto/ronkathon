@@ -13,10 +13,7 @@ use crate::{algebra::field::FiniteField, curve::CurveGroup};
 /// COMPUTE SHARED SECRET
 /// *******************************************
 /// 1. Compute d_A × Q_B
-pub fn compute_shared_secret<F: FiniteField, G: CurveGroup<Scalar = F>>(
-  d_a: F,
-  q_b: G,
-) -> G {
+pub fn compute_shared_secret<F: FiniteField, G: CurveGroup<Scalar = F>>(d_a: F, q_b: G) -> G {
   q_b * d_a
 }
 

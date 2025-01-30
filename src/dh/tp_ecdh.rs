@@ -63,11 +63,7 @@ pub fn compute_shared_secret(
 mod tests {
   use super::*;
   use crate::{
-    algebra::{
-      field::prime::PlutoScalarField,
-      group::FiniteCyclicGroup,
-      Finite,
-    },
+    algebra::{field::prime::PlutoScalarField, group::FiniteCyclicGroup, Finite},
     curve::{pluto_curve::PlutoBaseCurve, AffinePoint},
   };
 
@@ -113,7 +109,7 @@ mod tests {
     println!("shared_secret_a = {shared_secret_a:?}");
     println!("shared_secret_b = {shared_secret_b:?}");
     println!("shared_secret_c = {shared_secret_c:?}");
-  
+
     // -- TMP ----------------------------------------
 
     assert_eq!(shared_secret_a, shared_secret_b);
