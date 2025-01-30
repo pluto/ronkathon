@@ -83,6 +83,18 @@ mod tests {
   };
 
   #[test]
+  fn test_compute_local_pair() {
+    let mut rng = rand::rngs::OsRng;
+
+    let d_a = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
+
+    let (p_a, q_a) = compute_local_pair(d_a);
+
+    assert_eq!(p_a, AffinePoint::<PlutoBaseCurve>::GENERATOR * d_a);
+    assert_eq!(q_a, AffinePoint::<PlutoExtendedCurve>::GENERATOR * d_a);
+  }
+
+  #[test]
   fn test_compute_tripartite_shared_secret() {
     let mut rng = rand::rngs::OsRng;
 
