@@ -6,10 +6,12 @@ use std::ops::Mul;
 
 use itertools::Itertools;
 
-use crate::encryption::{BlockOperations, Encryption};
 use crate::{
   algebra::field::{extension::AESFieldExtension, prime::AESField},
-  encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX},
+  encryption::{
+    symmetric::aes::sbox::{INVERSE_SBOX, SBOX},
+    BlockOperations, Encryption,
+  },
   Field,
 };
 
@@ -63,7 +65,6 @@ where [(); N / 8]:
   fn deref(&self) -> &Self::Target { &self.inner }
 }
 
-
 /// Contains the values given by [x^(i-1), {00}, {00}, {00}], with x^(i-1)
 /// being powers of x in the field GF(2^8).
 ///
@@ -83,10 +84,9 @@ const ROUND_CONSTANTS: [[u8; 4]; 10] = [
 
 /// A struct containing an instance of an AES encryption/decryption.
 #[derive(Clone)]
-pub struct AES<const N: usize> 
-where [(); N / 8]:
-{
-  key : Key<N>
+pub struct AES<const N: usize>
+where [(); N / 8]: {
+  key: Key<N>,
 }
 
 /// Instead of arranging its bytes in a line (array),
@@ -434,26 +434,21 @@ where [(); N / 8]:
       "Wrong number of words output during key expansion"
     );
   }
- fn encrypt_internal(&self, data: Block) -> Result<Block, String> {
-   self.encrypt(&data)
-  }
 
-  fn decrypt_internal(&self, data: Block) -> Result<Block, String> {
-    self.decrypt(&data)
-  }
+  fn encrypt_internal(&self, data: Block) -> Result<Block, String> { self.encrypt(&data) }
+
+  fn decrypt_internal(&self, data: Block) -> Result<Block, String> { self.decrypt(&data) }
 }
 
 impl<const N: usize> Encryption for AES<N>
 where [(); N / 8]:
 {
-    type Key = Key<N>;
-    type Error = String;
-    type Plaintext = Block;
-    type Ciphertext = Block;
+  type Ciphertext = Block;
+  type Error = String;
+  type Key = Key<N>;
+  type Plaintext = Block;
 
-    fn new(key: Self::Key) -> Result<Self, Self::Error> {
-        Ok(Self { key })
-    }
+  fn new(key: Self::Key) -> Result<Self, Self::Error> { Ok(Self { key }) }
 
   /// Encrypt a message of size [`Block`] with a [`Key`] of size `N`-bits.
   ///
@@ -481,11 +476,10 @@ where [(); N / 8]:
       _ => return Err("AES only supports key sizes 128, 192 and 256 bits".to_string()),
     };
 
-        Ok(Self::aes_encrypt(&data.0, &self.key, num_rounds))
-    }
+    Ok(Self::aes_encrypt(&data.0, &self.key, num_rounds))
+  }
 
-
-    /// Decrypt a ciphertext of size [`Block`] with a [`Key`] of size `N`-bits.
+  /// Decrypt a ciphertext of size [`Block`] with a [`Key`] of size `N`-bits.
   ///
   /// ## Example
   /// ```rust
@@ -504,7 +498,7 @@ where [(); N / 8]:
   /// let encrypted = AES::encrypt(&key, &Block(plaintext));
   /// let decrypted = AES::decrypt(&key, &encrypted);
   /// ```
-  fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error>  {
+  fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
     let num_rounds = match N {
       128 => 10,
       192 => 12,
@@ -514,19 +508,20 @@ where [(); N / 8]:
 
     Ok(Self::aes_decrypt(&data.0, &self.key, num_rounds))
   }
-  
 }
 
 impl<const N: usize> BlockOperations for AES<N>
 where [(); N / 8]:
 {
-    const BLOCK_SIZE: usize = 16;
-    type Block = Block;
-    fn encrypt_block(&self, block: Block) -> Result<Block, Self::Error> {
-        self.encrypt_internal(block)
-    }
+  type Block = Block;
 
-    fn decrypt_block(&self, block: Block) -> Result<Block, Self::Error> {
-        self.decrypt_internal(block)
-    }
+  const BLOCK_SIZE: usize = 16;
+
+  fn encrypt_block(&self, block: Block) -> Result<Block, Self::Error> {
+    self.encrypt_internal(block)
+  }
+
+  fn decrypt_block(&self, block: Block) -> Result<Block, Self::Error> {
+    self.decrypt_internal(block)
+  }
 }

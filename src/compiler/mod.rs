@@ -25,6 +25,7 @@
 //!     - permutation helpers: `[S1,S2,S3]`
 //! - public inputs
 //! - witness: `[a,b,c]`
+#![doc = include_str!("./README.md")]
 mod errors;
 pub mod parser;
 pub mod program;

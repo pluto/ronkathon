@@ -1,5 +1,5 @@
 //! Elliptic curve operations and types.
-
+#![doc = include_str!("./README.md")]
 use std::fmt::Debug;
 
 use algebra::{

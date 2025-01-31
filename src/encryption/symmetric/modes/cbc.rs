@@ -59,11 +59,11 @@ impl<C: Encryption + BlockOperations> CBC<C> {
       let length = C::BLOCK_SIZE - (plaintext.len() % C::BLOCK_SIZE);
       plaintext.extend(std::iter::repeat(length as u8).take(length));
     }
-    let  value = C::new(key);
+    let value = C::new(key);
     for chunk in plaintext.chunks(C::BLOCK_SIZE) {
-      let cipher = match value{
+      let cipher = match value {
         Ok(ref cipher) => cipher,
-        Err(_) => panic!("Error creating cipher")
+        Err(_) => panic!("Error creating cipher"),
       };
       xor_blocks(prev_ciphertext.as_mut(), chunk);
       prev_ciphertext = cipher.encrypt_block(prev_ciphertext).unwrap();
@@ -110,13 +110,13 @@ impl<C: Encryption + BlockOperations> CBC<C> {
     let mut prev_ciphertext: Vec<u8> = self.iv.as_ref().to_vec();
     let mut plaintext = Vec::new();
 
-    let  value = C::new(key);
+    let value = C::new(key);
     for chunk in ciphertext.chunks(C::BLOCK_SIZE) {
-      let cipher = match value{
+      let cipher = match value {
         Ok(ref cipher) => cipher,
-        Err(_) => panic!("Error creating cipher")
+        Err(_) => panic!("Error creating cipher"),
       };
-      let mut decrypted = cipher.decrypt_block( C::Block::from(chunk.to_vec())).unwrap();
+      let mut decrypted = cipher.decrypt_block(C::Block::from(chunk.to_vec())).unwrap();
       xor_blocks(decrypted.as_mut(), &prev_ciphertext);
       prev_ciphertext = chunk.to_vec();
 
@@ -132,7 +132,6 @@ impl<C: Encryption + BlockOperations> CBC<C> {
     plaintext
   }
 }
-
 
 #[cfg(test)]
 mod tests {

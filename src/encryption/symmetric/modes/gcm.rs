@@ -33,7 +33,7 @@
 
 use super::ctr::CTR;
 use crate::{
-  encryption::{ symmetric::counter::Counter, BlockOperations, Encryption},
+  encryption::{symmetric::counter::Counter, BlockOperations, Encryption},
   hashes::ghash::GHASH,
 };
 
@@ -64,9 +64,9 @@ where [(); C::BLOCK_SIZE - 4]:
     assert_eq!(C::BLOCK_SIZE, 16, "GCM only supports 128-bit block size.");
     // The GHASH algorithms requires the encryption of 128-bits of zeros.
     let zero_string = C::Block::from(vec![0u8; 16]);
-    let cipher = match C::new(key.clone()){
+    let cipher = match C::new(key.clone()) {
       Ok(cipher) => cipher,
-      Err(_) => panic!("Error creating cipher")
+      Err(_) => panic!("Error creating cipher"),
     };
     let hash_key = cipher.encrypt_block(zero_string).unwrap();
     let ghash = GHASH::new(hash_key.as_ref());
@@ -135,9 +135,9 @@ where [(); C::BLOCK_SIZE - 4]:
     // Step3: Generate Tag
     // The tag is the XOR of the `initial_block` and ghash of ciphertext.
     let y0_block = C::Block::from(initial_block.to_vec());
-    let cipher = match C::new(self.key.clone()){
+    let cipher = match C::new(self.key.clone()) {
       Ok(cipher) => cipher,
-      Err(_) => panic!("Error creating cipher")
+      Err(_) => panic!("Error creating cipher"),
     };
     let y0_enc = cipher.encrypt_block(y0_block).unwrap();
     let hash = self.ghash.digest(aad, ciphertext.as_ref());
@@ -193,9 +193,9 @@ where [(); C::BLOCK_SIZE - 4]:
 
     // Step 1: Generate Tag (same as the encryption)
     let y0 = C::Block::from(counter_block.to_vec());
-    let cipher = match C::new(self.key.clone()){
+    let cipher = match C::new(self.key.clone()) {
       Ok(cipher) => cipher,
-      Err(_) => panic!("Error creating cipher")
+      Err(_) => panic!("Error creating cipher"),
     };
     let y0_enc = cipher.encrypt_block(y0).unwrap();
     let hash = self.ghash.digest(aad, ciphertext.as_ref());

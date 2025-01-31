@@ -55,18 +55,18 @@ where [(); C::BLOCK_SIZE - M]:
   ) -> Result<Vec<u8>, String> {
     let mut ciphertext = Vec::new();
     let mut cipher_counter = *counter;
-    let  value = C::new(key);
+    let value = C::new(key);
     for chunk in plaintext.chunks(C::BLOCK_SIZE) {
-      let cipher = match value{
+      let cipher = match value {
         Ok(ref cipher) => cipher,
-        Err(_) => panic!("Error creating cipher")
+        Err(_) => panic!("Error creating cipher"),
       };
       let mut block = [0u8; C::BLOCK_SIZE];
       block[..{ C::BLOCK_SIZE - M }].copy_from_slice(&self.nonce);
       block[{ C::BLOCK_SIZE - M }..].copy_from_slice(&cipher_counter.0);
       cipher_counter.increment()?;
 
-      let encrypted = cipher.encrypt_block( C::Block::from(block.to_vec())).unwrap();
+      let encrypted = cipher.encrypt_block(C::Block::from(block.to_vec())).unwrap();
 
       for (x, y) in chunk.iter().zip(encrypted.as_ref()) {
         ciphertext.push(x ^ y);

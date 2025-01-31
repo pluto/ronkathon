@@ -10,9 +10,8 @@
 //! - [`IETFChaCha20`],[`IETFChaCha12`],[`IETFChaCha8`]: [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439)
 //!   with 20, 12, 8 rounds
 
-use crate::encryption::Encryption;
-
 use super::aes::Block;
+use crate::encryption::Encryption;
 
 #[cfg(test)] mod tests;
 
@@ -274,10 +273,14 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   ///
   /// assert_eq!(decrypted, plaintext);
   /// ```
-  pub fn decrypt(&self, counter: &Counter<C>, ciphertext: &[u8]) ->Result<Vec<u8>, <Self as Encryption>::Error> {
+  pub fn decrypt(
+    &self,
+    counter: &Counter<C>,
+    ciphertext: &[u8],
+  ) -> Result<Vec<u8>, <Self as Encryption>::Error> {
     self.encrypt(counter, ciphertext)
   }
- 
+
   /// Encrypts a plaintext of arbitrary length using [`Self::encrypt`] with a given counter.
 
   fn encrypt_with_counter(
@@ -295,39 +298,23 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   ) -> Result<Vec<u8>, <Self as Encryption>::Error> {
     self.decrypt(counter, ciphertext)
   }
-   
-
 }
-
-
 
 impl<const R: usize, const N: usize, const C: usize> Encryption for ChaCha<R, N, C> {
-   
-    type Key = Key;
-    type Error = String;
-    type Plaintext = Vec<u8>;
-    type Ciphertext = Vec<u8>;
+  type Ciphertext = Vec<u8>;
+  type Error = String;
+  type Key = Key;
+  type Plaintext = Vec<u8>;
 
-    fn new(key: Self::Key) -> Result<Self, Self::Error> {
-        Ok(Self {
-            key,
-            nonce: [0; N],
-        })
-    }
+  fn new(key: Self::Key) -> Result<Self, Self::Error> { Ok(Self { key, nonce: [0; N] }) }
 
-    fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
-        let counter = Counter::new([0u32; C]);
-        self.encrypt(&counter, data)
-    }
+  fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
+    let counter = Counter::new([0u32; C]);
+    self.encrypt(&counter, data)
+  }
 
-    fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
-        let counter = Counter::new([0u32; C]);
-        self.decrypt(&counter, data)
-    }
-     
+  fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
+    let counter = Counter::new([0u32; C]);
+    self.decrypt(&counter, data)
+  }
 }
-
-
-
-
-    

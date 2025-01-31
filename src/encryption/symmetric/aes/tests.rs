@@ -20,8 +20,8 @@ fn test_aes_128() {
   ]);
 
   assert_eq!(state, expected_ciphertext);
- 
-  let decrypted = aes.decrypt_block( state).unwrap();
+
+  let decrypted = aes.decrypt_block(state).unwrap();
   assert_eq!(decrypted.0, plaintext);
 }
 
@@ -69,6 +69,6 @@ fn test_aes_256() {
 
   assert_eq!(state, expected_ciphertext);
 
-  let decrypted = aes.decrypt_block( state).unwrap();
+  let decrypted = aes.decrypt_block(state).unwrap();
   assert_eq!(decrypted.0, plaintext);
 }

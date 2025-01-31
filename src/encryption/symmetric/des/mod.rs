@@ -6,7 +6,6 @@ pub mod constants;
 
 use constants::*;
 
-
 use crate::encryption::Encryption;
 
 /// Block represents 64-bit sized message data
@@ -23,7 +22,7 @@ pub type SubKeys = [Subkey; 16];
 /// DES encryption
 #[derive(Debug)]
 pub struct DES {
-  key: Block,
+  key:     Block,
   subkeys: SubKeys,
 }
 
@@ -227,40 +226,17 @@ impl DES {
   }
 }
 
-
-
 impl Encryption for DES {
-    type Key = Block;
-    type Error = String;
-    type Plaintext = Block;
-    type Ciphertext = Block;
+  type Ciphertext = Block;
+  type Error = String;
+  type Key = Block;
+  type Plaintext = Block;
 
-    fn new(key: Self::Key) -> Result<Self, Self::Error> {
-        Ok(Self {
-            key,
-            subkeys: Self::generate_subkeys(key),
-        })
-    }
+  fn new(key: Self::Key) -> Result<Self, Self::Error> {
+    Ok(Self { key, subkeys: Self::generate_subkeys(key) })
+  }
 
-     /// Encrypt a message of size [`Block`]
-  ///
-  /// ## Example
-  /// ```rust
-  /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{des::DES,Encryption};
-  /// let mut rng = thread_rng();
-  /// let secret_key = rng.gen();
-  ///
-  /// 
-  ///
-  /// let message = rng.gen();
-  /// let encrypted = DES::encrypt(&subkeys, &message);
-  /// ```
-    fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
-        Ok(Self::des(data, &mut self.subkeys.iter()))
-    }
-
-     /// Decrypt a ciphertext of size [`Block`]
+  /// Encrypt a message of size [`Block`]
   ///
   /// ## Example
   /// ```rust
@@ -269,15 +245,27 @@ impl Encryption for DES {
   /// let mut rng = thread_rng();
   /// let secret_key = rng.gen();
   ///
-  /// 
+  /// let message = rng.gen();
+  /// let encrypted = DES::encrypt(&subkeys, &message);
+  /// ```
+  fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
+    Ok(Self::des(data, &mut self.subkeys.iter()))
+  }
+
+  /// Decrypt a ciphertext of size [`Block`]
+  ///
+  /// ## Example
+  /// ```rust
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::symmetric::{des::DES, Encryption};
+  /// let mut rng = thread_rng();
+  /// let secret_key = rng.gen();
   ///
   /// let message = rng.gen();
   /// let encrypted = DES::encrypt(&subkeys, &message);
   /// let decrypted = DES::decrypt(&subkeys, &encrypted);
   /// ```
-    fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
-        Ok( Self::des(data, &mut self.subkeys.iter().rev()))
-    }
-    
-   
+  fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
+    Ok(Self::des(data, &mut self.subkeys.iter().rev()))
+  }
 }
