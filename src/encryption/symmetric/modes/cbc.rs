@@ -3,7 +3,7 @@ use crate::encryption::{BlockOperations, Encryption};
 
 /// Cipher block chaining mode of operation that works on any [`BlockCipher`]. Initialisation
 /// Vector (IV) should not be reused for different plaintext.
-pub struct CBC<C: BlockOperations> {
+pub struct CBC<C: Encryption + BlockOperations> {
   iv: C::Block,
 }
 
@@ -13,7 +13,7 @@ fn xor_blocks(a: &mut [u8], b: &[u8]) {
   }
 }
 
-impl<C: BlockOperations> CBC<C> {
+impl<C: Encryption + BlockOperations> CBC<C> {
   /// creates a new [`CBC`] mode of operation for [`BlockCipher`]
   /// ## Arguments
   /// - `iv`: initialisation vector for randomising the state.
@@ -49,7 +49,7 @@ impl<C: BlockOperations> CBC<C> {
   /// ```
   ///
   /// **Note**: plaintext is padded using PKCS#7, if not a multiple of [`BlockCipher::BLOCK_SIZE`].
-  pub fn encrypt(&self, key: &C::Key, plaintext: &[u8]) -> Vec<u8> {
+  pub fn encrypt(&self, key: C::Key, plaintext: &[u8]) -> Vec<u8> {
     let mut ciphertext = Vec::new();
     let mut prev_ciphertext = self.iv;
 
@@ -59,10 +59,14 @@ impl<C: BlockOperations> CBC<C> {
       let length = C::BLOCK_SIZE - (plaintext.len() % C::BLOCK_SIZE);
       plaintext.extend(std::iter::repeat(length as u8).take(length));
     }
-
+    let  value = C::new(key);
     for chunk in plaintext.chunks(C::BLOCK_SIZE) {
+      let cipher = match value{
+        Ok(ref cipher) => cipher,
+        Err(_) => panic!("Error creating cipher")
+      };
       xor_blocks(prev_ciphertext.as_mut(), chunk);
-      prev_ciphertext = C::encrypt_block(key, &prev_ciphertext);
+      prev_ciphertext = cipher.encrypt_block(prev_ciphertext).unwrap();
       ciphertext.extend_from_slice(prev_ciphertext.as_ref());
     }
     ciphertext
@@ -100,14 +104,19 @@ impl<C: BlockOperations> CBC<C> {
   ///
   /// **Note**: decrypted plaintext will be multiple of [`BlockCipher::Block`]. It's user's
   /// responsibility to truncate to original plaintext's length
-  pub fn decrypt(&self, key: &C::Key, ciphertext: &[u8]) -> Vec<u8> {
+  pub fn decrypt(&self, key: C::Key, ciphertext: &[u8]) -> Vec<u8> {
     assert!(ciphertext.len() % C::BLOCK_SIZE == 0, "ciphertext is not a multiple of block size");
 
     let mut prev_ciphertext: Vec<u8> = self.iv.as_ref().to_vec();
     let mut plaintext = Vec::new();
 
+    let  value = C::new(key);
     for chunk in ciphertext.chunks(C::BLOCK_SIZE) {
-      let mut decrypted = C::decrypt_block(key, &C::Block::from(chunk.to_vec()));
+      let cipher = match value{
+        Ok(ref cipher) => cipher,
+        Err(_) => panic!("Error creating cipher")
+      };
+      let mut decrypted = cipher.decrypt_block( C::Block::from(chunk.to_vec())).unwrap();
       xor_blocks(decrypted.as_mut(), &prev_ciphertext);
       prev_ciphertext = chunk.to_vec();
 
@@ -159,9 +168,9 @@ mod tests {
     for _ in 0..10 {
       let mut rng = thread_rng();
       let plaintext = rand_message(rng.gen_range(1000..10000));
-      let ciphertext = cbc.encrypt(&rand_key, &plaintext);
+      let ciphertext = cbc.encrypt(rand_key, &plaintext);
 
-      let decrypted = cbc.decrypt(&rand_key, &ciphertext);
+      let decrypted = cbc.decrypt(rand_key, &ciphertext);
 
       assert_eq!(plaintext.len(), decrypted.len());
       assert_eq!(plaintext, decrypted);
@@ -180,13 +189,13 @@ mod tests {
     let mut rng = thread_rng();
     let plaintext = rand_message(rng.gen_range(1000..100000));
 
-    let ciphertext = cbc.encrypt(&rand_key, &plaintext);
-    let ciphertext2 = cbc2.encrypt(&rand_key, &plaintext);
+    let ciphertext = cbc.encrypt(rand_key, &plaintext);
+    let ciphertext2 = cbc2.encrypt(rand_key, &plaintext);
 
     assert_ne!(ciphertext, ciphertext2);
 
-    let decrypted = cbc.decrypt(&rand_key, &ciphertext);
-    let decrypted2 = cbc2.decrypt(&rand_key, &ciphertext2);
+    let decrypted = cbc.decrypt(rand_key, &ciphertext);
+    let decrypted2 = cbc2.decrypt(rand_key, &ciphertext2);
 
     assert_eq!(plaintext, decrypted);
     assert_eq!(decrypted, decrypted2);

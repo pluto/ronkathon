@@ -39,7 +39,7 @@ fn attacker<'a>(key: &Key<128>, iv: &Block, ciphertext: Vec<u8>) -> &'a [u8] {
   xor_blocks(&mut pwned_message, &new_iv);
 
   // attacker receives ciphertext from encryption oracle
-  let encrypted = cbc2.encrypt(key, &pwned_message);
+  let encrypted = cbc2.encrypt(*key, &pwned_message);
 
   // attacker has gained knowledge about initial message
   if c1 == encrypted {
@@ -64,7 +64,7 @@ fn main() {
 
   // select a uniform bit b, and chose message m_b for encryption
   let bit = rng.gen_range(0..=1);
-  let encrypted = cbc.encrypt(&key, messages[bit]);
+  let encrypted = cbc.encrypt(key, messages[bit]);
 
   let predicted_message = attacker(&key, &iv, encrypted);
 

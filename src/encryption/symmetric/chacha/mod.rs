@@ -278,15 +278,7 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
     self.encrypt(counter, ciphertext)
   }
  
-  fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>, <Self as Encryption>::Error> {
-    let counter = Counter::new([0u32; C]);
-    self.encrypt(&counter, plaintext)
-  }
-
-  fn decrypt(&self, ciphertext: &[u8]) -> Result<Vec<u8>, <Self as Encryption>::Error> {
-    let counter = Counter::new([0u32; C]);
-    self.decrypt(&counter, ciphertext)
-  }
+  /// Encrypts a plaintext of arbitrary length using [`Self::encrypt`] with a given counter.
 
   fn encrypt_with_counter(
     &self,
@@ -310,7 +302,7 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
 
 
 impl<const R: usize, const N: usize, const C: usize> Encryption for ChaCha<R, N, C> {
-    type Block = Block;
+   
     type Key = Key;
     type Error = String;
     type Plaintext = Vec<u8>;

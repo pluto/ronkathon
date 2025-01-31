@@ -33,7 +33,7 @@
 
 use super::ctr::CTR;
 use crate::{
-  encryption::{symmetric::counter::Counter, Encryption},
+  encryption::{ symmetric::counter::Counter, BlockOperations, Encryption},
   hashes::ghash::GHASH,
 };
 
@@ -45,12 +45,12 @@ use crate::{
 ///
 /// # Generics
 /// - `C`: A block cipher that implements the `BlockCipher` trait.
-pub struct GCM<C: Encryption> {
+pub struct GCM<C: BlockOperations + Encryption> {
   ghash: GHASH,
   key:   C::Key,
 }
 
-impl<C: Encryption> GCM<C>
+impl<C: BlockOperations + Encryption> GCM<C>
 where [(); C::BLOCK_SIZE - 4]:
 {
   /// Constructs a new `GCM` instance with the given key.
@@ -64,7 +64,11 @@ where [(); C::BLOCK_SIZE - 4]:
     assert_eq!(C::BLOCK_SIZE, 16, "GCM only supports 128-bit block size.");
     // The GHASH algorithms requires the encryption of 128-bits of zeros.
     let zero_string = C::Block::from(vec![0u8; 16]);
-    let hash_key = C::encrypt_block(&key, &zero_string);
+    let cipher = match C::new(key.clone()){
+      Ok(cipher) => cipher,
+      Err(_) => panic!("Error creating cipher")
+    };
+    let hash_key = cipher.encrypt_block(zero_string).unwrap();
     let ghash = GHASH::new(hash_key.as_ref());
     GCM { ghash, key }
   }
@@ -126,12 +130,16 @@ where [(); C::BLOCK_SIZE - 4]:
 
     // Step 2: Encrypt the plaintext using the `CTR` object.
     let ctr = CTR::<C, 4>::new(new_nonce.into());
-    let ciphertext = ctr.encrypt(&self.key, &counter, plaintext)?;
+    let ciphertext = ctr.encrypt(self.key.clone(), &counter, plaintext)?;
 
     // Step3: Generate Tag
     // The tag is the XOR of the `initial_block` and ghash of ciphertext.
     let y0_block = C::Block::from(initial_block.to_vec());
-    let y0_enc = C::encrypt_block(&self.key, &y0_block);
+    let cipher = match C::new(self.key.clone()){
+      Ok(cipher) => cipher,
+      Err(_) => panic!("Error creating cipher")
+    };
+    let y0_enc = cipher.encrypt_block(y0_block).unwrap();
     let hash = self.ghash.digest(aad, ciphertext.as_ref());
     let mut tag = Vec::new();
 
@@ -185,7 +193,11 @@ where [(); C::BLOCK_SIZE - 4]:
 
     // Step 1: Generate Tag (same as the encryption)
     let y0 = C::Block::from(counter_block.to_vec());
-    let y0_enc = C::encrypt_block(&self.key, &y0);
+    let cipher = match C::new(self.key.clone()){
+      Ok(cipher) => cipher,
+      Err(_) => panic!("Error creating cipher")
+    };
+    let y0_enc = cipher.encrypt_block(y0).unwrap();
     let hash = self.ghash.digest(aad, ciphertext.as_ref());
     let mut tag = Vec::new();
 
@@ -199,7 +211,7 @@ where [(); C::BLOCK_SIZE - 4]:
 
     // Step 3: Decrypt ciphertext.
     let ctr = CTR::<C, 4>::new(new_nonce.into());
-    let plaintext = ctr.decrypt(&self.key, &counter, ciphertext)?;
+    let plaintext = ctr.decrypt(self.key.clone(), &counter, ciphertext)?;
 
     Ok((plaintext.to_vec(), tag))
   }

@@ -12,15 +12,16 @@ fn test_aes_128() {
     0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
   ];
 
-  let state = AES::encrypt_block(&key, &Block(plaintext));
+  let aes = AES::new(key).unwrap();
+  let state = aes.encrypt_block(Block(plaintext)).unwrap();
 
   let expected_ciphertext = Block::from(vec![
     0x69, 0xc4, 0xe0, 0xd8, 0x6a, 0x7b, 0x04, 0x30, 0xd8, 0xcd, 0xb7, 0x80, 0x70, 0xb4, 0xc5, 0x5a,
   ]);
 
   assert_eq!(state, expected_ciphertext);
-
-  let decrypted = AES::decrypt_block(&key, &state);
+ 
+  let decrypted = aes.decrypt_block( state).unwrap();
   assert_eq!(decrypted.0, plaintext);
 }
 
@@ -35,8 +36,8 @@ fn test_aes_192() {
   let plaintext = [
     0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
   ];
-
-  let state = AES::encrypt_block(&key, &Block(plaintext));
+  let aes = AES::new(key).unwrap();
+  let state = aes.encrypt_block(Block(plaintext)).unwrap();
 
   let expected_ciphertext = Block::from(vec![
     0xdd, 0xa9, 0x7c, 0xa4, 0x86, 0x4c, 0xdf, 0xe0, 0x6e, 0xaf, 0x70, 0xa0, 0xec, 0x0d, 0x71, 0x91,
@@ -44,7 +45,7 @@ fn test_aes_192() {
 
   assert_eq!(state, expected_ciphertext);
 
-  let decrypted = AES::decrypt_block(&key, &state);
+  let decrypted = aes.decrypt_block(state).unwrap();
   assert_eq!(decrypted.0, plaintext);
 }
 
@@ -59,8 +60,8 @@ fn test_aes_256() {
   let plaintext = [
     0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
   ];
-
-  let state = AES::encrypt_block(&key, &Block(plaintext));
+  let aes = AES::new(key).unwrap();
+  let state = aes.encrypt_block(Block(plaintext)).unwrap();
 
   let expected_ciphertext = Block::from(vec![
     0x8e, 0xa2, 0xb7, 0xca, 0x51, 0x67, 0x45, 0xbf, 0xea, 0xfc, 0x49, 0x90, 0x4b, 0x49, 0x60, 0x89,
@@ -68,6 +69,6 @@ fn test_aes_256() {
 
   assert_eq!(state, expected_ciphertext);
 
-  let decrypted = AES::decrypt_block(&key, &state);
+  let decrypted = aes.decrypt_block( state).unwrap();
   assert_eq!(decrypted.0, plaintext);
 }

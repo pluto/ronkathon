@@ -1,16 +1,16 @@
 //! Contains implementation for Counter (CTR) mode of operation in block ciphers
 
-use crate::encryption::{symmetric::counter::Counter, Encryption};
+use crate::encryption::{symmetric::counter::Counter, BlockOperations, Encryption};
 
 /// [`BlockCipher`] counter mode of operation with two parameters:
 /// - `C`, a cipher that implements the `BlockCipher` trait.
 /// - `M`, a usize const that indicates the size of counter in bytes.
-pub struct CTR<C: Encryption, const M: usize>
+pub struct CTR<C: Encryption + BlockOperations, const M: usize>
 where [(); C::BLOCK_SIZE - M]: {
   nonce: [u8; C::BLOCK_SIZE - M],
 }
 
-impl<C: Encryption, const M: usize> CTR<C, M>
+impl<C: Encryption + BlockOperations, const M: usize> CTR<C, M>
 where [(); C::BLOCK_SIZE - M]:
 {
   /// Create a CTR mode of operation object
@@ -49,20 +49,24 @@ where [(); C::BLOCK_SIZE - M]:
   /// ```
   pub fn encrypt(
     &self,
-    key: &C::Key,
+    key: C::Key,
     counter: &Counter<M>,
     plaintext: &[u8],
   ) -> Result<Vec<u8>, String> {
     let mut ciphertext = Vec::new();
     let mut cipher_counter = *counter;
-
+    let  value = C::new(key);
     for chunk in plaintext.chunks(C::BLOCK_SIZE) {
+      let cipher = match value{
+        Ok(ref cipher) => cipher,
+        Err(_) => panic!("Error creating cipher")
+      };
       let mut block = [0u8; C::BLOCK_SIZE];
       block[..{ C::BLOCK_SIZE - M }].copy_from_slice(&self.nonce);
       block[{ C::BLOCK_SIZE - M }..].copy_from_slice(&cipher_counter.0);
       cipher_counter.increment()?;
 
-      let encrypted = C::encrypt_block(key, &C::Block::from(block.to_vec()));
+      let encrypted = cipher.encrypt_block( C::Block::from(block.to_vec())).unwrap();
 
       for (x, y) in chunk.iter().zip(encrypted.as_ref()) {
         ciphertext.push(x ^ y);
@@ -99,7 +103,7 @@ where [(); C::BLOCK_SIZE - M]:
   /// ```
   pub fn decrypt(
     &self,
-    key: &C::Key,
+    key: C::Key,
     counter: &Counter<M>,
     ciphertext: &[u8],
   ) -> Result<Vec<u8>, String> {
@@ -140,9 +144,9 @@ mod tests {
       let ctr = CTR::<AES<128>, 4>::new(nonce);
 
       let plaintext = rand_message(rng.gen_range(1000..10000));
-      let ciphertext = ctr.encrypt(&rand_key, &counter, &plaintext).unwrap();
+      let ciphertext = ctr.encrypt(rand_key, &counter, &plaintext).unwrap();
 
-      let decrypted = ctr.decrypt(&rand_key, &counter, &ciphertext).unwrap();
+      let decrypted = ctr.decrypt(rand_key, &counter, &ciphertext).unwrap();
 
       assert_eq!(plaintext, decrypted);
     }
@@ -190,12 +194,12 @@ mod tests {
 
     let ctr = CTR::<AES<128>, 8>::new(nonce.try_into().unwrap());
 
-    let ct = ctr.encrypt(&key, &counter, &pt).unwrap();
+    let ct = ctr.encrypt(key, &counter, &pt).unwrap();
 
     let ctx = encode_hex(&ct);
     assert_eq!(ctx, expected_ctx);
 
-    let _pt = ctr.decrypt(&key, &counter, &ct).unwrap();
+    let _pt = ctr.decrypt(key, &counter, &ct).unwrap();
 
     let _ptx = encode_hex(&_pt);
     assert_eq!(_ptx, ptx);
@@ -225,12 +229,12 @@ mod tests {
 
     let ctr = CTR::<AES<192>, 8>::new(nonce.try_into().unwrap());
 
-    let ct = ctr.encrypt(&key, &counter, &pt).unwrap();
+    let ct = ctr.encrypt(key, &counter, &pt).unwrap();
 
     let ctx = encode_hex(&ct);
     assert_eq!(ctx, expected_ctx);
 
-    let _pt = ctr.decrypt(&key, &counter, &ct).unwrap();
+    let _pt = ctr.decrypt(key, &counter, &ct).unwrap();
 
     let _ptx = encode_hex(&_pt);
     assert_eq!(_ptx, ptx);
@@ -260,12 +264,12 @@ mod tests {
 
     let ctr = CTR::<AES<256>, 8>::new(nonce.try_into().unwrap());
 
-    let ct = ctr.encrypt(&key, &counter, &pt).unwrap();
+    let ct = ctr.encrypt(key, &counter, &pt).unwrap();
 
     let ctx = encode_hex(&ct);
     assert_eq!(ctx, expected_ctx);
 
-    let _pt = ctr.decrypt(&key, &counter, &ct).unwrap();
+    let _pt = ctr.decrypt(key, &counter, &ct).unwrap();
 
     let _ptx = encode_hex(&_pt);
     assert_eq!(_ptx, ptx);

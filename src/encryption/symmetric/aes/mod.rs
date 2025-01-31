@@ -434,7 +434,13 @@ where [(); N / 8]:
       "Wrong number of words output during key expansion"
     );
   }
- 
+ fn encrypt_internal(&self, data: Block) -> Result<Block, String> {
+   self.encrypt(&data)
+  }
+
+  fn decrypt_internal(&self, data: Block) -> Result<Block, String> {
+    self.decrypt(&data)
+  }
 }
 
 impl<const N: usize> Encryption for AES<N>
@@ -444,7 +450,6 @@ where [(); N / 8]:
     type Error = String;
     type Plaintext = Block;
     type Ciphertext = Block;
-    type Block = Block;
 
     fn new(key: Self::Key) -> Result<Self, Self::Error> {
         Ok(Self { key })
@@ -516,12 +521,12 @@ impl<const N: usize> BlockOperations for AES<N>
 where [(); N / 8]:
 {
     const BLOCK_SIZE: usize = 16;
-
-    fn encrypt_block(&self, block: &[u8; Self::BLOCK_SIZE]) -> Result<[u8; Self::BLOCK_SIZE], Self::Error> {
-        Ok(Self::aes_encrypt(block, &self.key, 10).0)
+    type Block = Block;
+    fn encrypt_block(&self, block: Block) -> Result<Block, Self::Error> {
+        self.encrypt_internal(block)
     }
 
-    fn decrypt_block(&self, block: &[u8; Self::BLOCK_SIZE]) -> Result<[u8; Self::BLOCK_SIZE], Self::Error> {
-        Ok(Self::aes_decrypt(block, &self.key, 10).0)
+    fn decrypt_block(&self, block: Block) -> Result<Block, Self::Error> {
+        self.decrypt_internal(block)
     }
 }

@@ -4,11 +4,11 @@ pub mod asymmetric;
 
 /// Core encryption trait that defines basic encryption/decryption operations
 pub trait Encryption {
-    type Block;
+   
     /// The key type used by this encryption algorithm
-    type Key;
+    type Key : Clone;
     /// The error type returned by encryption operations
-    type Error;
+    type Error : std::fmt::Debug;
     /// The data that is input into this scheme for encryption
     type Plaintext;
     /// The encrypted form of the data
@@ -26,8 +26,9 @@ pub trait Encryption {
 /// Optional trait for block-specific operations
 pub trait BlockOperations: Encryption {
     const BLOCK_SIZE: usize;
-    fn encrypt_block(&self, block: &[u8; Self::BLOCK_SIZE]) -> Result<[u8; Self::BLOCK_SIZE], Self::Error>;
-    fn decrypt_block(&self, block: &[u8; Self::BLOCK_SIZE]) -> Result<[u8; Self::BLOCK_SIZE], Self::Error>;
+    type Block : AsRef<[u8]> + AsMut<[u8]> + From<Vec<u8>> + Copy + PartialEq;
+    fn encrypt_block(&self, block: Self::Block) -> Result<Self::Block, Self::Error>;
+    fn decrypt_block(&self, block: Self::Block) -> Result<Self::Block, Self::Error>;
     }
     
     /// Optional trait for stream-specific operations

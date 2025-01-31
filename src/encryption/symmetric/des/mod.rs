@@ -279,5 +279,5 @@ impl Encryption for DES {
         Ok( Self::des(data, &mut self.subkeys.iter().rev()))
     }
     
-    type Block=Block;
+   
 }
