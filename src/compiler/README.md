@@ -25,6 +25,7 @@ Outputs parsed output in form of `WireCoeffs` values and coefficients.
 
 
 ```rust
+use std::collections::HashMap;
 /// Values of wires with coefficients of each wire name
 #[derive(Debug, PartialEq)]
 pub struct WireCoeffs<'a> {
@@ -68,6 +69,7 @@ b-->o2[output=l+r]
 ```
 
 ```rust
+use ronkathon::algebra::field::prime::PlutoScalarField;
 /// Fan-in 2 Gate representing a constraint in the computation.
 /// Each constraint satisfies PLONK's arithmetic equation: `a(X)QL(X) + b(X)QR(X) + a(X)b(X)QM(X) +
 /// o(X)QO(X) + QC(X) = 0`.
@@ -148,6 +150,8 @@ permutation helper creates $\sigma_i$ polynomials for $i = \{1,2,3\}$.
   - This ensures that variables `x` is copied from $x_i$ to $x_{i+1}$
 
 ```rust
+ use ronkathon::compiler::parser::WireCoeffs;
+
 /// `Program` represents constraints used while defining the arithmetic on the inputs
 /// and group order of primitive roots of unity in the field.
 #[derive(Debug, PartialEq)]

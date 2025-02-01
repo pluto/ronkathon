@@ -30,8 +30,6 @@ pub trait BlockOperations: Encryption {
   type Block: AsRef<[u8]> + AsMut<[u8]> + From<Vec<u8>> + Copy + PartialEq;
   /// Encrypt a single block of data
   fn encrypt_block(&self, block: Self::Block) -> Result<Self::Block, Self::Error>;
-   /// Decrypt a single block of data
+  /// Decrypt a single block of data
   fn decrypt_block(&self, block: Self::Block) -> Result<Self::Block, Self::Error>;
 }
-
-

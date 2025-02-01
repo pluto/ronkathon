@@ -8,21 +8,12 @@ use constants::*;
 
 use crate::encryption::Encryption;
 
-/// Block represents 64-bit sized message data
-pub type Block = [u8; 8];
-/// 32-bit sized word
-pub type Word = [u8; 4];
-
-/// Subkey represents 48-bit round keys used in each round of the encryption
-pub type Subkey = [u8; 6];
-
 /// Subkeys represents 16-round subkey generated from secret key
-pub type SubKeys = [Subkey; 16];
+pub type SubKeys = [[u8; 6]; 16];
 
 /// DES encryption
 #[derive(Debug)]
 pub struct DES {
-  key:     Block,
   subkeys: SubKeys,
 }
 
@@ -72,7 +63,7 @@ impl DES {
   /// let secret_key = rng.gen();
   ///
   /// let subkeys = DES::setup(secret_key);
-  pub fn setup(secret_key: Block) -> SubKeys { Self::generate_subkeys(secret_key) }
+  pub fn setup(secret_key: [u8; 8]) -> SubKeys { Self::generate_subkeys(secret_key) }
 
   fn permute(data: &[u8], permutation_table: &[usize]) -> Vec<u8> {
     permutation_table.iter().map(|&i| (data[(i - 1) / 8] >> (7 - (i - 1) % 8)) & 1).collect()
@@ -83,7 +74,7 @@ impl DES {
   /// - `key`: 64-bit secret key of the encryption algorithm
   /// ## Output
   /// - `subkeys`: 16 48-bit subkeys for each round
-  fn generate_subkeys(key: Block) -> [Subkey; 16] {
+  fn generate_subkeys(key: [u8; 8]) -> [[u8; 6]; 16] {
     // permute 64 bit key into 56 bits
     let permuted_bits = Self::permute(&key, &PC1);
 
@@ -131,7 +122,7 @@ impl DES {
 
   /// mixes two element together using xor and divides 48-bit intermediate state into 8 6-bit
   /// elements
-  fn feistel_mix(state: [u8; 6], subkey: &Subkey) -> Block {
+  fn feistel_mix(state: [u8; 6], subkey: &[u8; 6]) -> [u8; 8] {
     let input = state.into_iter().zip(subkey).map(|(a, b)| a ^ b).collect::<Vec<u8>>();
 
     // divide into 8 6-bit elements
@@ -148,7 +139,7 @@ impl DES {
   }
 
   // gets 8 6-bit elements from mixing and substitutes using [`S_BOXES`]
-  fn feistel_substitution(data: Block) -> Word {
+  fn feistel_substitution(data: [u8; 8]) -> [u8; 4] {
     let mut output = [0u8; 4];
 
     // perform 8 substitutions
@@ -170,7 +161,7 @@ impl DES {
     output
   }
 
-  fn feistel_function(data: &Word, subkey: &Subkey) -> Word {
+  fn feistel_function(data: &[u8; 4], subkey: &[u8; 6]) -> [u8; 4] {
     let expanded = Self::permutation(data, &E);
     let mixed = Self::feistel_mix(expanded, subkey);
     let substituted = Self::feistel_substitution(mixed);
@@ -189,7 +180,7 @@ impl DES {
       .unwrap_or_else(|v: Vec<u8>| panic!("expected vec of len: {} but got: {}", N2, v.len()))
   }
 
-  fn mix(state: Word, subkey: Word) -> Word {
+  fn mix(state: [u8; 4], subkey: [u8; 4]) -> [u8; 4] {
     state
       .into_iter()
       .zip(subkey)
@@ -198,8 +189,31 @@ impl DES {
       .try_into()
       .unwrap_or_else(|v: Vec<u8>| panic!("Expected vec of len: {} but got {}", 4, v.len()))
   }
+}
 
-  fn des<'a>(data: &Block, subkeys: impl Iterator<Item = &'a Subkey>) -> Block {
+impl Encryption for DES {
+  type Ciphertext = [u8; 8];
+  type Error = String;
+  type Key = [u8; 8];
+  type Plaintext = [u8; 8];
+
+  fn new(key: Self::Key) -> Result<Self, Self::Error> {
+    Ok(Self { subkeys: Self::generate_subkeys(key) })
+  }
+
+  /// Encrypt a message of size [`[u8; 8]`]
+  ///
+  /// ## Example
+  /// ```rust
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::symmetric::{des::DES, Encryption};
+  /// let mut rng = thread_rng();
+  /// let secret_key = rng.gen();
+  /// let message = rng.gen();
+  /// let des = DES::new(secret_key).unwrap();
+  /// let encrypted = des.encrypt(&message);
+  /// ```
+  fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
     // initial permutation
     let ip: [u8; 8] = Self::permutation(data, &IP);
 
@@ -207,7 +221,7 @@ impl DES {
     let (mut left, mut right) = ([ip[0], ip[1], ip[2], ip[3]], [ip[4], ip[5], ip[6], ip[7]]);
 
     // 16 rounds
-    for subkey in subkeys.into_iter() {
+    for subkey in self.subkeys.iter() {
       // swap right and left
       let temp = right;
       // mix right with round subkey
@@ -216,27 +230,17 @@ impl DES {
     }
 
     // final round doesn't swap elements, so we swap back
-    let combined: Block = [right, left]
+    let combined: [u8; 8] = [right, left]
       .concat()
       .try_into()
       .unwrap_or_else(|v: Vec<u8>| panic!("Expected vec of len: {} but got: {}", 8, v.len()));
 
     // final permutation
-    Self::permutation(&combined, &FP)
-  }
-}
 
-impl Encryption for DES {
-  type Ciphertext = Block;
-  type Error = String;
-  type Key = Block;
-  type Plaintext = Block;
-
-  fn new(key: Self::Key) -> Result<Self, Self::Error> {
-    Ok(Self { key, subkeys: Self::generate_subkeys(key) })
+    Ok(Self::permutation(&combined, &FP))
   }
 
-  /// Encrypt a message of size [`Block`]
+  /// Decrypt a ciphertext of size [`[u8; 8]`]
   ///
   /// ## Example
   /// ```rust
@@ -246,26 +250,34 @@ impl Encryption for DES {
   /// let secret_key = rng.gen();
   ///
   /// let message = rng.gen();
-  /// let encrypted = DES::encrypt(&subkeys, &message);
-  /// ```
-  fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
-    Ok(Self::des(data, &mut self.subkeys.iter()))
-  }
-
-  /// Decrypt a ciphertext of size [`Block`]
-  ///
-  /// ## Example
-  /// ```rust
-  /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{des::DES, Encryption};
-  /// let mut rng = thread_rng();
-  /// let secret_key = rng.gen();
-  ///
-  /// let message = rng.gen();
-  /// let encrypted = DES::encrypt(&subkeys, &message);
-  /// let decrypted = DES::decrypt(&subkeys, &encrypted);
+  /// let des = DES::new(secret_key).unwrap();
+  /// let encrypted = des.encrypt(&subkeys, &message);
+  /// let decrypted = des.decrypt(&subkeys, &encrypted);
   /// ```
   fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
-    Ok(Self::des(data, &mut self.subkeys.iter().rev()))
+    // initial permutation
+    let ip: [u8; 8] = Self::permutation(data, &IP);
+
+    // split 64-bit block into 2 32-bit blocks
+    let (mut left, mut right) = ([ip[0], ip[1], ip[2], ip[3]], [ip[4], ip[5], ip[6], ip[7]]);
+
+    // 16 rounds
+    for subkey in self.subkeys.iter().rev() {
+      // swap right and left
+      let temp = right;
+      // mix right with round subkey
+      right = Self::mix(left, Self::feistel_function(&right, subkey));
+      left = temp;
+    }
+
+    // final round doesn't swap elements, so we swap back
+    let combined: [u8; 8] = [right, left]
+      .concat()
+      .try_into()
+      .unwrap_or_else(|v: Vec<u8>| panic!("Expected vec of len: {} but got: {}", 8, v.len()));
+
+    // final permutation
+
+    Ok(Self::permutation(&combined, &FP))
   }
 }

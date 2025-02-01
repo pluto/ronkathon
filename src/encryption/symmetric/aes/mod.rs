@@ -40,9 +40,6 @@ impl AsMut<[u8]> for Block {
   fn as_mut(&mut self) -> &mut [u8] { self.0.as_mut() }
 }
 
-///  A word in AES represents a 32-bit array of data.
-pub type Word = [u8; 4];
-
 /// A generic N-bit key.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Key<const N: usize>
@@ -143,91 +140,9 @@ where [(); N / 8]:
 {
   /// Performs the cipher, with key size of `N` (in bits), as seen in Figure 5 of the document
   /// linked in the front-page.
-  fn aes_encrypt(plaintext: &[u8; 16], key: &Key<N>, num_rounds: usize) -> Block {
-    assert!(!key.is_empty(), "Key is not instantiated");
-
-    let key_len_words = N / 32;
-    let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
-    Self::key_expansion(*key, &mut round_keys_words, key_len_words, num_rounds);
-    let mut round_keys = round_keys_words.chunks_exact(4);
-
-    let mut state = State(
-      plaintext
-        .chunks(4)
-        .map(|c| c.try_into().unwrap())
-        .collect::<Vec<[u8; 4]>>()
-        .try_into()
-        .unwrap(),
-    );
-
-    // Round 0 - add round key
-    Self::add_round_key(&mut state, round_keys.next().unwrap());
-
-    // Rounds 1 to N - 1
-    for _ in 1..num_rounds {
-      Self::sub_bytes(&mut state);
-      Self::shift_rows(&mut state);
-      Self::mix_columns(&mut state);
-      Self::add_round_key(&mut state, round_keys.next().unwrap());
-    }
-
-    // Last round - we do not mix columns here.
-    Self::sub_bytes(&mut state);
-    Self::shift_rows(&mut state);
-    Self::add_round_key(&mut state, round_keys.next().unwrap());
-
-    assert!(
-      round_keys.remainder().is_empty(),
-      "Round keys not fully consumed - perhaps check key expansion?"
-    );
-
-    Block(state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap())
-  }
 
   /// Deciphers a given `ciphertext`, with key size of `N` (in bits), as seen in Figure 5 of the
   /// document linked in the front-page.
-  fn aes_decrypt(ciphertext: &[u8; 16], key: &Key<N>, num_rounds: usize) -> Block {
-    assert!(!key.is_empty(), "Key is not instantiated");
-
-    let key_len_words = N / 32;
-    let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
-    Self::key_expansion(*key, &mut round_keys_words, key_len_words, num_rounds);
-    // For decryption; we use the round keys from the back, so we iterate from the back here.
-    let mut round_keys = round_keys_words.chunks_exact(4).rev();
-
-    let mut state = State(
-      ciphertext
-        .chunks(4)
-        .map(|c| c.try_into().unwrap())
-        .collect::<Vec<[u8; 4]>>()
-        .try_into()
-        .unwrap(),
-    );
-    assert!(state != State::default(), "State is not instantiated");
-
-    // Round 0 - add round key
-    Self::add_round_key(&mut state, round_keys.next().unwrap());
-
-    // Rounds 1 to N - 1
-    for _ in 1..num_rounds {
-      Self::inv_shift_rows(&mut state);
-      Self::inv_sub_bytes(&mut state);
-      Self::add_round_key(&mut state, round_keys.next().unwrap());
-      Self::inv_mix_columns(&mut state);
-    }
-
-    // Last round - we do not mix columns here.
-    Self::inv_shift_rows(&mut state);
-    Self::inv_sub_bytes(&mut state);
-    Self::add_round_key(&mut state, round_keys.next().unwrap());
-
-    assert!(
-      round_keys.next().is_none(),
-      "Round keys not fully consumed - perhaps check key expansion?"
-    );
-
-    state.0.into_iter().flatten().collect::<Vec<_>>().into()
-  }
 
   /// XOR a round key to its internal state.
   fn add_round_key(state: &mut State, round_key: &[[u8; 4]]) {
@@ -396,14 +311,14 @@ where [(); N / 8]:
   /// complexity and diffusion.
   fn key_expansion(
     key: Key<N>,
-    round_keys_words: &mut Vec<Word>,
+    round_keys_words: &mut Vec<[u8; 4]>,
     key_len: usize,
     num_rounds: usize,
   ) {
     let block_num_words = 128 / 32;
 
     let out_len = block_num_words * (num_rounds + 1);
-    let key_words: Vec<Word> = key.chunks(4).map(|c| c.try_into().unwrap()).collect();
+    let key_words: Vec<[u8; 4]> = key.chunks(4).map(|c| c.try_into().unwrap()).collect();
     round_keys_words.extend(key_words);
 
     for i in key_len..(block_num_words * (num_rounds + 1)) {
@@ -466,7 +381,8 @@ where [(); N / 8]:
   /// let mut rng = thread_rng();
   /// let key = Key::<128>::new(rng.gen());
   /// let plaintext = rng.gen();
-  /// let encrypted = AES::encrypt(&key, &Block(plaintext));
+  /// let aes = AES::new(key).unwrap();
+  /// let encrypted = aes.encrypt(&Block(plaintext)).unwrap();
   /// ```
   fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
     let num_rounds = match N {
@@ -476,7 +392,43 @@ where [(); N / 8]:
       _ => return Err("AES only supports key sizes 128, 192 and 256 bits".to_string()),
     };
 
-    Ok(Self::aes_encrypt(&data.0, &self.key, num_rounds))
+    let key_len_words = N / 32;
+    let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
+    Self::key_expansion(self.key, &mut round_keys_words, key_len_words, num_rounds);
+    let mut round_keys = round_keys_words.chunks_exact(4);
+
+    let mut state = State(
+      data
+        .as_ref()
+        .chunks(4)
+        .map(|c| c.try_into().unwrap())
+        .collect::<Vec<[u8; 4]>>()
+        .try_into()
+        .unwrap(),
+    );
+
+    // Round 0 - add round key
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    // Rounds 1 to N - 1
+    for _ in 1..num_rounds {
+      Self::sub_bytes(&mut state);
+      Self::shift_rows(&mut state);
+      Self::mix_columns(&mut state);
+      Self::add_round_key(&mut state, round_keys.next().unwrap());
+    }
+
+    // Last round - we do not mix columns here.
+    Self::sub_bytes(&mut state);
+    Self::shift_rows(&mut state);
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    assert!(
+      round_keys.remainder().is_empty(),
+      "Round keys not fully consumed - perhaps check key expansion?"
+    );
+
+    Ok(Block(state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap()))
   }
 
   /// Decrypt a ciphertext of size [`Block`] with a [`Key`] of size `N`-bits.
@@ -487,16 +439,15 @@ where [(); N / 8]:
   /// #![feature(generic_const_exprs)]
   ///
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{
+  /// use ronkathon::encryption::{Encryption, symmetric::{
   ///   aes::{Block, Key, AES},
-  ///   SymmetricEncryption,
-  /// };
-  ///
+  /// }};
   /// let mut rng = thread_rng();
   /// let key = Key::<128>::new(rng.gen());
   /// let plaintext = rng.gen();
-  /// let encrypted = AES::encrypt(&key, &Block(plaintext));
-  /// let decrypted = AES::decrypt(&key, &encrypted);
+  /// let aes = AES::new(key).unwrap();
+  /// let encrypted = aes.encrypt(&Block(plaintext)).unwrap();
+  /// let decrypted = aes.decrypt(&encrypted);
   /// ```
   fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
     let num_rounds = match N {
@@ -506,7 +457,45 @@ where [(); N / 8]:
       _ => return Err("AES only supports key sizes 128, 192 and 256 bits".to_string()),
     };
 
-    Ok(Self::aes_decrypt(&data.0, &self.key, num_rounds))
+    let key_len_words = N / 32;
+    let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
+    Self::key_expansion(self.key, &mut round_keys_words, key_len_words, num_rounds);
+    // For decryption; we use the round keys from the back, so we iterate from the back here.
+    let mut round_keys = round_keys_words.chunks_exact(4).rev();
+
+    let mut state = State(
+      data
+        .as_ref()
+        .chunks(4)
+        .map(|c| c.try_into().unwrap())
+        .collect::<Vec<[u8; 4]>>()
+        .try_into()
+        .unwrap(),
+    );
+    assert!(state != State::default(), "State is not instantiated");
+
+    // Round 0 - add round key
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    // Rounds 1 to N - 1
+    for _ in 1..num_rounds {
+      Self::inv_shift_rows(&mut state);
+      Self::inv_sub_bytes(&mut state);
+      Self::add_round_key(&mut state, round_keys.next().unwrap());
+      Self::inv_mix_columns(&mut state);
+    }
+
+    // Last round - we do not mix columns here.
+    Self::inv_shift_rows(&mut state);
+    Self::inv_sub_bytes(&mut state);
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    assert!(
+      round_keys.next().is_none(),
+      "Round keys not fully consumed - perhaps check key expansion?"
+    );
+
+    Ok(state.0.into_iter().flatten().collect::<Vec<_>>().into())
   }
 }
 
