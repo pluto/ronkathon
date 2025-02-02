@@ -4,7 +4,7 @@ introduces a simple DSL, originally from 0xPARC's [Plonkathon](https://github.co
 
 let's take an example to compute $x^3 + x + 5$:
 
-```
+```DSL
 x public
 x2 <== x * x
 out <== x2 * x + 5
@@ -110,25 +110,26 @@ To get selector polynomials from constraints, each constraint is parsed into fan
 ```rust
 /// `CommonPreprocessedInput` represents circuit related input which is apriori known to `Prover`
 /// and `Verifier` involved in the process.
+/// use  polynomial::{Monomial, Polynomial}
 pub struct CommonPreprocessedInput {
   /// multiplicative group order
   pub group_order: usize,
   /// Q_L(X): left wire selector polynomial
-  pub ql:          Poly,
+  pub ql:          Polynomial,
   /// Q_R(X): right wire selector polynomial
-  pub qr:          Poly,
+  pub qr:          Polynomial,
   /// Q_M(X): multiplication gate selector polynomial
-  pub qm:          Poly,
+  pub qm:          Polynomial,
   /// Q_O(X): output wire selector polynomial
-  pub qo:          Poly,
+  pub qo:          Polynomial,
   /// Q_C(X): constant selector polynomial
-  pub qc:          Poly,
+  pub qc:          Polynomial,
   /// S_σ1(X): first permutation polynomial
-  pub s1:          Poly,
+  pub s1:          Polynomial,
   /// S_σ2(X): second permutation polynomial
-  pub s2:          Poly,
+  pub s2:          Polynomial,
   /// S_σ3(X): third permutation polynomial
-  pub s3:          Poly,
+  pub s3:          Polynomial,
 }
 ```
 

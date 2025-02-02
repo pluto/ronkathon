@@ -29,11 +29,13 @@ where [(); C::BLOCK_SIZE - M]:
   /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Key, AES},
-  ///   counter::Counter,
-  ///   modes::ctr::CTR,
-  ///   BlockCipher,
+  /// use ronkathon::encryption::{
+  ///   symmetric::{
+  ///     aes::{Key, AES},
+  ///     counter::Counter,
+  ///     modes::ctr::CTR,
+  ///   },
+  ///   BlockOperations,
   /// };
   ///
   /// let mut rng = thread_rng();
@@ -82,11 +84,13 @@ where [(); C::BLOCK_SIZE - M]:
   /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Key, AES},
-  ///   counter::Counter,
-  ///   modes::ctr::CTR,
-  ///   BlockCipher,
+  /// use ronkathon::encryption::{
+  ///   symmetric::{
+  ///     aes::{Key, AES},
+  ///     counter::Counter,
+  ///     modes::ctr::CTR,
+  ///   },
+  ///   BlockOperations,
   /// };
   ///
   /// let mut rng = thread_rng();

@@ -373,10 +373,7 @@ where [(); N / 8]:
   /// #![feature(generic_const_exprs)]
   ///
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Block, Key, AES},
-  ///   SymmetricEncryption,
-  /// };
+  /// use ronkathon::encryption::symmetric::aes::{Block, Key, AES};
   ///
   /// let mut rng = thread_rng();
   /// let key = Key::<128>::new(rng.gen());

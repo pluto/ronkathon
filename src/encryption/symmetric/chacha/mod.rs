@@ -185,7 +185,7 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   /// ## Usage
   /// ```
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::chacha::{ChaCha, Counter, Key, Nonce};
+  /// use ronkathon::encryption::symmetric::chacha::{ChaCha, Counter};
   /// let mut rng = thread_rng();
   /// let key: [u32; 8] = rng.gen();
   /// let nonce: [u32; 3] = rng.gen();
@@ -250,7 +250,7 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   /// ## Usage
   /// ```
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::chacha::{ChaCha, Counter, Key, Nonce};
+  /// use ronkathon::encryption::symmetric::chacha::{ChaCha, Counter};
   /// let mut rng = thread_rng();
   /// let key: [u32; 8] = rng.gen();
   /// let nonce: [u32; 3] = rng.gen();
