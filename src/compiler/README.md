@@ -110,25 +110,30 @@ To get selector polynomials from constraints, each constraint is parsed into fan
 ```rust
 /// `CommonPreprocessedInput` represents circuit related input which is apriori known to `Prover`
 /// and `Verifier` involved in the process.
-pub struct CommonPreprocessedInput {
+ use crate::{
+  polynomial::{Lagrange, Polynomial},
+  Field, PlutoScalarField,
+};
+
+pub struct CommonPreprocessedInput<const GROUP_ORDER: usize> {
   /// multiplicative group order
-  pub group_order: usize,
+  // group_order: usize,
   /// Q_L(X): left wire selector polynomial
-  pub ql:          usize,
+  pub ql: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// Q_R(X): right wire selector polynomial
-  pub qr:          usize,
+  pub qr: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// Q_M(X): multiplication gate selector polynomial
-  pub qm:          usize,
+  pub qm: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// Q_O(X): output wire selector polynomial
-  pub qo:          usize,
+  pub qo: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// Q_C(X): constant selector polynomial
-  pub qc:          usize,
+  pub qc: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// S_σ1(X): first permutation polynomial
-  pub s1:          usize,
+  pub s1: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// S_σ2(X): second permutation polynomial
-  pub s2:          usize,
+  pub s2: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// S_σ3(X): third permutation polynomial
-  pub s3:          usize,
+  pub s3: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
 }
 ```
 
