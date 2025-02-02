@@ -65,22 +65,52 @@ pub(crate) fn miller_loop<C: EllipticCurve + Debug + PartialEq, const R: usize>(
   let mut z = p;
 
   let r = format!("{:b}", R);
+  let mut zeros = 0;
   for bit in r.chars().skip(1) {
     // f_{2m,P} <- f_{m,P}^2.(l_{[m]P,[m]P}(Q)/v_{[2m]P}(Q))
-    x = x.pow(2) * tangent_line::<C>(z, q) / vertical_line(2 * z, q);
+    let tangent = tangent_line::<C>(z, q);
+    let vertical = vertical_line(2 * z, q);
+    x = x.pow(2);
+    if tangent == C::BaseField::ZERO {
+      zeros += 1;
+    } else {
+      x *= tangent;
+    }
+    if vertical == C::BaseField::ZERO {
+      zeros -= 1;
+    } else {
+      x /= vertical;
+    }
     // Z <- 2Z
     z += z;
     if bit == '1' {
+      // f_{[2m+1],P} <- f_{2m,P}.(l_{Z,P}(Q)/v_{Z+P}(Q))
+      let line = line_function::<C>(z, p, q);
       if z + p == AffinePoint::Infinity {
-        x *= line_function::<C>(z, p, q);
+        if line == C::BaseField::ZERO {
+          zeros += 1;
+        } else {
+          x *= line;
+        }
       } else {
-        // f_{[2m+1],P} <- f_{2m,P}.(l_{Z,P}(Q)/v_{Z+P}(Q))
-        x = x * line_function::<C>(z, p, q) / vertical_line(z + p, q);
+        let vertical = vertical_line(z + p, q);
+        if line_function::<C>(z, p, q) == C::BaseField::ZERO {
+          zeros += 1;
+        } else {
+          x *= line;
+        }
+        if vertical == C::BaseField::ZERO {
+          zeros -= 1;
+        } else {
+          x /= vertical;
+        }
       }
       // Z <- Z + P
       z += p;
     }
   }
+
+  assert_eq!(zeros, 0);
   x
 }
 
@@ -177,9 +207,8 @@ impl Distribution<AffinePoint<PlutoBaseCurve>> for Standard {
         // Flip a coin and pick the square root
         if rand::random::<bool>() {
           return AffinePoint::new(x, rhs.sqrt().unwrap().0);
-        } else {
-          return AffinePoint::new(x, rhs.sqrt().unwrap().1);
         }
+        return AffinePoint::new(x, rhs.sqrt().unwrap().1);
       }
     }
   }
@@ -196,9 +225,8 @@ impl Distribution<AffinePoint<PlutoExtendedCurve>> for Standard {
       if rhs.euler_criterion() {
         if rand::random::<bool>() {
           return AffinePoint::new(x, rhs.sqrt().unwrap().0);
-        } else {
-          return AffinePoint::new(x, rhs.sqrt().unwrap().1);
         }
+        return AffinePoint::new(x, rhs.sqrt().unwrap().1);
       }
     }
   }
@@ -252,33 +280,31 @@ mod tests {
   fn random_point() {
     let mut rng = rand::thread_rng();
     let point = rng.gen::<AffinePoint<PlutoBaseCurve>>();
-    println!("Random point: {:?}", point);
+    println!("Random point: {point:?}");
 
     let ext_point = rng.gen::<AffinePoint<PlutoExtendedCurve>>();
-    println!("Random extended point: {:?}", ext_point);
+    println!("Random extended point: {ext_point:?}");
   }
 
   #[test]
   fn cube_root_of_unity() {
     let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
     assert_eq!(cube_root.pow(3), PlutoBaseFieldExtension::ONE);
-    println!("Cube root of unity: {:?}", cube_root);
+    println!("Cube root of unity: {cube_root:?}");
   }
 
   #[test]
   fn torsion_generators() {
     let generator = AffinePoint::<PlutoBaseCurve>::GENERATOR;
-    println!("Generator: {:?}", generator);
-    for i in 1..PlutoPrime::Scalar as usize + 1 {
+    println!("Generator: {generator:?}");
+    for i in 1..=PlutoPrime::Scalar as usize {
       let point = generator * PlutoScalarField::new(i);
-      println!("{:?} * P = {:?}", i, point);
+      println!("{i:?} * P = {point:?}");
       if i == PlutoPrime::Scalar as usize {
         assert_eq!(point, AffinePoint::Infinity);
-
         continue;
-      } else {
-        assert!(point != AffinePoint::Infinity);
       }
+      assert!(point != AffinePoint::Infinity);
     }
 
     let cube_root_of_unity = PlutoBaseFieldExtension::primitive_root_of_unity(3);
@@ -292,16 +318,14 @@ mod tests {
     } else {
       panic!("Generator is not a point");
     };
-    for i in 1..PlutoPrime::Scalar as usize + 1 {
+    for i in 1..=PlutoPrime::Scalar as usize {
       let point = torsion_generator * PlutoScalarField::new(i);
-      println!("{:?} * P = {:?}", i, point);
+      println!("{i:?} * P = {point:?}");
       if i == PlutoPrime::Scalar as usize {
         assert_eq!(point, AffinePoint::Infinity);
-
         continue;
-      } else {
-        assert!(point != AffinePoint::Infinity);
       }
+      assert!(point != AffinePoint::Infinity);
     }
   }
 
@@ -321,7 +345,7 @@ mod tests {
     };
 
     let result = pairing::<PlutoExtendedCurve, 17>(p, q);
-    println!("Pairing result: {:?}", result);
+    println!("Pairing result: {result:?}");
 
     assert_eq!(result.pow(17), PlutoBaseFieldExtension::ONE);
   }
@@ -413,8 +437,8 @@ mod tests {
     let ab = a * b;
     let rhs = pairing::<PlutoExtendedCurve, 17>(p, q).pow(ab.value);
 
-    println!("LHS: {:?}", lhs);
-    println!("RHS: {:?}", rhs);
+    println!("LHS: {lhs:?}");
+    println!("RHS: {rhs:?}");
 
     assert_eq!(lhs, rhs);
 
