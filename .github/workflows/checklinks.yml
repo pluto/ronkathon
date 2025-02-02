@@ -1,9 +1,10 @@
 name: Check links
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
   push:
-    branches:
-      - "**"
+    branches: [main]
 
 jobs:
   check-links:
@@ -16,4 +17,4 @@ jobs:
       - name: Check links
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --no-progress --verbose "**/README.md"
+          args: --no-progress --verbose "**/*.md"
