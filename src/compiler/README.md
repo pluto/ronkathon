@@ -110,9 +110,9 @@ To get selector polynomials from constraints, each constraint is parsed into fan
 ```rust
 /// `CommonPreprocessedInput` represents circuit related input which is apriori known to `Prover`
 /// and `Verifier` involved in the process.
- use crate::{
+ use ronkathon::{
   polynomial::{Lagrange, Polynomial},
-  Field, PlutoScalarField,
+   algebra::field::{Field,prime::PlutoScalarField}
 };
 
 pub struct CommonPreprocessedInput<const GROUP_ORDER: usize> {
