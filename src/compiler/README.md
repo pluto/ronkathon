@@ -110,26 +110,25 @@ To get selector polynomials from constraints, each constraint is parsed into fan
 ```rust
 /// `CommonPreprocessedInput` represents circuit related input which is apriori known to `Prover`
 /// and `Verifier` involved in the process.
-/// use  polynomial::{Monomial, Polynomial}
 pub struct CommonPreprocessedInput {
   /// multiplicative group order
   pub group_order: usize,
   /// Q_L(X): left wire selector polynomial
-  pub ql:          Polynomial,
+  pub ql:          usize,
   /// Q_R(X): right wire selector polynomial
-  pub qr:          Polynomial,
+  pub qr:          usize,
   /// Q_M(X): multiplication gate selector polynomial
-  pub qm:          Polynomial,
+  pub qm:          usize,
   /// Q_O(X): output wire selector polynomial
-  pub qo:          Polynomial,
+  pub qo:          usize,
   /// Q_C(X): constant selector polynomial
-  pub qc:          Polynomial,
+  pub qc:          usize,
   /// S_σ1(X): first permutation polynomial
-  pub s1:          Polynomial,
+  pub s1:          usize,
   /// S_σ2(X): second permutation polynomial
-  pub s2:          Polynomial,
+  pub s2:          usize,
   /// S_σ3(X): third permutation polynomial
-  pub s3:          Polynomial,
+  pub s3:          usize,
 }
 ```
 
