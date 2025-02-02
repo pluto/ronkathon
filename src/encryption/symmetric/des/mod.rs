@@ -250,8 +250,8 @@ impl Encryption for DES {
   /// let secret_key = rng.gen();
   /// let message = rng.gen();
   /// let des = DES::new(secret_key).unwrap();
-  /// let encrypted = des.encrypt( &message).unwrap();
-  /// let decrypted = des.decrypt( &encrypted).unwrap();
+  /// let encrypted = des.encrypt(&message).unwrap();
+  /// let decrypted = des.decrypt(&encrypted).unwrap();
   /// ```
   fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
     // initial permutation
