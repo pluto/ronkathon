@@ -1,17 +1,19 @@
 use crypto_bigint::U256;
-use crypto_bigint::Encoding;
+use crate::algebra::field::prime::PrimeField;
+use crate::algebra::field::Field;
+use crate::algebra::group::FiniteCyclicGroup;
 use crate::dsa::utils::{hkdf_extract, hkdf_expand, i2osp, os2ip};
-use crate::curve::pluto_curve::{
-    AffinePoint, PlutoBaseCurve, PlutoExtendedCurve, PlutoScalarField, PlutoBaseField, PlutoBaseFieldExtension,
-};
+use crate::{algebra::field::prime::{PlutoScalarField, PlutoBaseField}, PlutoBaseFieldExtension, curve::{AffinePoint, EllipticCurve,pluto_curve::{
+     PlutoBaseCurve, PlutoExtendedCurve,
+}}};
 use crate::curve::pairing::pairing;
-use sha2::{Digest, Sha256};
+use crate::hashes::sha::Sha256;
 
 /// Computes the SHA-256 digest of the input data.
 fn hash(data: &[u8]) -> Vec<u8> {
-    let mut hasher = Sha256::new();
-    hasher.update(data);
-    hasher.finalize().to_vec()
+    let hasher = Sha256::new();
+    hasher.digest(data)
+    
 }
 
 /// Given a message, returns a point in the extended group.
@@ -34,7 +36,11 @@ pub fn pubkey_to_point(pubkey: &[u8]) -> Option<AffinePoint<PlutoBaseCurve>> {
     if pubkey.len() != 48 {
         return None;
     }
-    AffinePoint::<PlutoBaseCurve>::from_bytes(pubkey)
+    let x_val = u64::from_be_bytes(pubkey[0..24].try_into().unwrap());
+    let y_val = u64::from_be_bytes(pubkey[24..48].try_into().unwrap());
+    let x = PrimeField::new(x_val as usize);
+    let y = PrimeField::new(y_val as usize);
+    Some(AffinePoint::<PlutoBaseCurve>::new(x,y))
 }
 
 /// Converts an octet string (assumed to be 48 octets) to a signature point on the extended curve.
@@ -42,20 +48,23 @@ pub fn signature_to_point(sig: &[u8]) -> Option<AffinePoint<PlutoExtendedCurve>>
     if sig.len() != 48 {
         return None;
     }
-    AffinePoint::<PlutoExtendedCurve>::from_bytes(sig)
+    let x_val = u64::from_be_bytes(sig[0..24].try_into().unwrap());
+    let y_val = u64::from_be_bytes(sig[24..48].try_into().unwrap());
+    let x = PlutoBaseFieldExtension::new([PlutoBaseField::new(x_val as usize), PlutoBaseField::new(0)]);
+    let y = PlutoBaseFieldExtension::new([PlutoBaseField::new(y_val as usize), PlutoBaseField::new(0)]);
+    Some(AffinePoint::<PlutoExtendedCurve>::new(x,y))
 }
 
 /// Returns the identity element of GT (i.e. 1 in the target group).
-fn gt_identity() -> <PlutoExtendedCurve as crate::curve::pluto_curve::EllipticCurve>::BaseField {
-    // We assume our field type (here, PlutoBaseFieldExtension) defines ONE.
-    PlutoBaseFieldExtension::ONE
+fn gt_identity() -> <PlutoExtendedCurve as crate::curve::EllipticCurve>::BaseField {
+   PlutoBaseFieldExtension::ONE
 }
 
 /// Returns the product of two GT elements.
 fn gt_mul(
-    a: <PlutoExtendedCurve as crate::curve::pluto_curve::EllipticCurve>::BaseField,
-    b: <PlutoExtendedCurve as crate::curve::pluto_curve::EllipticCurve>::BaseField,
-) -> <PlutoExtendedCurve as crate::curve::pluto_curve::EllipticCurve>::BaseField {
+    a: <PlutoExtendedCurve as crate::curve::EllipticCurve>::BaseField,
+    b: <PlutoExtendedCurve as crate::curve::EllipticCurve>::BaseField,
+) -> <PlutoExtendedCurve as crate::curve::EllipticCurve>::BaseField {
     a * b
 }
 
@@ -84,7 +93,7 @@ pub fn keygen(
     let mut salt_current = salt.to_vec();
 
     // Use the order r from the base curve.
-    let r_uint = U256::from(PlutoBaseCurve::ORDER as u64);
+    let r_uint = crypto_bigint::NonZero::new(U256::from(PlutoBaseCurve::ORDER as u64)).unwrap();
     let r_bits = (PlutoBaseCurve::ORDER as f64).log2().ceil() as usize;
     let L = (3 * r_bits + 15) / 16; // ceil((3 * r_bits) / 16)
 
@@ -95,11 +104,11 @@ pub fn keygen(
         info.extend_from_slice(&L_ospi);
         let okm = hkdf_expand(&prk, &info, L);
         let candidate_uint = os2ip(&okm)?;
-        let sk_uint = candidate_uint % r_uint;
+        let sk_uint = candidate_uint.rem(&r_uint);
         if sk_uint != U256::ZERO {
             // Convert candidate (of type U256) into PlutoScalarField.
             // We assume an associated method `from_uint` exists.
-            return Ok(PlutoScalarField::from_uint(sk_uint));
+            return Ok(PlutoScalarField::new(sk_uint.bits() as usize));
         }
         salt_current = hash(&salt_current);
     }
@@ -110,8 +119,8 @@ pub fn keygen(
 pub fn sk_to_pk(sk: &PlutoScalarField) -> Vec<u8> {
     let g: AffinePoint<PlutoBaseCurve> = AffinePoint::<PlutoBaseCurve>::GENERATOR;
     // Compute pk = sk * G.
-    let pk_point = g * sk;
-    pk_point.to_bytes()
+    let pk_point = g * *sk;
+    pk_point
 }
 
 /// Sign: Computes a deterministic signature over `message` using secret key `sk`.
@@ -229,24 +238,6 @@ pub fn key_validate(pk: &[u8]) -> bool {
     }
 }
 
-// -----------------------------------------------------------------------------
-// (Assumed) implementations of serialization/deserialization and subgroup checks
-// -----------------------------------------------------------------------------
-
-// In this example we assume that `AffinePoint<F>` (for either curve F) provides:
-//   • A method `to_bytes() -> Vec<u8>` that returns a 48–octet representation.
-//   • An associated function `from_bytes(bytes: &[u8]) -> Option<AffinePoint<F>>`.
-//   • A method `is_infinity() -> bool` indicating whether the point is the identity.
-//   • The usual arithmetic operators: addition (`+`), additive inversion (`-`),
-//     and scalar multiplication (`*` with a PlutoScalarField).
-// We also assume that PlutoScalarField provides a method `from_uint(U256) -> PlutoScalarField`
-// and `from_u64(u64) -> PlutoScalarField`.
-//
-// Likewise, for the target field (GT) we assume that the multiplication (`*`) and equality
-// operators are defined and that a constant ONE is available via `PlutoBaseFieldExtension::ONE`.
-//
-// (The detailed implementations of these methods are part of the Pluto curve library and are
-// not repeated here.)
 
 #[cfg(test)]
 mod tests {
