@@ -51,13 +51,13 @@ where [(); C::BLOCK_SIZE - M]:
   /// ```
   pub fn encrypt(
     &self,
-    key: C::Key,
+    key: &C::Key,
     counter: &Counter<M>,
     plaintext: &[u8],
   ) -> Result<Vec<u8>, String> {
     let mut ciphertext = Vec::new();
     let mut cipher_counter = *counter;
-    let value = C::new(key);
+    let value = C::new(key.clone());
     for chunk in plaintext.chunks(C::BLOCK_SIZE) {
       let cipher = match value {
         Ok(ref cipher) => cipher,
@@ -107,7 +107,7 @@ where [(); C::BLOCK_SIZE - M]:
   /// ```
   pub fn decrypt(
     &self,
-    key: C::Key,
+    key: &C::Key,
     counter: &Counter<M>,
     ciphertext: &[u8],
   ) -> Result<Vec<u8>, String> {
@@ -148,9 +148,9 @@ mod tests {
       let ctr = CTR::<AES<128>, 4>::new(nonce);
 
       let plaintext = rand_message(rng.gen_range(1000..10000));
-      let ciphertext = ctr.encrypt(rand_key, &counter, &plaintext).unwrap();
+      let ciphertext = ctr.encrypt(&rand_key, &counter, &plaintext).unwrap();
 
-      let decrypted = ctr.decrypt(rand_key, &counter, &ciphertext).unwrap();
+      let decrypted = ctr.decrypt(&rand_key, &counter, &ciphertext).unwrap();
 
       assert_eq!(plaintext, decrypted);
     }
@@ -198,12 +198,12 @@ mod tests {
 
     let ctr = CTR::<AES<128>, 8>::new(nonce.try_into().unwrap());
 
-    let ct = ctr.encrypt(key, &counter, &pt).unwrap();
+    let ct = ctr.encrypt(&key, &counter, &pt).unwrap();
 
     let ctx = encode_hex(&ct);
     assert_eq!(ctx, expected_ctx);
 
-    let _pt = ctr.decrypt(key, &counter, &ct).unwrap();
+    let _pt = ctr.decrypt(&key, &counter, &ct).unwrap();
 
     let _ptx = encode_hex(&_pt);
     assert_eq!(_ptx, ptx);
@@ -233,12 +233,12 @@ mod tests {
 
     let ctr = CTR::<AES<192>, 8>::new(nonce.try_into().unwrap());
 
-    let ct = ctr.encrypt(key, &counter, &pt).unwrap();
+    let ct = ctr.encrypt(&key, &counter, &pt).unwrap();
 
     let ctx = encode_hex(&ct);
     assert_eq!(ctx, expected_ctx);
 
-    let _pt = ctr.decrypt(key, &counter, &ct).unwrap();
+    let _pt = ctr.decrypt(&key, &counter, &ct).unwrap();
 
     let _ptx = encode_hex(&_pt);
     assert_eq!(_ptx, ptx);
@@ -268,12 +268,12 @@ mod tests {
 
     let ctr = CTR::<AES<256>, 8>::new(nonce.try_into().unwrap());
 
-    let ct = ctr.encrypt(key, &counter, &pt).unwrap();
+    let ct = ctr.encrypt(&key, &counter, &pt).unwrap();
 
     let ctx = encode_hex(&ct);
     assert_eq!(ctx, expected_ctx);
 
-    let _pt = ctr.decrypt(key, &counter, &ct).unwrap();
+    let _pt = ctr.decrypt(&key, &counter, &ct).unwrap();
 
     let _ptx = encode_hex(&_pt);
     assert_eq!(_ptx, ptx);

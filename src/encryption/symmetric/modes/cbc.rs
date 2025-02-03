@@ -49,7 +49,7 @@ impl<C: Encryption + BlockOperations> CBC<C> {
   /// ```
   ///
   /// **Note**: plaintext is padded using PKCS#7, if not a multiple of [`BlockCipher::BLOCK_SIZE`].
-  pub fn encrypt(&self, key: C::Key, plaintext: &[u8]) -> Vec<u8> {
+  pub fn encrypt(&self, key: &C::Key, plaintext: &[u8]) -> Vec<u8> {
     let mut ciphertext = Vec::new();
     let mut prev_ciphertext = self.iv;
 
@@ -59,7 +59,7 @@ impl<C: Encryption + BlockOperations> CBC<C> {
       let length = C::BLOCK_SIZE - (plaintext.len() % C::BLOCK_SIZE);
       plaintext.extend(std::iter::repeat(length as u8).take(length));
     }
-    let value = C::new(key);
+    let value = C::new(key.clone());
     for chunk in plaintext.chunks(C::BLOCK_SIZE) {
       let cipher = match value {
         Ok(ref cipher) => cipher,
@@ -104,13 +104,13 @@ impl<C: Encryption + BlockOperations> CBC<C> {
   ///
   /// **Note**: decrypted plaintext will be multiple of [`BlockCipher::Block`]. It's user's
   /// responsibility to truncate to original plaintext's length
-  pub fn decrypt(&self, key: C::Key, ciphertext: &[u8]) -> Vec<u8> {
+  pub fn decrypt(&self, key: &C::Key, ciphertext: &[u8]) -> Vec<u8> {
     assert!(ciphertext.len() % C::BLOCK_SIZE == 0, "ciphertext is not a multiple of block size");
 
     let mut prev_ciphertext: Vec<u8> = self.iv.as_ref().to_vec();
     let mut plaintext = Vec::new();
 
-    let value = C::new(key);
+    let value = C::new(key.clone());
     for chunk in ciphertext.chunks(C::BLOCK_SIZE) {
       let cipher = match value {
         Ok(ref cipher) => cipher,
@@ -167,9 +167,9 @@ mod tests {
     for _ in 0..10 {
       let mut rng = thread_rng();
       let plaintext = rand_message(rng.gen_range(1000..10000));
-      let ciphertext = cbc.encrypt(rand_key, &plaintext);
+      let ciphertext = cbc.encrypt(&rand_key, &plaintext);
 
-      let decrypted = cbc.decrypt(rand_key, &ciphertext);
+      let decrypted = cbc.decrypt(&rand_key, &ciphertext);
 
       assert_eq!(plaintext.len(), decrypted.len());
       assert_eq!(plaintext, decrypted);
@@ -188,13 +188,13 @@ mod tests {
     let mut rng = thread_rng();
     let plaintext = rand_message(rng.gen_range(1000..100000));
 
-    let ciphertext = cbc.encrypt(rand_key, &plaintext);
-    let ciphertext2 = cbc2.encrypt(rand_key, &plaintext);
+    let ciphertext = cbc.encrypt(&rand_key, &plaintext);
+    let ciphertext2 = cbc2.encrypt(&rand_key, &plaintext);
 
     assert_ne!(ciphertext, ciphertext2);
 
-    let decrypted = cbc.decrypt(rand_key, &ciphertext);
-    let decrypted2 = cbc2.decrypt(rand_key, &ciphertext2);
+    let decrypted = cbc.decrypt(&rand_key, &ciphertext);
+    let decrypted2 = cbc2.decrypt(&rand_key, &ciphertext2);
 
     assert_eq!(plaintext, decrypted);
     assert_eq!(decrypted, decrypted2);
