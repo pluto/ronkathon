@@ -120,7 +120,11 @@ pub fn sk_to_pk(sk: &PlutoScalarField) -> Vec<u8> {
     let g: AffinePoint<PlutoBaseCurve> = AffinePoint::<PlutoBaseCurve>::GENERATOR;
     // Compute pk = sk * G.
     let pk_point = g * *sk;
-    pk_point
+   if let AffinePoint::Point(x,y ) = pk_point {
+     return [x.value.to_be_bytes(),y.value.to_be_bytes()].concat().to_vec();
+   }else {
+    return vec![0]
+   }
 }
 
 /// Sign: Computes a deterministic signature over `message` using secret key `sk`.
@@ -130,10 +134,13 @@ pub fn sk_to_pk(sk: &PlutoScalarField) -> Vec<u8> {
 ///    2. signature = sk * Q.
 pub fn sign(sk: &PlutoScalarField, message: &[u8]) -> Vec<u8> {
     let q = hash_to_point(message);
-    let signature_point = q * sk;
-    signature_point.to_bytes()
-}
-
+    let signature_point = q * *sk;
+    if let AffinePoint::Point(x,y ) = signature_point {
+        return [x.coeffs[0].value.to_be_bytes(),y.coeffs[0].value.to_be_bytes()].concat().to_vec();
+      }else {
+       return vec![0]
+      }
+    }
 /// Verify: Checks that `signature` is a valid signature on `message` under public key `pk`.
 ///
 /// This implementation converts the base–curve public key into the extended curve so that
@@ -177,9 +184,14 @@ pub fn aggregate(signatures: &[&[u8]]) -> Result<Vec<u8>, String> {
     for &sig in signatures.iter().skip(1) {
         let pt = signature_to_point(sig)
             .ok_or_else(|| "Invalid signature in aggregation".to_string())?;
-        agg_point = agg_point + pt;
+        agg_point += pt;
     }
-    Ok(agg_point.to_bytes())
+    if let AffinePoint::Point(x,y ) = agg_point{
+        Ok([x.coeffs[0].value.to_be_bytes(),y.coeffs[0].value.to_be_bytes()].concat().to_vec())
+      }else {
+       Ok(vec![0])
+      }
+    
 }
 
 /// AggregateVerify: Verifies that an aggregated signature is valid for the provided set of
@@ -198,10 +210,7 @@ pub fn aggregate_verify(pks: &[&[u8]], messages: &[&[u8]], agg_signature: &[u8])
         Some(pt) => pt,
         None => return false,
     };
-    // (Optional) Check subgroup membership of the aggregated signature.
-    if !signature_subgroup_check(&agg_point) {
-        return false;
-    }
+    
     let mut prod = gt_identity();
     for (pk_bytes, msg) in pks.iter().zip(messages.iter()) {
         let pk_point = match pubkey_to_point(pk_bytes) {
@@ -228,11 +237,11 @@ pub fn aggregate_verify(pks: &[&[u8]], messages: &[&[u8]], agg_signature: &[u8])
 /// multiplying the point by the group order yields the point at infinity.
 pub fn key_validate(pk: &[u8]) -> bool {
     if let Some(point) = pubkey_to_point(pk) {
-        if point.is_infinity() {
+        if point== AffinePoint::Infinity {
             return false;
         }
         // For a proper subgroup check, one would verify (point * ORDER) == Infinity.
-        (point * PlutoScalarField::from_u64(PlutoBaseCurve::ORDER as u64)).is_infinity()
+        (point * PlutoScalarField::new(PlutoBaseCurve::ORDER)) == AffinePoint::Infinity
     } else {
         false
     }
@@ -249,7 +258,7 @@ mod tests {
         let ikm = b"this is a secret key material with enough bytes........";
         let salt = b"BLS-SIG-KEYGEN-SALT-"; // 20 octets if ASCII
         let sk = keygen(ikm, salt, None).unwrap();
-        assert!(sk != U256::ZERO);
+        assert!(sk != PrimeField::new(0));
         let pk = sk_to_pk(&sk);
         assert_eq!(pk.len(), 48);
     }
