@@ -1,4 +1,4 @@
-//! Tripartite ECDH Key Exchange Algorithm.
+//! Tripartite Elliptic Curve Diffie Hellman Key Exchange Algorithm.
 use crate::{
   algebra::{
     field::{extension::PlutoBaseFieldExtension, prime::PlutoScalarField, Field},

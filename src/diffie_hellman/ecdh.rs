@@ -1,4 +1,4 @@
-//! ECDH Key Exchange Algorithm
+//! Elliptic Curve Diffie Hellman Key Exchange Algorithm
 use crate::{algebra::field::FiniteField, curve::CurveGroup};
 
 /// Compute a shared secret from a local secret `d_a` and a foreign elliptic curve point `q_b`.
