@@ -17,21 +17,6 @@
 
 Ronkathon is a collection of cryptographic primitives implemented in Rust. It is inspired by the [python plonkathon repository](https://github.com/0xPARC/plonkathon) and [plonk-by-hand](https://research.metastate.dev/plonk-by-hand-part-1/). We use the same curve and field as plonk-by-hand (which is not secure) and the goal of this repository is to work towards building everything from scratch to understand everything from first principles.
 
-## Multivariate polynomials and sum-check
-
-This project implements the sum-check protocol for multivariate polynomials over finite fields. The sum-check protocol is an interactive proof system where a prover convinces a verifier of the sum of a multivariate polynomial over a boolean hypercube. This implementation includes:
-
-- A `MultiVarPolynomial` struct which represents a multivariate polynomial
-- A `SumCheckProver` for generating proofs
-- A `SumCheckVerifier` for verifying proofs
-- A `SumCheck` struct that encapsulates the entire protocol.
-
-You can use:
-
-`cargo run --example sumcheck_ex`
-
-to run example code.
-
 ## Primitives
 
 - **Fundamental Algebraic Structures**

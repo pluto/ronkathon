@@ -20,3 +20,4 @@
 - [HMAC](src/hmac/README.md)
 - [KZG](src/kzg/README.md)
 - [Merkle Trees](src/tree/README.md)
+- [Sumcheck](src/sumcheck/README.md)
