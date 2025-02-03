@@ -45,7 +45,7 @@ impl<C: Encryption + BlockOperations> CBC<C> {
   ///
   /// let cbc = CBC::<AES<128>>::new(iv);
   ///
-  /// let ciphertext = cbc.encrypt(key, plaintext);
+  /// let ciphertext = cbc.encrypt(&key, plaintext);
   /// ```
   ///
   /// **Note**: plaintext is padded using PKCS#7, if not a multiple of [`BlockCipher::BLOCK_SIZE`].
@@ -96,8 +96,8 @@ impl<C: Encryption + BlockOperations> CBC<C> {
   ///
   /// let cbc = CBC::<AES<128>>::new(iv);
   ///
-  /// let ciphertext = cbc.encrypt(key, plaintext);
-  /// let decrypted = cbc.decrypt(key, &ciphertext);
+  /// let ciphertext = cbc.encrypt(&key, plaintext);
+  /// let decrypted = cbc.decrypt(&key, &ciphertext);
   ///
   /// assert_eq!(*plaintext, decrypted[..plaintext.len()]);
   /// ```

@@ -47,7 +47,7 @@ where [(); C::BLOCK_SIZE - M]:
   /// let ctr = CTR::<AES<128>, 4>::new(nonce);
   /// let plaintext = b"Hello World!";
   ///
-  /// let ciphertext = ctr.encrypt(key, &counter, plaintext).unwrap();
+  /// let ciphertext = ctr.encrypt(&key, &counter, plaintext).unwrap();
   /// ```
   pub fn encrypt(
     &self,
@@ -102,8 +102,8 @@ where [(); C::BLOCK_SIZE - M]:
   /// let ctr = CTR::<AES<128>, 4>::new(nonce);
   /// let plaintext = b"Hello World!";
   ///
-  /// let ciphertext = ctr.encrypt(key, &counter, plaintext).unwrap();
-  /// let decrypted = ctr.decrypt(key, &counter, &ciphertext).unwrap();
+  /// let ciphertext = ctr.encrypt(&key, &counter, plaintext).unwrap();
+  /// let decrypted = ctr.decrypt(&key, &counter, &ciphertext).unwrap();
   /// ```
   pub fn decrypt(
     &self,
