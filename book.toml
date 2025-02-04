@@ -14,6 +14,12 @@ create-missing = true
 [preprocessor.katex]
 after = ["links"]
 
+[preprocessor.linkcheck]
+follow-web-links = true
+# ignore = ["https://example.com/broken-link"]
+traverse-parent-directories = true
+warning = false
+
 [output.html]
 default-theme = "dark"
 preferred-dark-theme = "ayu"
