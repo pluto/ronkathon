@@ -6,10 +6,12 @@ use std::ops::Mul;
 
 use itertools::Itertools;
 
-use super::{BlockCipher, SymmetricEncryption};
 use crate::{
   algebra::field::{extension::AESFieldExtension, prime::AESField},
-  encryption::symmetric::aes::sbox::{INVERSE_SBOX, SBOX},
+  encryption::{
+    symmetric::aes::sbox::{INVERSE_SBOX, SBOX},
+    BlockOperations, Encryption,
+  },
   Field,
 };
 
@@ -38,9 +40,6 @@ impl AsMut<[u8]> for Block {
   fn as_mut(&mut self) -> &mut [u8] { self.0.as_mut() }
 }
 
-///  A word in AES represents a 32-bit array of data.
-pub type Word = [u8; 4];
-
 /// A generic N-bit key.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Key<const N: usize>
@@ -63,72 +62,6 @@ where [(); N / 8]:
   fn deref(&self) -> &Self::Target { &self.inner }
 }
 
-impl<const N: usize> SymmetricEncryption for AES<N>
-where [(); N / 8]:
-{
-  type Block = Block;
-  type Key = Key<N>;
-
-  /// Encrypt a message of size [`Block`] with a [`Key`] of size `N`-bits.
-  ///
-  /// ## Example
-  /// ```rust
-  /// #![allow(incomplete_features)]
-  /// #![feature(generic_const_exprs)]
-  ///
-  /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Block, Key, AES},
-  ///   SymmetricEncryption,
-  /// };
-  ///
-  /// let mut rng = thread_rng();
-  /// let key = Key::<128>::new(rng.gen());
-  /// let plaintext = rng.gen();
-  /// let encrypted = AES::encrypt(&key, &Block(plaintext));
-  /// ```
-  fn encrypt(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
-    let num_rounds = match N {
-      128 => 10,
-      192 => 12,
-      256 => 14,
-      _ => panic!("AES only supports key sizes 128, 192 and 256 bits. You provided: {N}"),
-    };
-
-    Self::aes_encrypt(&plaintext.0, key, num_rounds)
-  }
-
-  /// Decrypt a ciphertext of size [`Block`] with a [`Key`] of size `N`-bits.
-  ///
-  /// ## Example
-  /// ```rust
-  /// #![allow(incomplete_features)]
-  /// #![feature(generic_const_exprs)]
-  ///
-  /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Block, Key, AES},
-  ///   SymmetricEncryption,
-  /// };
-  ///
-  /// let mut rng = thread_rng();
-  /// let key = Key::<128>::new(rng.gen());
-  /// let plaintext = rng.gen();
-  /// let encrypted = AES::encrypt(&key, &Block(plaintext));
-  /// let decrypted = AES::decrypt(&key, &encrypted);
-  /// ```
-  fn decrypt(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
-    let num_rounds = match N {
-      128 => 10,
-      192 => 12,
-      256 => 14,
-      _ => panic!("AES only supports key sizes 128, 192 and 256 bits. You provided: {N}"),
-    };
-
-    Self::aes_decrypt(&ciphertext.0, key, num_rounds)
-  }
-}
-
 /// Contains the values given by [x^(i-1), {00}, {00}, {00}], with x^(i-1)
 /// being powers of x in the field GF(2^8).
 ///
@@ -148,7 +81,10 @@ const ROUND_CONSTANTS: [[u8; 4]; 10] = [
 
 /// A struct containing an instance of an AES encryption/decryption.
 #[derive(Clone)]
-pub struct AES<const N: usize> {}
+pub struct AES<const N: usize>
+where [(); N / 8]: {
+  key: Key<N>,
+}
 
 /// Instead of arranging its bytes in a line (array),
 /// AES operates on a grid, specifically a 4x4 column-major array:
@@ -204,91 +140,9 @@ where [(); N / 8]:
 {
   /// Performs the cipher, with key size of `N` (in bits), as seen in Figure 5 of the document
   /// linked in the front-page.
-  fn aes_encrypt(plaintext: &[u8; 16], key: &Key<N>, num_rounds: usize) -> Block {
-    assert!(!key.is_empty(), "Key is not instantiated");
-
-    let key_len_words = N / 32;
-    let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
-    Self::key_expansion(*key, &mut round_keys_words, key_len_words, num_rounds);
-    let mut round_keys = round_keys_words.chunks_exact(4);
-
-    let mut state = State(
-      plaintext
-        .chunks(4)
-        .map(|c| c.try_into().unwrap())
-        .collect::<Vec<[u8; 4]>>()
-        .try_into()
-        .unwrap(),
-    );
-
-    // Round 0 - add round key
-    Self::add_round_key(&mut state, round_keys.next().unwrap());
-
-    // Rounds 1 to N - 1
-    for _ in 1..num_rounds {
-      Self::sub_bytes(&mut state);
-      Self::shift_rows(&mut state);
-      Self::mix_columns(&mut state);
-      Self::add_round_key(&mut state, round_keys.next().unwrap());
-    }
-
-    // Last round - we do not mix columns here.
-    Self::sub_bytes(&mut state);
-    Self::shift_rows(&mut state);
-    Self::add_round_key(&mut state, round_keys.next().unwrap());
-
-    assert!(
-      round_keys.remainder().is_empty(),
-      "Round keys not fully consumed - perhaps check key expansion?"
-    );
-
-    Block(state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap())
-  }
 
   /// Deciphers a given `ciphertext`, with key size of `N` (in bits), as seen in Figure 5 of the
   /// document linked in the front-page.
-  fn aes_decrypt(ciphertext: &[u8; 16], key: &Key<N>, num_rounds: usize) -> Block {
-    assert!(!key.is_empty(), "Key is not instantiated");
-
-    let key_len_words = N / 32;
-    let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
-    Self::key_expansion(*key, &mut round_keys_words, key_len_words, num_rounds);
-    // For decryption; we use the round keys from the back, so we iterate from the back here.
-    let mut round_keys = round_keys_words.chunks_exact(4).rev();
-
-    let mut state = State(
-      ciphertext
-        .chunks(4)
-        .map(|c| c.try_into().unwrap())
-        .collect::<Vec<[u8; 4]>>()
-        .try_into()
-        .unwrap(),
-    );
-    assert!(state != State::default(), "State is not instantiated");
-
-    // Round 0 - add round key
-    Self::add_round_key(&mut state, round_keys.next().unwrap());
-
-    // Rounds 1 to N - 1
-    for _ in 1..num_rounds {
-      Self::inv_shift_rows(&mut state);
-      Self::inv_sub_bytes(&mut state);
-      Self::add_round_key(&mut state, round_keys.next().unwrap());
-      Self::inv_mix_columns(&mut state);
-    }
-
-    // Last round - we do not mix columns here.
-    Self::inv_shift_rows(&mut state);
-    Self::inv_sub_bytes(&mut state);
-    Self::add_round_key(&mut state, round_keys.next().unwrap());
-
-    assert!(
-      round_keys.next().is_none(),
-      "Round keys not fully consumed - perhaps check key expansion?"
-    );
-
-    state.0.into_iter().flatten().collect::<Vec<_>>().into()
-  }
 
   /// XOR a round key to its internal state.
   fn add_round_key(state: &mut State, round_key: &[[u8; 4]]) {
@@ -457,14 +311,14 @@ where [(); N / 8]:
   /// complexity and diffusion.
   fn key_expansion(
     key: Key<N>,
-    round_keys_words: &mut Vec<Word>,
+    round_keys_words: &mut Vec<[u8; 4]>,
     key_len: usize,
     num_rounds: usize,
   ) {
     let block_num_words = 128 / 32;
 
     let out_len = block_num_words * (num_rounds + 1);
-    let key_words: Vec<Word> = key.chunks(4).map(|c| c.try_into().unwrap()).collect();
+    let key_words: Vec<[u8; 4]> = key.chunks(4).map(|c| c.try_into().unwrap()).collect();
     round_keys_words.extend(key_words);
 
     for i in key_len..(block_num_words * (num_rounds + 1)) {
@@ -495,21 +349,169 @@ where [(); N / 8]:
       "Wrong number of words output during key expansion"
     );
   }
+
+  fn encrypt_internal(&self, data: Block) -> Result<Block, String> { self.encrypt(&data) }
+
+  fn decrypt_internal(&self, data: Block) -> Result<Block, String> { self.decrypt(&data) }
 }
 
-impl<const N: usize> BlockCipher for AES<N>
+impl<const N: usize> Encryption for AES<N>
+where [(); N / 8]:
+{
+  type Ciphertext = Block;
+  type Error = String;
+  type Key = Key<N>;
+  type Plaintext = Block;
+
+  fn new(key: Self::Key) -> Result<Self, Self::Error> { Ok(Self { key }) }
+
+  /// Encrypt a message of size [`Block`] with a [`Key`] of size `N`-bits.
+  ///
+  /// ## Example
+  /// ```rust
+  /// #![allow(incomplete_features)]
+  /// #![feature(generic_const_exprs)]
+  ///
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::{
+  ///   symmetric::aes::{Block, Key, AES},
+  ///   Encryption,
+  /// };
+  ///
+  /// let mut rng = thread_rng();
+  /// let key = Key::<128>::new(rng.gen());
+  /// let plaintext = rng.gen();
+  /// let aes = AES::new(key).unwrap();
+  /// let encrypted = aes.encrypt(&Block(plaintext)).unwrap();
+  /// ```
+  fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
+    let num_rounds = match N {
+      128 => 10,
+      192 => 12,
+      256 => 14,
+      _ => return Err("AES only supports key sizes 128, 192 and 256 bits".to_string()),
+    };
+
+    let key_len_words = N / 32;
+    let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
+    Self::key_expansion(self.key, &mut round_keys_words, key_len_words, num_rounds);
+    let mut round_keys = round_keys_words.chunks_exact(4);
+
+    let mut state = State(
+      data
+        .as_ref()
+        .chunks(4)
+        .map(|c| c.try_into().unwrap())
+        .collect::<Vec<[u8; 4]>>()
+        .try_into()
+        .unwrap(),
+    );
+
+    // Round 0 - add round key
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    // Rounds 1 to N - 1
+    for _ in 1..num_rounds {
+      Self::sub_bytes(&mut state);
+      Self::shift_rows(&mut state);
+      Self::mix_columns(&mut state);
+      Self::add_round_key(&mut state, round_keys.next().unwrap());
+    }
+
+    // Last round - we do not mix columns here.
+    Self::sub_bytes(&mut state);
+    Self::shift_rows(&mut state);
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    assert!(
+      round_keys.remainder().is_empty(),
+      "Round keys not fully consumed - perhaps check key expansion?"
+    );
+
+    Ok(Block(state.0.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap()))
+  }
+
+  /// Decrypt a ciphertext of size [`Block`] with a [`Key`] of size `N`-bits.
+  ///
+  /// ## Example
+  /// ```rust
+  /// #![allow(incomplete_features)]
+  /// #![feature(generic_const_exprs)]
+  ///
+  /// use rand::{thread_rng, Rng};
+  /// use ronkathon::encryption::{
+  ///   symmetric::aes::{Block, Key, AES},
+  ///   Encryption,
+  /// };
+  /// let mut rng = thread_rng();
+  /// let key = Key::<128>::new(rng.gen());
+  /// let plaintext = rng.gen();
+  /// let aes = AES::new(key).unwrap();
+  /// let encrypted = aes.encrypt(&Block(plaintext)).unwrap();
+  /// let decrypted = aes.decrypt(&encrypted);
+  /// ```
+  fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
+    let num_rounds = match N {
+      128 => 10,
+      192 => 12,
+      256 => 14,
+      _ => return Err("AES only supports key sizes 128, 192 and 256 bits".to_string()),
+    };
+
+    let key_len_words = N / 32;
+    let mut round_keys_words = Vec::with_capacity(key_len_words * (num_rounds + 1));
+    Self::key_expansion(self.key, &mut round_keys_words, key_len_words, num_rounds);
+    // For decryption; we use the round keys from the back, so we iterate from the back here.
+    let mut round_keys = round_keys_words.chunks_exact(4).rev();
+
+    let mut state = State(
+      data
+        .as_ref()
+        .chunks(4)
+        .map(|c| c.try_into().unwrap())
+        .collect::<Vec<[u8; 4]>>()
+        .try_into()
+        .unwrap(),
+    );
+    assert!(state != State::default(), "State is not instantiated");
+
+    // Round 0 - add round key
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    // Rounds 1 to N - 1
+    for _ in 1..num_rounds {
+      Self::inv_shift_rows(&mut state);
+      Self::inv_sub_bytes(&mut state);
+      Self::add_round_key(&mut state, round_keys.next().unwrap());
+      Self::inv_mix_columns(&mut state);
+    }
+
+    // Last round - we do not mix columns here.
+    Self::inv_shift_rows(&mut state);
+    Self::inv_sub_bytes(&mut state);
+    Self::add_round_key(&mut state, round_keys.next().unwrap());
+
+    assert!(
+      round_keys.next().is_none(),
+      "Round keys not fully consumed - perhaps check key expansion?"
+    );
+
+    Ok(state.0.into_iter().flatten().collect::<Vec<_>>().into())
+  }
+}
+
+impl<const N: usize> BlockOperations for AES<N>
 where [(); N / 8]:
 {
   type Block = Block;
-  type Key = Key<N>;
 
   const BLOCK_SIZE: usize = 16;
 
-  fn encrypt_block(key: &Self::Key, plaintext: &Self::Block) -> Self::Block {
-    Self::encrypt(key, plaintext)
+  fn encrypt_block(&self, block: Block) -> Result<Block, Self::Error> {
+    self.encrypt_internal(block)
   }
 
-  fn decrypt_block(key: &Self::Key, ciphertext: &Self::Block) -> Self::Block {
-    Self::decrypt(key, ciphertext)
+  fn decrypt_block(&self, block: Block) -> Result<Block, Self::Error> {
+    self.decrypt_internal(block)
   }
 }

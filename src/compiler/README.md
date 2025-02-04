@@ -4,7 +4,7 @@ introduces a simple DSL, originally from 0xPARC's [Plonkathon](https://github.co
 
 let's take an example to compute $x^3 + x + 5$:
 
-```
+```DSL
 x public
 x2 <== x * x
 out <== x2 * x + 5
@@ -25,6 +25,7 @@ Outputs parsed output in form of `WireCoeffs` values and coefficients.
 
 
 ```rust
+use std::collections::HashMap;
 /// Values of wires with coefficients of each wire name
 #[derive(Debug, PartialEq)]
 pub struct WireCoeffs<'a> {
@@ -68,6 +69,7 @@ b-->o2[output=l+r]
 ```
 
 ```rust
+use ronkathon::algebra::field::prime::PlutoScalarField;
 /// Fan-in 2 Gate representing a constraint in the computation.
 /// Each constraint satisfies PLONK's arithmetic equation: `a(X)QL(X) + b(X)QR(X) + a(X)b(X)QM(X) +
 /// o(X)QO(X) + QC(X) = 0`.
@@ -108,25 +110,30 @@ To get selector polynomials from constraints, each constraint is parsed into fan
 ```rust
 /// `CommonPreprocessedInput` represents circuit related input which is apriori known to `Prover`
 /// and `Verifier` involved in the process.
-pub struct CommonPreprocessedInput {
+ use ronkathon::{
+  polynomial::{Lagrange, Polynomial},
+   algebra::field::{Field,prime::PlutoScalarField}
+};
+
+pub struct CommonPreprocessedInput<const GROUP_ORDER: usize> {
   /// multiplicative group order
-  pub group_order: usize,
+  // group_order: usize,
   /// Q_L(X): left wire selector polynomial
-  pub ql:          Poly,
+  pub ql: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// Q_R(X): right wire selector polynomial
-  pub qr:          Poly,
+  pub qr: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// Q_M(X): multiplication gate selector polynomial
-  pub qm:          Poly,
+  pub qm: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// Q_O(X): output wire selector polynomial
-  pub qo:          Poly,
+  pub qo: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// Q_C(X): constant selector polynomial
-  pub qc:          Poly,
+  pub qc: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// S_σ1(X): first permutation polynomial
-  pub s1:          Poly,
+  pub s1: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// S_σ2(X): second permutation polynomial
-  pub s2:          Poly,
+  pub s2: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
   /// S_σ3(X): third permutation polynomial
-  pub s3:          Poly,
+  pub s3: Polynomial<Lagrange<PlutoScalarField>, PlutoScalarField, GROUP_ORDER>,
 }
 ```
 
@@ -148,6 +155,8 @@ permutation helper creates $\sigma_i$ polynomials for $i = \{1,2,3\}$.
   - This ensures that variables `x` is copied from $x_i$ to $x_{i+1}$
 
 ```rust
+ use ronkathon::compiler::parser::WireCoeffs;
+
 /// `Program` represents constraints used while defining the arithmetic on the inputs
 /// and group order of primitive roots of unity in the field.
 #[derive(Debug, PartialEq)]

@@ -1,9 +1,9 @@
 //! Cipher block chaining mode of operation for [`BlockCipher`]
-use crate::encryption::symmetric::BlockCipher;
+use crate::encryption::{BlockOperations, Encryption};
 
 /// Cipher block chaining mode of operation that works on any [`BlockCipher`]. Initialisation
 /// Vector (IV) should not be reused for different plaintext.
-pub struct CBC<C: BlockCipher> {
+pub struct CBC<C: Encryption + BlockOperations> {
   iv: C::Block,
 }
 
@@ -13,7 +13,7 @@ fn xor_blocks(a: &mut [u8], b: &[u8]) {
   }
 }
 
-impl<C: BlockCipher> CBC<C> {
+impl<C: Encryption + BlockOperations> CBC<C> {
   /// creates a new [`CBC`] mode of operation for [`BlockCipher`]
   /// ## Arguments
   /// - `iv`: initialisation vector for randomising the state.
@@ -59,10 +59,14 @@ impl<C: BlockCipher> CBC<C> {
       let length = C::BLOCK_SIZE - (plaintext.len() % C::BLOCK_SIZE);
       plaintext.extend(std::iter::repeat(length as u8).take(length));
     }
-
+    let value = C::new(key.clone());
     for chunk in plaintext.chunks(C::BLOCK_SIZE) {
+      let cipher = match value {
+        Ok(ref cipher) => cipher,
+        Err(_) => panic!("Error creating cipher"),
+      };
       xor_blocks(prev_ciphertext.as_mut(), chunk);
-      prev_ciphertext = C::encrypt_block(key, &prev_ciphertext);
+      prev_ciphertext = cipher.encrypt_block(prev_ciphertext).unwrap();
       ciphertext.extend_from_slice(prev_ciphertext.as_ref());
     }
     ciphertext
@@ -106,8 +110,13 @@ impl<C: BlockCipher> CBC<C> {
     let mut prev_ciphertext: Vec<u8> = self.iv.as_ref().to_vec();
     let mut plaintext = Vec::new();
 
+    let value = C::new(key.clone());
     for chunk in ciphertext.chunks(C::BLOCK_SIZE) {
-      let mut decrypted = C::decrypt_block(key, &C::Block::from(chunk.to_vec()));
+      let cipher = match value {
+        Ok(ref cipher) => cipher,
+        Err(_) => panic!("Error creating cipher"),
+      };
+      let mut decrypted = cipher.decrypt_block(C::Block::from(chunk.to_vec())).unwrap();
       xor_blocks(decrypted.as_mut(), &prev_ciphertext);
       prev_ciphertext = chunk.to_vec();
 

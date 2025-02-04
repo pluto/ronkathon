@@ -1,16 +1,16 @@
 //! Contains implementation for Counter (CTR) mode of operation in block ciphers
 
-use crate::encryption::symmetric::{counter::Counter, BlockCipher};
+use crate::encryption::{symmetric::counter::Counter, BlockOperations, Encryption};
 
 /// [`BlockCipher`] counter mode of operation with two parameters:
 /// - `C`, a cipher that implements the `BlockCipher` trait.
 /// - `M`, a usize const that indicates the size of counter in bytes.
-pub struct CTR<C: BlockCipher, const M: usize>
+pub struct CTR<C: Encryption + BlockOperations, const M: usize>
 where [(); C::BLOCK_SIZE - M]: {
   nonce: [u8; C::BLOCK_SIZE - M],
 }
 
-impl<C: BlockCipher, const M: usize> CTR<C, M>
+impl<C: Encryption + BlockOperations, const M: usize> CTR<C, M>
 where [(); C::BLOCK_SIZE - M]:
 {
   /// Create a CTR mode of operation object
@@ -29,11 +29,13 @@ where [(); C::BLOCK_SIZE - M]:
   /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Key, AES},
-  ///   counter::Counter,
-  ///   modes::ctr::CTR,
-  ///   BlockCipher,
+  /// use ronkathon::encryption::{
+  ///   symmetric::{
+  ///     aes::{Key, AES},
+  ///     counter::Counter,
+  ///     modes::ctr::CTR,
+  ///   },
+  ///   BlockOperations,
   /// };
   ///
   /// let mut rng = thread_rng();
@@ -55,14 +57,18 @@ where [(); C::BLOCK_SIZE - M]:
   ) -> Result<Vec<u8>, String> {
     let mut ciphertext = Vec::new();
     let mut cipher_counter = *counter;
-
+    let value = C::new(key.clone());
     for chunk in plaintext.chunks(C::BLOCK_SIZE) {
+      let cipher = match value {
+        Ok(ref cipher) => cipher,
+        Err(_) => panic!("Error creating cipher"),
+      };
       let mut block = [0u8; C::BLOCK_SIZE];
       block[..{ C::BLOCK_SIZE - M }].copy_from_slice(&self.nonce);
       block[{ C::BLOCK_SIZE - M }..].copy_from_slice(&cipher_counter.0);
       cipher_counter.increment()?;
 
-      let encrypted = C::encrypt_block(key, &C::Block::from(block.to_vec()));
+      let encrypted = cipher.encrypt_block(C::Block::from(block.to_vec())).unwrap();
 
       for (x, y) in chunk.iter().zip(encrypted.as_ref()) {
         ciphertext.push(x ^ y);
@@ -78,11 +84,13 @@ where [(); C::BLOCK_SIZE - M]:
   /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::{
-  ///   aes::{Key, AES},
-  ///   counter::Counter,
-  ///   modes::ctr::CTR,
-  ///   BlockCipher,
+  /// use ronkathon::encryption::{
+  ///   symmetric::{
+  ///     aes::{Key, AES},
+  ///     counter::Counter,
+  ///     modes::ctr::CTR,
+  ///   },
+  ///   BlockOperations,
   /// };
   ///
   /// let mut rng = thread_rng();

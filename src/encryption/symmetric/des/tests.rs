@@ -1,7 +1,3 @@
-use des::{
-  cipher::{generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyInit},
-  Des as Des_fuzz,
-};
 use rand::{thread_rng, Rng};
 
 use super::{left_shift, *};
@@ -14,12 +10,11 @@ fn exhaustive_key_search(
 ) -> Option<[u8; 8]> {
   for k in 0..(1u64 << 56) {
     let key = k.to_be_bytes();
-    let subkeys = DES::setup(key);
+    let des = DES::new(key).unwrap();
+    let decrypted = des.decrypt(ciphertext);
+    let decrypted2 = des.decrypt(ciphertext2);
 
-    let decrypted = DES::decrypt(&subkeys, ciphertext);
-    let decrypted2 = DES::decrypt(&subkeys, ciphertext2);
-
-    if decrypted == *plaintext && decrypted2 == *plaintext2 {
+    if decrypted == Ok(*plaintext) && decrypted2 == Ok(*plaintext2) {
       return Some(key);
     }
   }
@@ -30,15 +25,17 @@ fn exhaustive_key_search(
 /// use multiple keys for more confidence
 fn known_plaintext_attack() {
   let mut rng = thread_rng();
-  let plaintext1 = rng.gen();
-  let plaintext2 = rng.gen();
+  let mut plaintext1 = [0u8; 8];
+  rng.fill(&mut plaintext1);
+  let mut plaintext2 = [0u8; 8];
+  rng.fill(&mut plaintext2);
 
   let key = 100000_u64.to_be_bytes();
 
-  let subkeys = DES::setup(key);
+  let des = DES::new(key).unwrap();
 
-  let ciphertext = DES::encrypt(&subkeys, &plaintext1);
-  let ciphertext2 = DES::encrypt(&subkeys, &plaintext2);
+  let ciphertext = des.encrypt(&plaintext1).unwrap();
+  let ciphertext2 = des.encrypt(&plaintext2).unwrap();
 
   let attack_key = exhaustive_key_search(&ciphertext, &plaintext1, &ciphertext2, &plaintext2);
 
@@ -51,11 +48,11 @@ fn des() {
     let mut rng = thread_rng();
     let secret_key = rng.gen();
 
-    let subkeys = DES::setup(secret_key);
+    let des = DES::new(secret_key).unwrap();
 
     let message = rng.gen();
-    let encrypted = DES::encrypt(&subkeys, &message);
-    let decrypted = DES::decrypt(&subkeys, &encrypted);
+    let encrypted = des.encrypt(&message).unwrap();
+    let decrypted = des.decrypt(&encrypted).unwrap();
 
     assert_eq!(message, decrypted);
   }
@@ -66,16 +63,13 @@ fn des_fuzz() {
   let mut rng = thread_rng();
   let key: [u8; 8] = rng.gen();
 
-  let subkeys = DES::setup(key);
-  let des_fuzz = Des_fuzz::new_from_slice(&key).unwrap();
+  let des_fuzz = DES::new(key).unwrap();
 
-  let mut data: [u8; 8] = rng.gen();
+  let data: [u8; 8] = rng.gen();
 
-  let encrypted = DES::encrypt(&subkeys, &data);
-  des_fuzz.encrypt_block(GenericArray::from_mut_slice(&mut data));
+  let encrypted = des_fuzz.encrypt(&data).unwrap();
 
-  let decrypted = DES::decrypt(&subkeys, &encrypted);
-  des_fuzz.decrypt_block(GenericArray::from_mut_slice(&mut data));
+  let decrypted = des_fuzz.decrypt(&encrypted).unwrap();
 
   assert_eq!(decrypted, data);
 }
@@ -92,12 +86,12 @@ fn weak_keys() {
   ];
 
   for key in WEAK_KEYS.into_iter() {
-    let subkeys = DES::setup(key);
+    let des = DES::new(key).unwrap();
 
     let message = b"weaktest";
 
-    let encrypted = DES::encrypt(&subkeys, message);
-    let decrypted = DES::decrypt(&subkeys, message);
+    let encrypted = des.encrypt(message);
+    let decrypted = des.decrypt(message);
 
     assert_eq!(encrypted, decrypted);
   }
@@ -109,16 +103,16 @@ fn bit_complement() {
   let mut rng = thread_rng();
   let secret_key: u64 = rng.gen();
 
-  let subkeys = DES::setup(secret_key.to_be_bytes());
+  let des = DES::new(secret_key.to_be_bytes()).unwrap();
 
   let message: u64 = rng.gen();
-  let encrypted = DES::encrypt(&subkeys, &message.to_be_bytes());
+  let encrypted = des.encrypt(&message.to_be_bytes()).unwrap();
 
   let key_complement = u64::MAX ^ secret_key;
   let message_complement = u64::MAX ^ message;
 
-  let subkeys_complement = DES::setup(key_complement.to_be_bytes());
-  let encrypted_complement = DES::encrypt(&subkeys_complement, &message_complement.to_be_bytes());
+  let des_complement = DES::new(key_complement.to_be_bytes()).unwrap();
+  let encrypted_complement = des_complement.encrypt(&message_complement.to_be_bytes()).unwrap();
 
   assert_eq!(u64::MAX ^ u64::from_be_bytes(encrypted), u64::from_be_bytes(encrypted_complement));
 }

@@ -10,7 +10,7 @@
 //! - [`IETFChaCha20`],[`IETFChaCha12`],[`IETFChaCha8`]: [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439)
 //!   with 20, 12, 8 rounds
 
-use super::StreamCipher;
+use crate::encryption::Encryption;
 
 #[cfg(test)] mod tests;
 
@@ -23,8 +23,8 @@ pub const STATE_WORDS: usize = 16;
 /// - `C`: big-endian 32-bit counter length, IETF version: 32-byte counter, and original ChaCha:
 ///   64-byte counter
 pub struct ChaCha<const R: usize, const N: usize, const C: usize> {
-  key:   Key,
-  nonce: Nonce<N>,
+  key:   [u32; 8],
+  nonce: [u32; N],
 }
 
 /// IETF [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439) ChaCha variant with 20 rounds
@@ -45,18 +45,12 @@ pub type ChaCha8 = ChaCha<8, 2, 2>;
 /// `["expa", "nd 3", "2-by", "te-k"]`
 pub const STATE_CONSTS: [u32; 4] = [0x61707865, 0x3320646e, 0x79622d32, 0x6b206574];
 
-/// ChaCha cipher 256 byte key
-pub type Key = [u32; 8];
-
 /// ChaCha cipher counter consisting of big-endian integer using 32 bits limbs, usually 2 for
 /// original variant and 1 for IETF variant
 #[derive(Debug, Clone, Copy)]
 pub struct Counter<const C: usize> {
   value: [u32; C],
 }
-
-/// ChaCha cipher cipher nonce, usually 2 for original variant and 3 for IETF variant
-pub type Nonce<const N: usize> = [u32; N];
 
 impl<const C: usize> Counter<C> {
   /// returns a new Counter
@@ -105,9 +99,9 @@ impl<const C: usize> Counter<C> {
 /// - scramble the state by performing rounds/2, column rounds and diagonal rounds.
 /// - perform (initial state + scrambled state) to add non-linearity
 fn block<const N: usize, const C: usize>(
-  key: &Key,
+  key: &[u32; 8],
   counter: &Counter<C>,
-  nonce: &Nonce<N>,
+  nonce: &[u32; N],
   rounds: usize,
 ) -> [u8; 64] {
   let mut state: Vec<u32> = STATE_CONSTS.to_vec();
@@ -183,7 +177,7 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   ///   for [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439) variant.
   ///
   /// *Note*: same nonce value shouldn't be used with a key as stream ciphers are malleable.
-  pub fn new(key: &Key, nonce: &Nonce<N>) -> Self { Self { key: *key, nonce: *nonce } }
+  pub fn new(key: &[u32; 8], nonce: &[u32; N]) -> Self { Self { key: *key, nonce: *nonce } }
 
   /// Encrypts a plaintext of maximum length $2^{32*C}$ by performing $ENC_k(m) = m ⨁ B(k)$, where
   /// B(k) is pseudoranom keystream calculated using ChaCha block function.
@@ -191,10 +185,10 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   /// ## Usage
   /// ```
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::chacha::{ChaCha, Counter, Key, Nonce};
+  /// use ronkathon::encryption::symmetric::chacha::{ChaCha, Counter};
   /// let mut rng = thread_rng();
-  /// let key: Key = rng.gen();
-  /// let nonce: Nonce<3> = rng.gen();
+  /// let key: [u32; 8] = rng.gen();
+  /// let nonce: [u32; 3] = rng.gen();
   ///
   /// let chacha = ChaCha::<20, 3, 1>::new(&key, &nonce);
   ///
@@ -256,10 +250,10 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   /// ## Usage
   /// ```
   /// use rand::{thread_rng, Rng};
-  /// use ronkathon::encryption::symmetric::chacha::{ChaCha, Counter, Key, Nonce};
+  /// use ronkathon::encryption::symmetric::chacha::{ChaCha, Counter};
   /// let mut rng = thread_rng();
-  /// let key: Key = rng.gen();
-  /// let nonce: Nonce<3> = rng.gen();
+  /// let key: [u32; 8] = rng.gen();
+  /// let nonce: [u32; 3] = rng.gen();
   ///
   /// let chacha = ChaCha::<20, 3, 1>::new(&key, &nonce);
   ///
@@ -272,45 +266,48 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   ///
   /// assert_eq!(decrypted, plaintext);
   /// ```
-  pub fn decrypt(&self, counter: &Counter<C>, ciphertext: &[u8]) -> Result<Vec<u8>, String> {
+  pub fn decrypt(
+    &self,
+    counter: &Counter<C>,
+    ciphertext: &[u8],
+  ) -> Result<Vec<u8>, <Self as Encryption>::Error> {
     self.encrypt(counter, ciphertext)
   }
-}
 
-impl<const R: usize, const N: usize, const C: usize> StreamCipher for ChaCha<R, N, C> {
-  type Counter = Counter<C>;
-  type Error = String;
-  type Key = Key;
-  type Nonce = Nonce<N>;
-
-  fn new(key: &Self::Key, nonce: &Self::Nonce) -> Result<Self, Self::Error>
-  where Self: Sized {
-    Ok(ChaCha::new(key, nonce))
-  }
-
-  fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>, Self::Error> {
-    let counter = Counter::new([0u32; C]);
-    self.encrypt(&counter, plaintext)
-  }
-
-  fn decrypt(&self, ciphertext: &[u8]) -> Result<Vec<u8>, Self::Error> {
-    let counter = Counter::new([0u32; C]);
-    self.decrypt(&counter, ciphertext)
-  }
+  /// Encrypts a plaintext of arbitrary length using [`Self::encrypt`] with a given counter.
 
   fn encrypt_with_counter(
     &self,
-    counter: &Self::Counter,
+    counter: &Counter<C>,
     plaintext: &[u8],
-  ) -> Result<Vec<u8>, Self::Error> {
+  ) -> Result<Vec<u8>, <Self as Encryption>::Error> {
     self.encrypt(counter, plaintext)
   }
 
   fn decrypt_with_counter(
     &self,
-    counter: &Self::Counter,
+    counter: &Counter<C>,
     ciphertext: &[u8],
-  ) -> Result<Vec<u8>, Self::Error> {
+  ) -> Result<Vec<u8>, <Self as Encryption>::Error> {
     self.decrypt(counter, ciphertext)
+  }
+}
+
+impl<const R: usize, const N: usize, const C: usize> Encryption for ChaCha<R, N, C> {
+  type Ciphertext = Vec<u8>;
+  type Error = String;
+  type Key = [u32; 8];
+  type Plaintext = Vec<u8>;
+
+  fn new(key: Self::Key) -> Result<Self, Self::Error> { Ok(Self { key, nonce: [0; N] }) }
+
+  fn encrypt(&self, data: &Self::Plaintext) -> Result<Self::Ciphertext, Self::Error> {
+    let counter = Counter::new([0u32; C]);
+    self.encrypt(&counter, data)
+  }
+
+  fn decrypt(&self, data: &Self::Ciphertext) -> Result<Self::Plaintext, Self::Error> {
+    let counter = Counter::new([0u32; C]);
+    self.decrypt(&counter, data)
   }
 }
