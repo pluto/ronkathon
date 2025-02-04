@@ -46,7 +46,7 @@ print(G1)
 N = 17
 
 # G2 is the generator for E2
-G2 = E2([36, 31 *X])
+G2 = E2(36, 31 * X)
 print(G2)
 
 # Now Lets generate the structured reference string (SRS),
