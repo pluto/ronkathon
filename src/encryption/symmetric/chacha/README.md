@@ -42,7 +42,7 @@ During initial round, **counters** are initialised to 0, and for next rounds, in
 
 [uct]: <https://www.cryptography-textbook.com/book/>
 [ietf]: <https://datatracker.ietf.org/doc/html/rfc8439>
-[xchacha]: <https://www.cryptopp.com/wiki/XChaCha20>
+[xchacha]: <https://web.archive.org/web/20240519030640/https://www.cryptopp.com/wiki/XChaCha20>
 [salsa]: <https://cr.yp.to/snuffle.html>
 [chacha]: <https://cr.yp.to/chacha.html>
 [chacha-family]: <https://cr.yp.to/chacha/chacha-20080128.pdf>
