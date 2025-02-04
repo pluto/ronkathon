@@ -1,5 +1,5 @@
 //! Demonstrating AES chained CBC mode of operation where last ciphertext of previous operation is
-//! used as IV for next operation. This has advantage as it reduces the bandwidth to share a new IV
+//! used as IV for next operation. This has the advantage as it reduces the bandwidth to share a new IV
 //! each time between the parties. But in CBC mode, IV should be unpredictable, this was formalised in [CWE-329](https://cwe.mitre.org/data/definitions/329.html).
 //!
 //! But this scheme is not Chosen-Plaintext Attack secure and any
