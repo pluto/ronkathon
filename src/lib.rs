@@ -39,6 +39,7 @@ pub mod polynomial;
 pub mod signatures;
 pub mod sumcheck;
 pub mod tree;
+pub mod shamir;
 
 use core::{
   fmt::{self, Display, Formatter},
