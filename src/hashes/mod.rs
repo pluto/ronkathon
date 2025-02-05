@@ -8,6 +8,7 @@ use crate::Field;
 pub mod constants;
 pub mod ghash;
 pub mod poseidon;
+pub mod sha3;
 
 /// Sponge trait defining absorb and squeeze behavior of sponge based hash function.
 pub trait Sponge<F: Field> {
