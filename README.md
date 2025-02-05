@@ -60,7 +60,7 @@ Ronkathon is a collection of cryptographic primitives implemented in Rust. It is
 
 We have found the following resources helpful in understanding the foundational mathematics behind this implementation. After going through these, you should be able to understand the codebase
 
-### Theoretic Resources
+### Theoretical Resources
 
 - [Plonk by Hand P1](https://research.metastate.dev/plonk-by-hand-part-1/)
 - [Plonk by Hand P2](https://research.metastate.dev/plonk-by-hand-part-2-the-proof/)
