@@ -91,7 +91,7 @@ sage poseidon_constants.sage 1 0 7 16 3 10 0x65
 Here's an example to use [Poseidon](./mod.rs) struct for hashing input of length `WIDTH`. Note that input is padded with extra zeroes if length is not equal to width.
 
 ```rust
-use ronkathon::field::prime::PlutoBaseField; // can be any field that implements FiniteField trait
+use ronkathon::{hashes::poseidon::Poseidon, field::prime::PlutoBaseField}; // can be any field that implements FiniteField trait
 
 const WIDTH: usize = 10;
 const ALPHA: usize = 5;
@@ -117,7 +117,7 @@ Another example using Sponge API for arbitrary length element hashing. Simplex s
 
 ```rust
 use rand::rng;
-use ronathon::field::prime::PlutoBaseField;
+use ronathon::{field::prime::PlutoBaseField, hashes::poseidon::sponge::PoseidonSponge};
 
 let size = rng.gen::<u32>();
 
