@@ -19,7 +19,7 @@ The structs that implement these traits are
 
 ### `MultiplicativePrimeGroup`
 The `MultiplicativePrimeGroup` struct is a wrapper around a `usize` that defines $(Z/nZ)^{*}$ for a prime power $n=p^k$ with binary operation as $\times$:
-```rust
+```rust,ignore
 pub struct MultiplicativePrimeGroup<const P: usize, const K: usize>(usize);
 ```
 

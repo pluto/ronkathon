@@ -1,26 +1,40 @@
 [book]
-authors = ["Contributors to Ronkathon"]
-language = "en"
-multilingual = false
-src = "book"
-title = "Ronkathon: Cryptography Educational Foundations"
-description = "Cryptography Educational Foundations"
+authors     =["Contributors to Ronkathon"]
+language    ="en"
+multilingual=false
+src         ="."
+title       ="Ronkathon: Cryptography Educational Foundations"
+description ="Cryptography Educational Foundations"
 
 [build]
-build-dir = "docs"
-use-default-preprocessors = true
-create-missing = true
+build-dir                ="docs"
+use-default-preprocessors=true
+create-missing           =true
 
 [preprocessor.katex]
-after = ["links"]
+after=["links"]
 
 [preprocessor.linkcheck]
-follow-web-links = true
-# ignore = ["https://example.com/broken-link"]
-traverse-parent-directories = true
-warning = false
+follow-web-links           =true
+traverse-parent-directories=true
+
+[preprocessor.keeper]
+command     ="mdbook-keeper"
+manifest_dir="."
+externs     =["ronkathon", "rand"]
 
 [output.html]
-default-theme = "dark"
-preferred-dark-theme = "ayu"
-git-repository-url = "https://github.com/pluto/ronkathon"
+default-theme       ="dark"
+preferred-dark-theme="ayu"
+git-repository-url  ="https://github.com/pluto/ronkathon"
+
+[output.html.playground]
+editable=true
+runnable=true
+
+[rust]
+edition="2021"
+
+[[output.html.playground.pre-installed-crates]]
+name   ="rand"
+version="0.8"

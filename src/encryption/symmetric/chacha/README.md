@@ -21,7 +21,7 @@ Then, chacha stream cipher's internal state is defined using $F$ with a 256-bit 
 
 Let's define what happens inside $F$, it runs a quarter round that takes as input 4 4-byte input and apply constant time ARX operations:
 
-```
+```ignore
 a += b; d ^= a; d <<<= 16;
 c += d; b ^= c; b <<<= 12;
 a += b; d ^= a; d <<<= 8;

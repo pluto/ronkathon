@@ -24,7 +24,7 @@ Outputs parsed output in form of `WireCoeffs` values and coefficients.
 - `coefficients`: coefficient corresponding to each variable.
 
 
-```rust
+```rust,ignore
 use std::collections::HashMap;
 /// Values of wires with coefficients of each wire name
 #[derive(Debug, PartialEq)]
@@ -68,7 +68,7 @@ r2[right input]-->b
 b-->o2[output=l+r]
 ```
 
-```rust
+```rust,ignore
 use ronkathon::algebra::field::prime::PlutoScalarField;
 /// Fan-in 2 Gate representing a constraint in the computation.
 /// Each constraint satisfies PLONK's arithmetic equation: `a(X)QL(X) + b(X)QR(X) + a(X)b(X)QM(X) +
@@ -107,7 +107,7 @@ Converts `WireValues` to required polynomials in PLONK, i.e.
 
 To get selector polynomials from constraints, each constraint is parsed into fan-in 2 arithmetic gates as explained above and wire values are assigned to respective wires in lagrange form.
 
-```rust
+```rust,ignore
 /// `CommonPreprocessedInput` represents circuit related input which is apriori known to `Prover`
 /// and `Verifier` involved in the process.
  use ronkathon::{
@@ -154,8 +154,8 @@ permutation helper creates $\sigma_i$ polynomials for $i = \{1,2,3\}$.
   - for example: x's usage gets shifted 1 to right, new one becomes: `{'x': [(3, RIGHT), (1, LEFT), (2, LEFT), (2, RIGHT)]}`.
   - This ensures that variables `x` is copied from $x_i$ to $x_{i+1}$
 
-```rust
- use ronkathon::compiler::parser::WireCoeffs;
+```rust,ignore
+use ronkathon::compiler::parser::WireCoeffs;
 
 /// `Program` represents constraints used while defining the arithmetic on the inputs
 /// and group order of primitive roots of unity in the field.

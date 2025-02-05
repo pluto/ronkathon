@@ -9,12 +9,12 @@ version    ="0.1.1"
 exclude    =["CHANGELOG.md", "assets/"]
 
 [dependencies]
-rand          ="0.8"
-itertools     ="0.14"
-hex           ="0.4"
-crypto-bigint ="0.6.0-rc.6"
-regex         ="1.11.1"
-num-traits    ="0.2.19"
+rand         ="0.8"
+itertools    ="0.14"
+hex          ="0.4"
+crypto-bigint="0.6.0-rc.6"
+regex        ="1.11.1"
+num-traits   ="0.2.19"
 
 [dev-dependencies]
 rstest               ="0.24"

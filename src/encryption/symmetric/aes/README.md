@@ -45,7 +45,7 @@ To generate more round keys out of the original key, we do a series of word rota
 
 For round **i**, if i is a multiple of the length of the key (in words):
 
-```rust
+```rust,ignore
     Self::rotate_word(&mut last);
     word = (u32::from_le_bytes(Self::sub_word(last))
       ^ u32::from_le_bytes(ROUND_CONSTANTS[(i / key_len) - 1]))
@@ -54,13 +54,13 @@ For round **i**, if i is a multiple of the length of the key (in words):
 
 if i + 4 is a multiple of 8:
 
-```rust
+```rust,ignore
     word = Self::sub_word(last)
 ```
 
 The final step is always to XOR previous round's round key with the *(i - key_len)*-th round key:
 
-```rust
+```rust,ignore
       let round_key = expanded_key[i - key_len]
         .iter()
         .zip(last.iter())
