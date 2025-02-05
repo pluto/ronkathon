@@ -18,10 +18,11 @@ after=["links"]
 follow-web-links           =true
 traverse-parent-directories=true
 
-[preprocessor.keeper]
-command     ="mdbook-keeper"
-manifest_dir="."
-externs     =["ronkathon", "rand"]
+# TODO (autoparallel): there's a bunch to fix with this
+# [preprocessor.keeper]
+# command     ="mdbook-keeper"
+# manifest_dir="."
+# externs     =["ronkathon", "rand"]
 
 [output.html]
 default-theme       ="dark"
