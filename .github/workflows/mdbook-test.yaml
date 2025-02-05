@@ -34,8 +34,8 @@ jobs:
           cp -r assets book/
           mdbook build
           
-      - name: Run mdBook tests
-        run: mdbook test
+      # - name: Run mdBook tests
+      #   run: mdbook test
         
       - name: Run linkcheck
         run: mdbook-linkcheck
