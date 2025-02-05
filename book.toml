@@ -8,8 +8,10 @@ description ="Cryptography Educational Foundations"
 
 [build]
 build-dir                ="docs"
-use-default-preprocessors=true
 create-missing           =true
+use-default-preprocessors=false
+
+[preprocessor.links]
 
 [preprocessor.katex]
 after=["links"]
