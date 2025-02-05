@@ -1,0 +1,32 @@
+name: MDBook Build
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      MDBOOK_VERSION: 0.4.43
+      MDBOOK_KATEX_VERSION: 0.9.2
+      MDBOOK_LINKCHECK_VERSION: 0.7.7
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+        
+      - name: Install rust
+        run: |
+          curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf -y | sh
+          rustup update
+          
+      - name: Install mdbook and plugins
+        run: |
+          cargo binstall --no-confirm --version ${MDBOOK_VERSION} mdbook
+          cargo binstall --no-confirm --version ${MDBOOK_KATEX_VERSION} mdbook-katex
+          cargo binstall --no-confirm --version ${MDBOOK_LINKCHECK_VERSION} mdbook-linkcheck
+          
+      - name: Build mdBook
+        run: mdbook build

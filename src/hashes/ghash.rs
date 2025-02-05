@@ -1,7 +1,7 @@
 //! Implementation of [`GHASH`] algorithm which is used in AES-GCM to compute the authentication
 //! tag.
 //! Based on GCM specification given by NIST:
-//! [The Galois/Counter Mode of Operation (GCM)](http://www.csrc.nist.gov/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf)
+//! [The Galois/Counter Mode of Operation (GCM)](https://csrc.nist.rip/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf)
 //!
 //! ASCII diagram of GHASH, courtesy of @0xJepsen:
 //!           X1                      X2          ...          XM

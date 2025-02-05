@@ -91,13 +91,14 @@ sage poseidon_constants.sage 1 0 7 16 3 10 0x65
 Here's an example to use [Poseidon](./mod.rs) struct for hashing input of length `WIDTH`. Note that input is padded with extra zeroes if length is not equal to width.
 
 ```rust
-use ronkathon::field::prime::PlutoBaseField; // can be any field that implements FiniteField trait
+use ronkathon::{hashes::poseidon::Poseidon, field::prime::PlutoBaseField}; // can be any field that implements FiniteField trait
 
 const WIDTH: usize = 10;
 const ALPHA: usize = 5;
 const NUM_P: usize = 16;
 const NUM_F: usize = 8;
 
+# pub fn main() {
 // load round constants and mds matrix
 let (rc, mds) = load_constants::<PlutoBaseField>();
 
@@ -111,14 +112,21 @@ let input = std::iter::repeat(PlutoBaseField::ZERO).take(WIDTH).collect();
 let res = poseidon.hash(input);
 
 println!("{:?}", res);
+# }
 ```
 
 Another example using Sponge API for arbitrary length element hashing. Simplex sponge supports arbitrary length absorption with arbitrary length squeeze.
 
 ```rust
-use rand::rng;
-use ronathon::field::prime::PlutoBaseField;
+use rand::Rng;
+use ronkathon::{field::prime::PlutoBaseField, hashes::poseidon::sponge::PoseidonSponge};
 
+const WIDTH: usize = 10;
+const ALPHA: usize = 5;
+const NUM_P: usize = 16;
+const NUM_F: usize = 8;
+
+# pub fn main() {
 let size = rng.gen::<u32>();
 
 // create any state
@@ -126,13 +134,14 @@ let input = std::iter::repeat(PlutoBaseField::ONE).take(size).collect();
 
 let (rc, mds) = load_constants::<PlutoBaseField>();
 
-let mut pluto_poseidon_sponge = PoseidonSponge::new(WIDTH, ALPHA, NUM_P, NUM_F, rate, rc, mds)
+let mut pluto_poseidon_sponge = PoseidonSponge::new(WIDTH, ALPHA, NUM_P, NUM_F, rate, rc, mds);
 
 let absorb_res = pluto_poseidon_sponge.absorb(&input);
 assert!(absorb_res.is_ok());
 
 let pluto_result = pluto_poseidon_sponge.squeeze(squeeze_size);
 assert!(pluto_result.is_ok());
+# }
 ```
 More info and examples can be found in [tests](./tests/mod.rs).
 

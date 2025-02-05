@@ -21,7 +21,7 @@ Then, chacha stream cipher's internal state is defined using $F$ with a 256-bit 
 
 Let's define what happens inside $F$, it runs a quarter round that takes as input 4 4-byte input and apply constant time ARX operations:
 
-```
+```ignore
 a += b; d ^= a; d <<<= 16;
 c += d; b ^= c; b <<<= 12;
 a += b; d ^= a; d <<<= 8;
@@ -42,7 +42,7 @@ During initial round, **counters** are initialised to 0, and for next rounds, in
 
 [uct]: <https://www.cryptography-textbook.com/book/>
 [ietf]: <https://datatracker.ietf.org/doc/html/rfc8439>
-[xchacha]: <https://www.cryptopp.com/wiki/XChaCha20>
+[xchacha]: <https://web.archive.org/web/20240519030640/https://www.cryptopp.com/wiki/XChaCha20>
 [salsa]: <https://cr.yp.to/snuffle.html>
 [chacha]: <https://cr.yp.to/chacha.html>
 [chacha-family]: <https://cr.yp.to/chacha/chacha-20080128.pdf>

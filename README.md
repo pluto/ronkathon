@@ -22,7 +22,7 @@ Ronkathon is a collection of cryptographic primitives implemented in Rust. It is
 - **Fundamental Algebraic Structures**
     - [Group](src/algebra/group/README.md)
     - [Fields and Their Extensions](src/algebra/field/README.md)
-        - [Binary Fields](src/field/binary_towers/README.md)
+        - [Binary Fields](src/algebra/field/binary_towers/README.md)
 - [Curves and Their Pairings](src/curve/README.md)
 - [Polynomials](src/polynomial/mod.rs)
 - [KZG Commitments](src/kzg/README.md)
@@ -82,13 +82,13 @@ In particular, the `math/field.sage` computes roots of unity in the `PlutoField`
 ## Building mdBook
 
 To locally build/serve the [mdBook](https://github.com/rust-lang/mdBook) site, install mdBook and [mdbook-katex](https://github.com/lzanini/mdbook-katex):
-```
+```ignore
 cargo install mdbook
 cargo install mdbook-katex
 ```
 
 To build, run:
-```
+```ignore
 cargo run --bin create_mdbook
 cp -r assets book/
 mdbook build
@@ -98,7 +98,7 @@ If you want to serve locally, run `mdbook serve`.
 
 ## License
 
-Licensed under the Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+Licensed under the Apache License, Version 2.0 ([LICENSE-APACHE](./LICENSE) or http://www.apache.org/licenses/LICENSE-2.0)
 
 ## Contributing
 
