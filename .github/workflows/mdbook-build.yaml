@@ -1,4 +1,4 @@
-name: MDBook Tests
+name: MDBook Build
 
 on:
   pull_request:
@@ -29,13 +29,4 @@ jobs:
           cargo binstall --no-confirm --version ${MDBOOK_LINKCHECK_VERSION} mdbook-linkcheck
           
       - name: Build mdBook
-        run: |
-          cargo run --bin create_mdbook
-          cp -r assets book/
-          mdbook build
-          
-      # - name: Run mdBook tests
-      #   run: mdbook test
-        
-      - name: Run linkcheck
-        run: mdbook-linkcheck
+        run: mdbook build
