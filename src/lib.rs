@@ -38,6 +38,7 @@ pub mod multi_var_poly;
 pub mod polynomial;
 pub mod sumcheck;
 pub mod tree;
+pub mod signatures;
 
 use core::{
   fmt::{self, Display, Formatter},
