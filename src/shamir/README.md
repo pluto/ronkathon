@@ -45,21 +45,6 @@ The module carefully implements modular multiplication using an iterative doubli
   - `combine_shares(shares: &[Share]) -> u128`  
     Reconstructs the secret from a collection of shares using Lagrange interpolation.
 
-## Applications and Use Cases
-
-Shamir's Secret Sharing has a variety of practical applications, including:
-
-- **Secure Storage and Backup:**  
-  Keys or other sensitive information can be split into shares stored in different locations (or entrusted to different custodians). Only a certain number (the threshold) of shares need to be combined to recover the original secret, thus providing redundancy along with security.
-
-- **Multisignature Wallets:**  
-  In the world of cryptocurrencies, secret sharing can secure a signing key by distributing parts of it among multiple parties. This helps guard against a single point of failure or compromise.
-
-- **Access Control:**  
-  Organizations can employ secret sharing to ensure that no single person holds the entire secret (such as a company master key). Only a consensus among authorized personnel can reveal the full secret.
-
-- **Threshold Cryptography:**  
-  Shamir’s scheme provides a basis for many advanced protocols in threshold cryptography, where operations (like signing or decryption) are performed jointly by a group of parties, each holding a share of the key.
 
 ## How to Use This Module
 
@@ -92,9 +77,3 @@ let recovered = combine_shares(required_shares);
 assert_eq!(secret, recovered);
 ```
 
-
-## Conclusion
-
-Shamir's Secret Sharing Scheme is a powerful and versatile technique for enhancing security through distributed trust. Whether it is used for secure key backup, multisignature wallets, controlled access environments, or threshold cryptographic protocols, this module offers a robust, generic implementation that can be tailored to many different requirements.
-
-This README provides an in-depth overview of both the theory and practice behind the implementation, ensuring that users and developers can make full use of the module's capabilities.
