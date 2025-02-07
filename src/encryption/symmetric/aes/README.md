@@ -132,7 +132,7 @@ In production-level AES code, fast AES software uses special techniques called t
 
 ## References 
 
-- [FIPS197][fips197]
+- [FIPS197][https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197-upd1.pdf]
 - [Serious Cryptography - A Practical Introduction to Modern Cryptography][seriouscrypto]
 
 [aes]: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
@@ -143,5 +143,4 @@ In production-level AES code, fast AES software uses special techniques called t
 [arc]: #AddRoundKey
 [mixcolumns]: https://en.wikipedia.org/wiki/Rijndael_MixColumns
 [Rijndael ff]: https://en.wikipedia.org/wiki/Finite_field_arithmetic#Rijndael's_(AES)_finite_field
-[fips197]: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197-upd1.pdf
 [seriouscrypto]:https://nostarch.com/seriouscrypto

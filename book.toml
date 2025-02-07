@@ -8,15 +8,23 @@ description ="Cryptography Educational Foundations"
 
 [build]
 build-dir                ="docs"
-use-default-preprocessors=true
 create-missing           =true
+use-default-preprocessors=false
+
+[preprocessor.links]
 
 [preprocessor.katex]
 after=["links"]
 
-[preprocessor.linkcheck]
-follow-web-links           =true
+[output.linkcheck]
+follow-web-links=true
 traverse-parent-directories=true
+warning-policy="ignore"
+exclude=[
+  'asecuritysite\.com/signatures',
+  'csrc\.nist\.gov/publications/fips/197/fips-197\.pdf',
+  'github\.com/arkworks-rs',
+]
 
 # TODO (autoparallel): there's a bunch to fix with this
 # [preprocessor.keeper]
