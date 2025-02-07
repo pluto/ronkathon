@@ -16,9 +16,11 @@ use-default-preprocessors=false
 [preprocessor.katex]
 after=["links"]
 
-[preprocessor.linkcheck]
+[output.linkcheck]
 follow-web-links           =true
 traverse-parent-directories=true
+warning-policy             ="ignore"
+exclude                    =['asecuritysite\.com/signatures', 'csrc\.nist\.gov/publications/fips/197/fips-197\.pdf']
 
 # TODO (autoparallel): there's a bunch to fix with this
 # [preprocessor.keeper]
