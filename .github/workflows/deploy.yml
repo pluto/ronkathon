@@ -52,10 +52,17 @@ jobs:
       - name: Build with mdBook
         run: mdbook build
 
+      - name: Verify build directory contains index.html
+        run: |
+          if [ ! -f ./docs/html/index.html ]; then
+            echo "index.html not found"
+            exit 1
+          fi
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./docs
+          path: ./docs/html
 
   # Deployment job
   deploy:
