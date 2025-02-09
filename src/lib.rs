@@ -22,7 +22,6 @@
 #![feature(const_option)]
 #![feature(generic_const_exprs)]
 #![feature(specialization)]
-#![feature(test)]
 #![warn(missing_docs)]
 
 pub mod algebra;

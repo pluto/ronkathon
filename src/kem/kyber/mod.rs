@@ -375,7 +375,7 @@ impl<const K: usize> MlKem<K> {
     [(); 64 * eta1 * 8]:,
   {
     let (ek_pke, dk_pke) = self.kpke.pke_keygen::<eta1>(d);
-    let ek: [u8; 384 * K + 32] = ek_pke.0.clone();
+    let ek: [u8; 384 * K + 32] = ek_pke.0;
     let h = h(&ek);
 
     (MlKemEncapsKey(ek), MlKemDecapsKey { dk_pke, ek_pke, h, z })

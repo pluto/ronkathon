@@ -93,7 +93,7 @@ pub fn byte_decode_polyvec<B: Basis, const D: usize, const K: usize, const d: us
   let mut f = Vec::with_capacity(K);
 
   for bytes in encoded_bytes.chunks(32 * d) {
-    let coeffs = byte_decode::<d, D>(bytes.try_into().unwrap());
+    let coeffs = byte_decode::<d, D>(bytes);
     f.push(Polynomial { coefficients: coeffs, basis: basis.clone() })
   }
 
@@ -109,7 +109,7 @@ mod tests {
   fn generate_test_data() -> [MlKemField; 256] {
     let mut data = [MlKemField { value: 0 }; 256];
     for i in 0..256 {
-      data[i].value = i as usize;
+      data[i].value = i;
     }
     data
   }

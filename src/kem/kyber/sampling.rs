@@ -10,11 +10,12 @@ pub fn sample_ntt(rho: &[u8], j: u8, i: u8) -> [MlKemField; 256] {
 
   let mut ntt = [MlKemField::ZERO; 256];
 
-  let mut xof = Xof::init().absorb(&input);
+  let mut xof = Xof::init();
+  xof.absorb(&input);
   let mut j = 0;
   while j < 256 {
     let mut buf = [0u8; 3];
-    Xof::squeeze(&mut xof, &mut buf);
+    xof.squeeze(&mut buf);
 
     let d_1 = buf[0] as usize + ((buf[1] as usize & 0xf) << 8);
     let d_2 = (buf[1] >> 4) as usize + ((buf[2] as usize) << 4);
