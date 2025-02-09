@@ -19,6 +19,10 @@
 ML-KEM is based on Module Learning with Errors problems introduced by [Reg05][Reg05].
 
 ## Preliminaries
+- [ ] Why Polynomial Rings?
+- [ ] Cyclotomic Polynomial Rings
+- [ ] NTT
+- [ ] Lattices
 
 ## Implementation Details
 - Polynomial Rings
