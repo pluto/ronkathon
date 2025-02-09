@@ -1,14 +1,19 @@
+//! Contains auxiliary cryptographic functions for Kyber KEM.
+//! - [`prf`] - Pseudorandom function
+//! - [`h`], [`g`] - Hash function
+//! - [`Xof`] - Extendable output function
 use sha3::{
   digest::{ExtendableOutput, Update, XofReader},
   Digest, Shake128, Shake256,
 };
 
-pub fn prf<const eta: usize>(s: [u8; 32], b: u8) -> [u8; 64 * eta] {
-  // concat s and b
+pub fn prf<const ETA: usize>(s: &[u8], b: u8) -> [u8; 64 * ETA] {
+  assert!(s.len() == 32);
+
   let mut hasher = Shake256::default();
   hasher.update(&s);
   hasher.update(&[b]);
-  let mut res = [0u8; 64 * eta];
+  let mut res = [0u8; 64 * ETA];
   XofReader::read(&mut hasher.finalize_xof(), &mut res);
   res
 }
