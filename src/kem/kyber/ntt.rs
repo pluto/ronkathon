@@ -1,6 +1,6 @@
 use std::ops::Mul;
 
-use super::{MlKemField, Ntt};
+use super::{MlKemField, Ntt, PolyVec};
 use crate::{
   algebra::{field::Field, Finite},
   polynomial::{Monomial, Polynomial},
@@ -71,13 +71,30 @@ impl<const D: usize> Polynomial<Monomial, MlKemField, D> {
   }
 }
 
-impl Mul<Polynomial<Ntt, MlKemField, 256>> for Polynomial<Ntt, MlKemField, 256> {
-  type Output = Self;
+impl<const D: usize, const K: usize> PolyVec<Monomial, D, K> {
+  pub fn ntt(self) -> PolyVec<Ntt, D, K> {
+    let ntt_vec = self.vec.iter().map(|poly| poly.ntt()).collect::<Vec<_>>().try_into().unwrap();
 
-  fn mul(self, rhs: Polynomial<Ntt, MlKemField, 256>) -> Self::Output {
-    let mut res_coeffs = [MlKemField::ZERO; 256];
+    PolyVec::<Ntt, D, K> { vec: ntt_vec }
+  }
+}
 
-    for i in 0..128 {
+impl<const D: usize, const K: usize> PolyVec<Ntt, D, K> {
+  pub fn ntt_inv(self) -> PolyVec<Monomial, D, K> {
+    let ntt_inv_vec =
+      self.vec.iter().map(|poly| poly.ntt_inv()).collect::<Vec<_>>().try_into().unwrap();
+
+    PolyVec { vec: ntt_inv_vec }
+  }
+}
+
+impl<const D: usize> Mul<&Polynomial<Ntt, MlKemField, D>> for &Polynomial<Ntt, MlKemField, D> {
+  type Output = Polynomial<Ntt, MlKemField, D>;
+
+  fn mul(self, rhs: &Polynomial<Ntt, MlKemField, D>) -> Self::Output {
+    let mut res_coeffs = [MlKemField::ZERO; D];
+
+    for i in 0..D >> 1 {
       let (a0, a1) = (self.coefficients[2 * i], self.coefficients[2 * i + 1]);
       let (b0, b1) = (rhs.coefficients[2 * i], rhs.coefficients[2 * i + 1]);
       let (c0, c1) = (a0 * b0 + GAMMA[i] * a1 * b1, a0 * b1 + a1 * b0);
@@ -85,7 +102,7 @@ impl Mul<Polynomial<Ntt, MlKemField, 256>> for Polynomial<Ntt, MlKemField, 256> 
       res_coeffs[2 * i + 1] = c1;
     }
 
-    Polynomial::<Ntt, MlKemField, 256> { coefficients: res_coeffs, basis: Ntt }
+    Polynomial::<Ntt, MlKemField, D> { coefficients: res_coeffs, basis: Ntt }
   }
 }
 

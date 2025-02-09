@@ -17,7 +17,7 @@
 //! - Includes Discrete Fourier Transform (DFT) for polynomials in the [`Monomial`] basis to convert
 //!   into the [`Lagrange`] basis via evaluation at the roots of unity.
 
-use std::array;
+use std::{array, fmt::Debug};
 
 use super::*;
 use crate::algebra::field::FiniteField;
@@ -45,7 +45,7 @@ pub struct Polynomial<B: Basis, F: FiniteField, const D: usize> {
 
 /// [`Basis`] trait is used to specify the basis of the polynomial.
 /// The basis can be [`Monomial`] or [`Lagrange`]. This is a type-state pattern for [`Polynomial`].
-pub trait Basis {
+pub trait Basis: Debug + Clone {
   /// The associated data type for the basis.
   type Data;
 }

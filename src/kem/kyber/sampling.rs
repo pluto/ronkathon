@@ -1,13 +1,16 @@
-use sha3::digest::XofReader;
-
 use super::{auxiliary::Xof, MlKemField};
 use crate::algebra::{field::Field, Finite};
 
-pub fn sample_ntt(input: &[u8]) -> [MlKemField; 256] {
-  assert!(input.len() == 34);
+pub fn sample_ntt(rho: &[u8], j: u8, i: u8) -> [MlKemField; 256] {
+  assert!(rho.len() == 32);
+  let mut input = [0u8; 34];
+  input[..32].copy_from_slice(rho);
+  input[32] = j;
+  input[33] = i;
+
   let mut ntt = [MlKemField::ZERO; 256];
 
-  let mut xof = Xof::init().absorb(input);
+  let mut xof = Xof::init().absorb(&input);
   let mut j = 0;
   while j < 256 {
     let mut buf = [0u8; 3];
