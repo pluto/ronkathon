@@ -41,6 +41,19 @@ const RHO: [[u32; 5]; 5] =
     27, 20, 39, 8, 14,
   ]];
 
+/// Type alias for SHA3-224.
+pub type Sha3_224 = Sha3<28>;
+/// Type alias for SHA3-256.
+pub type Sha3_256 = Sha3<32>;
+/// Type alias for SHA3-384.
+pub type Sha3_384 = Sha3<48>;
+/// Type alias for SHA3-512.
+pub type Sha3_512 = Sha3<64>;
+/// Type alias for SHAKE128.
+pub type Shake128 = Shake<128>;
+/// Type alias for SHAKE256.
+pub type Shake256 = Shake<256>;
+
 #[derive(Clone, Debug)]
 struct KeccakState {
   lanes: [[u64; 5]; 5],
@@ -276,19 +289,6 @@ impl<const SECURITY_BITS: usize> Shake<SECURITY_BITS> {
     self.state.squeeze(output, self.rate);
   }
 }
-
-/// Type alias for SHA3-224.
-pub type Sha3_224 = Sha3<28>;
-/// Type alias for SHA3-256.
-pub type Sha3_256 = Sha3<32>;
-/// Type alias for SHA3-384.
-pub type Sha3_384 = Sha3<48>;
-/// Type alias for SHA3-512.
-pub type Sha3_512 = Sha3<64>;
-/// Type alias for SHAKE128.
-pub type Shake128 = Shake<128>;
-/// Type alias for SHAKE256.
-pub type Shake256 = Shake<256>;
 
 #[cfg(test)]
 mod tests {

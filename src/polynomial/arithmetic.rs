@@ -34,6 +34,27 @@ impl<F: FiniteField, const D: usize, const D2: usize> Add<Polynomial<Monomial, F
   }
 }
 
+impl<F: FiniteField, const D: usize, const D2: usize> Add<&Polynomial<Monomial, F, D2>>
+  for &Polynomial<Monomial, F, D>
+{
+  type Output = Polynomial<Monomial, F, D>;
+
+  /// Implements addition of two polynomials by adding their coefficients.
+  /// Note: degree of first operand > deg of second operand.
+  fn add(self, rhs: &Polynomial<Monomial, F, D2>) -> Self::Output {
+    let coefficients = self
+      .coefficients
+      .iter()
+      .zip(rhs.coefficients.iter().chain(std::iter::repeat(&F::ZERO)))
+      .map(|(&a, &b)| a + b)
+      .take(D)
+      .collect::<Vec<F>>()
+      .try_into()
+      .unwrap_or_else(|v: Vec<F>| panic!("Expected a Vec of length {} but it was {}", D, v.len()));
+    Self::Output { coefficients, basis: self.basis }
+  }
+}
+
 impl<F: FiniteField, const D: usize, const D2: usize> AddAssign<Polynomial<Monomial, F, D2>>
   for Polynomial<Monomial, F, D>
 {
