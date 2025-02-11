@@ -246,7 +246,7 @@ fn expand_message_xmd(msg: &[u8], len_in_bytes: usize) -> Vec<u8> {
 fn hash_to_field(msg: &[u8], count: usize) -> Vec<PlutoBaseFieldExtension> {
   // Parameters
   const SECURITY_BITS: usize = 128;
-  let p = PlutoBaseField::ORDER;  // This is 101
+  let p = PlutoBaseField::ORDER; // This is 101
   let m = 2; // Extension degree is 2 for GF(p²)
   let l = (p.ilog2() as usize + SECURITY_BITS + 7) / 8;
 
@@ -255,28 +255,27 @@ fn hash_to_field(msg: &[u8], count: usize) -> Vec<PlutoBaseFieldExtension> {
 
   let mut result = Vec::with_capacity(count);
   for i in 0..count {
-      let elm_offset = l * i;
-      let tv = &uniform_bytes[elm_offset..elm_offset + l];
-      
-      // Get field element with full entropy mod p
-      let e = os2ip(tv).unwrap().rem(&crypto_bigint::NonZero::new(U256::from(p as u64)).unwrap());
-      let bytes = e.to_be_bytes();
-      
-      // Since our modulo is 101, the result must be in the last few bytes
-      // Extract it by combining last 2 bytes to handle the case where value spans bytes
-      let value = ((bytes[30] as usize) << 8 | bytes[31] as usize) % p;
-      let base_element = PrimeField::new(value);
-      
-      // Convert to extended field using cube root of unity like in the pairing
-      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-      let extended_element = cube_root * PlutoBaseFieldExtension::from(base_element);
-      
-      result.push(extended_element);
+    let elm_offset = l * i;
+    let tv = &uniform_bytes[elm_offset..elm_offset + l];
+
+    // Get field element with full entropy mod p
+    let e = os2ip(tv).unwrap().rem(&crypto_bigint::NonZero::new(U256::from(p as u64)).unwrap());
+    let bytes = e.to_be_bytes();
+
+    // Since our modulo is 101, the result must be in the last few bytes
+    // Extract it by combining last 2 bytes to handle the case where value spans bytes
+    let value = ((bytes[30] as usize) << 8 | bytes[31] as usize) % p;
+    let base_element = PrimeField::new(value);
+
+    // Convert to extended field using cube root of unity like in the pairing
+    let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
+    let extended_element = cube_root * PlutoBaseFieldExtension::from(base_element);
+
+    result.push(extended_element);
   }
 
   result
 }
- 
 
 impl BlsPrivateKey {
   /// Generates a new BLS private key using the specified key material and parameters
@@ -364,9 +363,10 @@ impl BlsPublicKey {
 
     // Step 2: Check signature is in correct subgroup
     let subgroup_order = 17;
-    if (signature.sig * PlutoScalarField::new(subgroup_order)) 
-        != AffinePoint::<PlutoExtendedCurve>::Infinity {
-        return Err(BlsError::InvalidSignature);
+    if (signature.sig * PlutoScalarField::new(subgroup_order))
+      != AffinePoint::<PlutoExtendedCurve>::Infinity
+    {
+      return Err(BlsError::InvalidSignature);
     }
 
     // Step 3: Hash message to point
@@ -375,29 +375,28 @@ impl BlsPublicKey {
     // Step 4: Pairing checks
     // e(sig, G) = e(H(m), pk)
     let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-    
+
     // Convert generator and public key with proper twisting
     let g = AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::GENERATOR);
     let pk = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) = self.pk {
-        AffinePoint::<PlutoExtendedCurve>::new(
-            cube_root * PlutoBaseFieldExtension::from(x),
-            PlutoBaseFieldExtension::from(y),
-        )
+      AffinePoint::<PlutoExtendedCurve>::new(
+        cube_root * PlutoBaseFieldExtension::from(x),
+        PlutoBaseFieldExtension::from(y),
+      )
     } else {
-        return Err(BlsError::InvalidPublicKey);
+      return Err(BlsError::InvalidPublicKey);
     };
 
     let left = pairing::<PlutoExtendedCurve, 17>(signature.sig, g);
     let right = pairing::<PlutoExtendedCurve, 17>(hash_point, pk);
 
-    
-
     if left == right {
-        Ok(())
+      Ok(())
     } else {
-        Err(BlsError::VerificationFailed)
+      Err(BlsError::VerificationFailed)
     }
-}
+  }
+
   /// Validates a BLS public key according to the spec
   pub fn validate(&self) -> Result<(), BlsError> {
     // Check if point is valid (implicitly done by AffinePoint type)
@@ -477,7 +476,7 @@ pub fn verify_aggregated_signature(
   // Steps 10-11: Final pairing and comparison
   let c2 = pairing::<PlutoExtendedCurve, 17>(
     AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::GENERATOR),
-   aggregated_sig.sig,
+    aggregated_sig.sig,
   );
 
   if c1 == c2 {
@@ -489,16 +488,16 @@ pub fn verify_aggregated_signature(
 
 fn convert_to_extended(point: AffinePoint<PlutoBaseCurve>) -> AffinePoint<PlutoExtendedCurve> {
   if let AffinePoint::<PlutoBaseCurve>::Point(x, y) = point {
-      // Get cube root of unity in GF(101²)
-      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-      
-      // Convert x and y to extended field and apply cube root to x
-      let x_extended = cube_root * PlutoBaseFieldExtension::from(x);
-      let y_extended = PlutoBaseFieldExtension::from(y);
-      
-      AffinePoint::<PlutoExtendedCurve>::new(x_extended, y_extended)
+    // Get cube root of unity in GF(101²)
+    let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
+
+    // Convert x and y to extended field and apply cube root to x
+    let x_extended = cube_root * PlutoBaseFieldExtension::from(x);
+    let y_extended = PlutoBaseFieldExtension::from(y);
+
+    AffinePoint::<PlutoExtendedCurve>::new(x_extended, y_extended)
   } else {
-      AffinePoint::<PlutoExtendedCurve>::Infinity
+    AffinePoint::<PlutoExtendedCurve>::Infinity
   }
 }
 /// Implements map_to_curve as specified in the standard
@@ -530,8 +529,8 @@ fn map_to_curve(u: PlutoBaseFieldExtension) -> AffinePoint<PlutoExtendedCurve> {
 /// Implements clear_cofactor as specified in the standard
 fn clear_cofactor(point: AffinePoint<PlutoExtendedCurve>) -> AffinePoint<PlutoExtendedCurve> {
   // The cofactor is (field_size)/17 to get to the 17-torsion subgroup
-  let order = PlutoBaseField::ORDER;  // 101
-  let cofactor = PlutoScalarField::new(order / 17 * order);  // (101/17)*101
+  let order = PlutoBaseField::ORDER; // 101
+  let cofactor = PlutoScalarField::new(order / 17 * order); // (101/17)*101
   point * cofactor
 }
 
@@ -548,24 +547,21 @@ fn hash_to_curve(msg: &[u8]) -> Result<AffinePoint<PlutoExtendedCurve>, BlsError
   let r = q0 + q1;
 
   // 5. Multiply by cofactor to ensure point has order 17
-  
+
   let p = clear_cofactor(r);
 
   // 6. Ensure point is valid and not identity
   if p == AffinePoint::<PlutoExtendedCurve>::Infinity {
-      return Err(BlsError::HashToCurveFailed);
+    return Err(BlsError::HashToCurveFailed);
   }
 
   Ok(p)
 }
 
-
-
-
 #[cfg(test)]
 mod tests {
 
-use super::*;
+  use super::*;
 
   /// Creates a deterministic private key for testing using IKM
   fn create_test_private_key(seed: u64) -> BlsPrivateKey {
@@ -577,7 +573,6 @@ use super::*;
     let salt = b"test_salt";
     BlsPrivateKey::generate_from_ikm(&ikm, salt, None).expect("Key generation should succeed")
   }
-  
 
   #[test]
   fn test_sign_and_verify() {
