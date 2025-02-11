@@ -4,7 +4,6 @@
 //! existing curve and pairing primitives. This module demonstrates key generation,
 //! signing, verification, and aggregation (for signatures on the same message).
 
-
 use rand::Rng;
 
 use crate::{
@@ -80,18 +79,18 @@ pub struct BlsSignature {
 /// ```
 pub fn i2osp(x: usize, length: usize) -> Result<Vec<u8>, String> {
   if x >= (1 << (8 * length)) {
-      return Err(format!("Integer too large to encode in {} octets", length));
+    return Err(format!("Integer too large to encode in {} octets", length));
   }
-  
+
   let mut result = vec![0u8; length];
   let mut val = x;
-  
+
   // Fill from right to left
   for i in (0..length).rev() {
-      result[i] = (val & 0xff) as u8;
-      val >>= 8;
+    result[i] = (val & 0xff) as u8;
+    val >>= 8;
   }
-  
+
   Ok(result)
 }
 /// Converts an octet string to a nonnegative integer as a U256 using crypto-bigint.
@@ -118,13 +117,11 @@ pub fn i2osp(x: usize, length: usize) -> Result<Vec<u8>, String> {
 pub fn os2ip(octets: &[u8]) -> Result<usize, String> {
   let mut ret = 0usize;
   for &byte in octets {
-      
-      ret = ret << 8;
-      ret = (ret + byte as usize);
+    ret = ret << 8;
+    ret = (ret + byte as usize);
   }
   Ok(ret)
 }
-
 
 // HKDF
 
@@ -143,27 +140,27 @@ pub fn hkdf_extract(salt: &[u8], ikm: &[u8]) -> Vec<u8> {
 
 /// HKDF-Expand according to RFC 5869.
 fn hkdf_expand(prk: &[u8], info: &[u8], l: usize) -> Result<Vec<u8>, String> {
-  const DIGEST_SIZE: usize = 32;  // SHA256
+  const DIGEST_SIZE: usize = 32; // SHA256
   if prk.len() < DIGEST_SIZE {
-      return Err("PRK length must be at least HashLen".to_string());
+    return Err("PRK length must be at least HashLen".to_string());
   }
   let n = (l + DIGEST_SIZE - 1) / DIGEST_SIZE;
   if n == 0 || n > 255 {
-      return Err("Invalid requested length".to_string());
+    return Err("Invalid requested length".to_string());
   }
-  
+
   let mut okm = Vec::new();
   let mut last = Vec::new();
   for i in 1..=n {
-      let mut data = Vec::new();
-      data.extend_from_slice(&last);
-      data.extend_from_slice(info);
-      data.push(i as u8);
-      
-      last = hmac_sha256(prk, &data).to_vec();
-      okm.extend_from_slice(&last);
+    let mut data = Vec::new();
+    data.extend_from_slice(&last);
+    data.extend_from_slice(info);
+    data.push(i as u8);
+
+    last = hmac_sha256(prk, &data).to_vec();
+    okm.extend_from_slice(&last);
   }
-  
+
   okm.truncate(l);
   Ok(okm)
 }
@@ -181,10 +178,10 @@ fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
 
   // DST_prime = DST || I2OSP(len(DST), 1)
   let dst_prime = [dst, &[dst.len() as u8]].concat();
-  
+
   // Z_pad = I2OSP(0, r_in_bytes)
   let z_pad = vec![0u8; R_IN_BYTES];
-  
+
   // l_i_b_str = I2OSP(len_in_bytes, 2)
   let l_i_b_str = i2osp(len_in_bytes, 2).unwrap();
 
@@ -212,13 +209,13 @@ fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
 
   // Rest of b_vals: H(strxor(b_0, b_(i-1)) || I2OSP(i + 1, 1) || DST_prime)
   for i in 2..=ell {
-      let mut hasher = Sha256::new();
-      let prev_b = &uniform_bytes[(i - 2) * B_IN_BYTES..(i - 1) * B_IN_BYTES];
-      let xored: Vec<u8> = b_0.iter().zip(prev_b).map(|(a, b)| a ^ b).collect();
-      hasher.update(&xored);
-      hasher.update(&i2osp(i, 1).unwrap());
-      hasher.update(&dst_prime);
-      uniform_bytes.extend_from_slice(&hasher.finalize());
+    let mut hasher = Sha256::new();
+    let prev_b = &uniform_bytes[(i - 2) * B_IN_BYTES..(i - 1) * B_IN_BYTES];
+    let xored: Vec<u8> = b_0.iter().zip(prev_b).map(|(a, b)| a ^ b).collect();
+    hasher.update(&xored);
+    hasher.update(&i2osp(i, 1).unwrap());
+    hasher.update(&dst_prime);
+    uniform_bytes.extend_from_slice(&hasher.finalize());
   }
 
   uniform_bytes.truncate(len_in_bytes);
@@ -229,35 +226,34 @@ fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
 fn hash_to_field(msg: &[u8], count: usize) -> Vec<PlutoBaseFieldExtension> {
   const SECURITY_BITS: usize = 128;
   const DST: &[u8] = b"BLS_SIG_PLUTO_RONKATHON_2024";
-  let p = PlutoBaseField::ORDER;  // modulus
-  let degree = 2;  // for GF(p²)
-  let blen = 64;   // same as Python impl
-  
+  let p = PlutoBaseField::ORDER; // modulus
+  let degree = 2; // for GF(p²)
+  let blen = 64; // same as Python impl
+
   let len_in_bytes = count * degree * blen;
-  let uniform_bytes = expand_message_xmd(msg, DST,len_in_bytes);
+  let uniform_bytes = expand_message_xmd(msg, DST, len_in_bytes);
 
   let mut result = Vec::with_capacity(count);
   for i in 0..count {
-      let mut e_vals = [PrimeField::ZERO; 2];
-      for j in 0..degree {
-          let elm_offset = blen * (j + i * degree);
-          let tv = &uniform_bytes[elm_offset..elm_offset + blen];
-          
-          // Convert bytes to integer mod p, using all bytes
-          let mut val = 0usize;
-          for byte in tv {
-              val = (val * 256 + *byte as usize) % p;
-          }
-          e_vals[j] = PrimeField::new(val);
+    let mut e_vals = [PrimeField::ZERO; 2];
+    for j in 0..degree {
+      let elm_offset = blen * (j + i * degree);
+      let tv = &uniform_bytes[elm_offset..elm_offset + blen];
+
+      // Convert bytes to integer mod p, using all bytes
+      let mut val = 0usize;
+      for byte in tv {
+        val = (val * 256 + *byte as usize) % p;
       }
-      result.push(PlutoBaseFieldExtension::new(e_vals));
+      e_vals[j] = PrimeField::new(val);
+    }
+    result.push(PlutoBaseFieldExtension::new(e_vals));
   }
 
   result
 }
 
 impl BlsPrivateKey {
-  
   // Keep the random generation as an alternative method
   pub fn generate_random<R: Rng>(rng: &mut R) -> Self {
     let sk = PlutoScalarField::new(rng.gen_range(1..=PlutoScalarField::ORDER));
@@ -319,8 +315,8 @@ impl BlsPublicKey {
     let left = pairing::<PlutoExtendedCurve, 17>(signature.sig, g);
     let right = pairing::<PlutoExtendedCurve, 17>(hash_point, pk);
 
-    println!("left : {:?}",left);
-    println!("right : {:?}",right);
+    println!("left : {:?}", left);
+    println!("right : {:?}", right);
 
     if left == right {
       Ok(())
@@ -434,7 +430,6 @@ fn convert_to_extended(point: AffinePoint<PlutoBaseCurve>) -> AffinePoint<PlutoE
 }
 /// Implements map_to_curve as specified in the standard
 
-
 /// Implements clear_cofactor as specified in the standard
 fn clear_cofactor(point: AffinePoint<PlutoExtendedCurve>) -> AffinePoint<PlutoExtendedCurve> {
   // The cofactor is (field_size)/17 to get to the 17-torsion subgroup
@@ -447,22 +442,21 @@ fn clear_cofactor(point: AffinePoint<PlutoExtendedCurve>) -> AffinePoint<PlutoEx
 fn hash_to_curve(msg: &[u8]) -> Result<AffinePoint<PlutoExtendedCurve>, BlsError> {
   // Get two field elements (count=2 in Python impl)
   let field_elems = hash_to_field(msg, 2);
-  
+
   // Map first point to curve (similar to Python's Hp2)
   let x = field_elems[0];
-  
+
   // Create point with x-coordinate and find y
   let x3 = x * x * x;
   let y2 = x3 + PlutoBaseFieldExtension::from(3u64);
-  
+
   if !y2.euler_criterion() {
-      return Err(BlsError::HashToCurveFailed);
+    return Err(BlsError::HashToCurveFailed);
   }
-  
+
   let y = y2.sqrt().unwrap().0;
   let point = AffinePoint::<PlutoExtendedCurve>::new(x, y);
-  
-  
+
   Ok(clear_cofactor(point))
 }
 
