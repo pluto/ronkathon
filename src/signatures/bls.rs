@@ -4,7 +4,7 @@
 //! existing curve and pairing primitives. This module demonstrates key generation,
 //! signing, verification, and aggregation (for signatures on the same message).
 
-use crypto_bigint::{Encoding, U256};
+
 use rand::Rng;
 
 use crate::{
@@ -76,36 +76,24 @@ pub struct BlsSignature {
 /// # Example
 ///
 /// ```
-/// use crypto_bigint::U256;
-///
-/// use crate::dsa::utils::i2osp;
-///
-/// let x = U256::from(65535u64);
-/// let os = i2osp(&x, 4).unwrap();
-/// assert_eq!(os, vec![0, 0, 255, 255]);
+
 /// ```
-pub fn i2osp(x: &U256, length: usize) -> Result<Vec<u8>, String> {
-  // U256 is internally represented as 32 bytes (big-endian).
-  let full_bytes = x.to_be_bytes(); // This is a [u8; 32].
-
-  // Convert to a minimal representation by skipping all leading zeros.
-  let minimal: Vec<u8> = {
-    let buf: Vec<u8> = full_bytes.iter().skip_while(|&&b| b == 0).cloned().collect();
-    if buf.is_empty() {
-      vec![0]
-    } else {
-      buf
-    }
-  };
-
-  if minimal.len() > length {
-    return Err(format!("Integer too large to encode in {} octets", length));
+pub fn i2osp(x: usize, length: usize) -> Result<Vec<u8>, String> {
+  if x >= (1 << (8 * length)) {
+      return Err(format!("Integer too large to encode in {} octets", length));
   }
-  let mut result = vec![0u8; length - minimal.len()];
-  result.extend_from_slice(&minimal);
+  
+  let mut result = vec![0u8; length];
+  let mut val = x;
+  
+  // Fill from right to left
+  for i in (0..length).rev() {
+      result[i] = (val & 0xff) as u8;
+      val >>= 8;
+  }
+  
   Ok(result)
 }
-
 /// Converts an octet string to a nonnegative integer as a U256 using crypto-bigint.
 ///
 /// OS2IP (Octet-String-to-Integer Primitive) interprets an octet string as the big-endian
@@ -125,30 +113,18 @@ pub fn i2osp(x: &U256, length: usize) -> Result<Vec<u8>, String> {
 /// # Example
 ///
 /// ```
-/// use crypto_bigint::U256;
-///
-/// use crate::dsa::utils::os2ip;
-///
-/// let bytes = vec![0, 0, 255, 255];
-/// let x = os2ip(&bytes).unwrap();
-/// assert_eq!(x, U256::from(65535u64));
+
 /// ```
-pub fn os2ip(octets: &[u8]) -> Result<U256, String> {
-  let len = octets.len();
-  if len > 32 {
-    // For slices longer than 32 bytes, verify that the extra (leftmost) bytes are all zero.
-    if octets[..len - 32].iter().any(|&b| b != 0) {
-      return Err("Integer too large to represent in 256 bits".to_string());
-    }
-    let arr: [u8; 32] = octets[len - 32..].try_into().map_err(|_| "Invalid slice length")?;
-    Ok(U256::from_be_bytes(arr))
-  } else {
-    // If fewer than 32 bytes, left-pad with zeros.
-    let mut padded = [0u8; 32];
-    padded[32 - len..].copy_from_slice(octets);
-    Ok(U256::from_be_bytes(padded))
+pub fn os2ip(octets: &[u8]) -> Result<usize, String> {
+  let mut ret = 0usize;
+  for &byte in octets {
+      
+      ret = ret << 8;
+      ret = (ret + byte as usize);
   }
+  Ok(ret)
 }
+
 
 // HKDF
 
@@ -166,45 +142,53 @@ pub fn hkdf_extract(salt: &[u8], ikm: &[u8]) -> Vec<u8> {
 }
 
 /// HKDF-Expand according to RFC 5869.
-pub fn hkdf_expand(prk: &[u8], info: &[u8], l: usize) -> Vec<u8> {
-  // Optionally: enforce l <= 255 * 32 if using SHA-256
-  let n = (l + 31) / 32; // Ceiling division for hash length of 32 bytes
-  let mut t = Vec::new(); // This will hold T(i-1), starting with empty T(0)
-  let mut okm = Vec::new();
-  for i in 1..=n {
-    // Create message: T(i-1) || info || i
-    let mut data = Vec::new();
-    data.extend_from_slice(&t);
-    data.extend_from_slice(info);
-    data.push(i as u8);
-
-    // Compute T(i)
-    t = hmac_sha256(prk, &data).to_vec();
-
-    // Append T(i) to the output
-    okm.extend_from_slice(&t);
+fn hkdf_expand(prk: &[u8], info: &[u8], l: usize) -> Result<Vec<u8>, String> {
+  const DIGEST_SIZE: usize = 32;  // SHA256
+  if prk.len() < DIGEST_SIZE {
+      return Err("PRK length must be at least HashLen".to_string());
   }
+  let n = (l + DIGEST_SIZE - 1) / DIGEST_SIZE;
+  if n == 0 || n > 255 {
+      return Err("Invalid requested length".to_string());
+  }
+  
+  let mut okm = Vec::new();
+  let mut last = Vec::new();
+  for i in 1..=n {
+      let mut data = Vec::new();
+      data.extend_from_slice(&last);
+      data.extend_from_slice(info);
+      data.push(i as u8);
+      
+      last = hmac_sha256(prk, &data).to_vec();
+      okm.extend_from_slice(&last);
+  }
+  
   okm.truncate(l);
-  okm
+  Ok(okm)
 }
-
 /// Domain separation tag for our BLS implementation
 const DST: &[u8] = b"BLS_SIG_PLUTO_RONKATHON_2024";
 
 /// Implements expand_message_xmd as specified in the standard
-fn expand_message_xmd(msg: &[u8], len_in_bytes: usize) -> Vec<u8> {
+fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
   // Parameters for SHA-256
-  const B_IN_BYTES: usize = 32; // 256 bits
-  const S_IN_BYTES: usize = 64; // 512 bits input block
+  const B_IN_BYTES: usize = 32; // hash digest size
+  const R_IN_BYTES: usize = 64; // hash block size
 
   let ell = (len_in_bytes + B_IN_BYTES - 1) / B_IN_BYTES;
-  assert!(ell <= 255 && len_in_bytes <= 65535 && DST.len() <= 255);
+  assert!(ell <= 255 && len_in_bytes <= 65535 && dst.len() <= 255);
 
-  let dst_prime = [DST, &[DST.len() as u8]].concat();
-  let z_pad = vec![0u8; S_IN_BYTES];
-  let l_i_b_str = i2osp(&U256::from(len_in_bytes as u64), 2).unwrap();
+  // DST_prime = DST || I2OSP(len(DST), 1)
+  let dst_prime = [dst, &[dst.len() as u8]].concat();
+  
+  // Z_pad = I2OSP(0, r_in_bytes)
+  let z_pad = vec![0u8; R_IN_BYTES];
+  
+  // l_i_b_str = I2OSP(len_in_bytes, 2)
+  let l_i_b_str = i2osp(len_in_bytes, 2).unwrap();
 
-  // msg_prime = Z_pad || msg || l_i_b_str || 0 || DST_prime
+  // msg_prime = Z_pad || msg || l_i_b_str || I2OSP(0, 1) || DST_prime
   let mut msg_prime = Vec::new();
   msg_prime.extend_from_slice(&z_pad);
   msg_prime.extend_from_slice(msg);
@@ -212,30 +196,29 @@ fn expand_message_xmd(msg: &[u8], len_in_bytes: usize) -> Vec<u8> {
   msg_prime.push(0u8);
   msg_prime.extend_from_slice(&dst_prime);
 
+  // b_0 = H(msg_prime)
   let mut hasher = Sha256::new();
   hasher.update(&msg_prime);
   let b_0 = hasher.finalize();
 
+  // b_1 = H(b_0 || I2OSP(1, 1) || DST_prime)
   let mut hasher = Sha256::new();
   hasher.update(&b_0);
-  hasher.update(&[1u8]);
+  hasher.update(&i2osp(1, 1).unwrap());
   hasher.update(&dst_prime);
   let b_1 = hasher.finalize();
 
   let mut uniform_bytes = b_1.to_vec();
 
+  // Rest of b_vals: H(strxor(b_0, b_(i-1)) || I2OSP(i + 1, 1) || DST_prime)
   for i in 2..=ell {
-    let mut hasher = Sha256::new();
-    // strxor(b_0, b_(i-1))
-    let xored: Vec<u8> = b_0
-      .iter()
-      .zip(uniform_bytes[(i - 2) * B_IN_BYTES..(i - 1) * B_IN_BYTES].iter())
-      .map(|(a, b)| a ^ b)
-      .collect();
-    hasher.update(&xored);
-    hasher.update(&i2osp(&U256::from(i as u64), 1).unwrap());
-    hasher.update(&dst_prime);
-    uniform_bytes.extend_from_slice(&hasher.finalize());
+      let mut hasher = Sha256::new();
+      let prev_b = &uniform_bytes[(i - 2) * B_IN_BYTES..(i - 1) * B_IN_BYTES];
+      let xored: Vec<u8> = b_0.iter().zip(prev_b).map(|(a, b)| a ^ b).collect();
+      hasher.update(&xored);
+      hasher.update(&i2osp(i, 1).unwrap());
+      hasher.update(&dst_prime);
+      uniform_bytes.extend_from_slice(&hasher.finalize());
   }
 
   uniform_bytes.truncate(len_in_bytes);
@@ -244,91 +227,37 @@ fn expand_message_xmd(msg: &[u8], len_in_bytes: usize) -> Vec<u8> {
 
 /// Implements hash_to_field as specified in the standard
 fn hash_to_field(msg: &[u8], count: usize) -> Vec<PlutoBaseFieldExtension> {
-  // Parameters
   const SECURITY_BITS: usize = 128;
-  let p = PlutoBaseField::ORDER; // This is 101
-  let m = 2; // Extension degree is 2 for GF(p²)
-  let l = (p.ilog2() as usize + SECURITY_BITS + 7) / 8;
-
-  let len_in_bytes = count * m * l;
-  let uniform_bytes = expand_message_xmd(msg, len_in_bytes);
+  const DST: &[u8] = b"BLS_SIG_PLUTO_RONKATHON_2024";
+  let p = PlutoBaseField::ORDER;  // modulus
+  let degree = 2;  // for GF(p²)
+  let blen = 64;   // same as Python impl
+  
+  let len_in_bytes = count * degree * blen;
+  let uniform_bytes = expand_message_xmd(msg, DST,len_in_bytes);
 
   let mut result = Vec::with_capacity(count);
   for i in 0..count {
-    let elm_offset = l * i;
-    let tv = &uniform_bytes[elm_offset..elm_offset + l];
-
-    // Get field element with full entropy mod p
-    let e = os2ip(tv).unwrap().rem(&crypto_bigint::NonZero::new(U256::from(p as u64)).unwrap());
-    let bytes = e.to_be_bytes();
-
-    // Since our modulo is 101, the result must be in the last few bytes
-    // Extract it by combining last 2 bytes to handle the case where value spans bytes
-    let value = ((bytes[30] as usize) << 8 | bytes[31] as usize) % p;
-    let base_element = PrimeField::new(value);
-
-    // Convert to extended field using cube root of unity like in the pairing
-    let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-    let extended_element = cube_root * PlutoBaseFieldExtension::from(base_element);
-
-    result.push(extended_element);
+      let mut e_vals = [PrimeField::ZERO; 2];
+      for j in 0..degree {
+          let elm_offset = blen * (j + i * degree);
+          let tv = &uniform_bytes[elm_offset..elm_offset + blen];
+          
+          // Convert bytes to integer mod p, using all bytes
+          let mut val = 0usize;
+          for byte in tv {
+              val = (val * 256 + *byte as usize) % p;
+          }
+          e_vals[j] = PrimeField::new(val);
+      }
+      result.push(PlutoBaseFieldExtension::new(e_vals));
   }
 
   result
 }
 
 impl BlsPrivateKey {
-  /// Generates a new BLS private key using the specified key material and parameters
-  pub fn generate_from_ikm(
-    ikm: &[u8],
-    salt: &[u8],
-    key_info: Option<&[u8]>,
-  ) -> Result<Self, BlsError> {
-    if ikm.len() < 32 {
-      return Err(BlsError::Other("IKM must be at least 32 bytes".into()));
-    }
-
-    let mut ikm_with_zero = ikm.to_vec();
-    ikm_with_zero.push(0u8); // I2OSP(0, 1)
-
-    let mut current_salt = salt.to_vec();
-    let key_info = key_info.unwrap_or(&[]);
-
-    // Calculate L = ceil((3 * ceil(log2(r))) / 16)
-    let r_bits = (PlutoScalarField::ORDER as f64).log2().ceil() as usize;
-    let l = (3 * r_bits + 15) / 16;
-
-    loop {
-      // HKDF-Extract
-      let prk = hkdf_extract(&current_salt, &ikm_with_zero);
-
-      // Format key_info || I2OSP(L, 2)
-      let mut info = key_info.to_vec();
-      info.extend_from_slice(&(l as u16).to_be_bytes());
-
-      // HKDF-Expand
-      let okm = hkdf_expand(&prk, &info, l);
-
-      // Convert to scalar and reduce mod r
-      let sk_value = os2ip(&okm)
-        .unwrap()
-        .rem(&crypto_bigint::NonZero::new(U256::from(PlutoScalarField::ORDER as u64)).unwrap());
-
-      if sk_value != U256::ZERO {
-        return Ok(BlsPrivateKey {
-          sk: PlutoScalarField::new(u64::from_be_bytes(
-            sk_value.to_be_bytes()[24..32].try_into().unwrap(),
-          ) as usize),
-        });
-      }
-
-      // Update salt and try again
-      let mut hasher = Sha256::new();
-      hasher.update(&current_salt);
-      current_salt = hasher.finalize().to_vec();
-    }
-  }
-
+  
   // Keep the random generation as an alternative method
   pub fn generate_random<R: Rng>(rng: &mut R) -> Self {
     let sk = PlutoScalarField::new(rng.gen_range(1..=PlutoScalarField::ORDER));
@@ -389,6 +318,9 @@ impl BlsPublicKey {
 
     let left = pairing::<PlutoExtendedCurve, 17>(signature.sig, g);
     let right = pairing::<PlutoExtendedCurve, 17>(hash_point, pk);
+
+    println!("left : {:?}",left);
+    println!("right : {:?}",right);
 
     if left == right {
       Ok(())
@@ -501,30 +433,7 @@ fn convert_to_extended(point: AffinePoint<PlutoBaseCurve>) -> AffinePoint<PlutoE
   }
 }
 /// Implements map_to_curve as specified in the standard
-fn map_to_curve(u: PlutoBaseFieldExtension) -> AffinePoint<PlutoExtendedCurve> {
-  let mut x = u;
-  let mut attempts = 0;
 
-  // Try incrementing x until we find a valid point on the base curve
-  while attempts < 100 {
-    let x3 = x * x * x;
-    let y2 = x3 + PlutoBaseFieldExtension::from(3u64); // B = 3 from PlutoBaseCurve
-
-    if y2.euler_criterion() {
-      // Found a point on the base curve
-      let y = y2.sqrt().unwrap().0;
-      let base_point = AffinePoint::<PlutoExtendedCurve>::new(x, y);
-      // return extended curve point
-      return base_point;
-    }
-
-    x += PlutoBaseField::ONE;
-    attempts += 1;
-  }
-
-  // If we couldn't find a valid point after max attempts, return infinity
-  AffinePoint::<PlutoExtendedCurve>::Infinity
-}
 
 /// Implements clear_cofactor as specified in the standard
 fn clear_cofactor(point: AffinePoint<PlutoExtendedCurve>) -> AffinePoint<PlutoExtendedCurve> {
@@ -536,26 +445,25 @@ fn clear_cofactor(point: AffinePoint<PlutoExtendedCurve>) -> AffinePoint<PlutoEx
 
 /// Implements hash_to_curve as specified in the standard
 fn hash_to_curve(msg: &[u8]) -> Result<AffinePoint<PlutoExtendedCurve>, BlsError> {
-  // 1. Get field elements
-  let u = hash_to_field(msg, 2);
-
-  // 2-3. Map both to curve points
-  let q0 = map_to_curve(u[0]);
-  let q1 = map_to_curve(u[1]);
-
-  // 4. Add the points
-  let r = q0 + q1;
-
-  // 5. Multiply by cofactor to ensure point has order 17
-
-  let p = clear_cofactor(r);
-
-  // 6. Ensure point is valid and not identity
-  if p == AffinePoint::<PlutoExtendedCurve>::Infinity {
-    return Err(BlsError::HashToCurveFailed);
+  // Get two field elements (count=2 in Python impl)
+  let field_elems = hash_to_field(msg, 2);
+  
+  // Map first point to curve (similar to Python's Hp2)
+  let x = field_elems[0];
+  
+  // Create point with x-coordinate and find y
+  let x3 = x * x * x;
+  let y2 = x3 + PlutoBaseFieldExtension::from(3u64);
+  
+  if !y2.euler_criterion() {
+      return Err(BlsError::HashToCurveFailed);
   }
-
-  Ok(p)
+  
+  let y = y2.sqrt().unwrap().0;
+  let point = AffinePoint::<PlutoExtendedCurve>::new(x, y);
+  
+  
+  Ok(clear_cofactor(point))
 }
 
 #[cfg(test)]
@@ -564,20 +472,15 @@ mod tests {
   use super::*;
 
   /// Creates a deterministic private key for testing using IKM
-  fn create_test_private_key(seed: u64) -> BlsPrivateKey {
-    // Create a 32-byte deterministic IKM by hashing the seed
-    let mut hasher = Sha256::new();
-    hasher.update(&seed.to_be_bytes());
-    let ikm = hasher.finalize().to_vec();
-
-    let salt = b"test_salt";
-    BlsPrivateKey::generate_from_ikm(&ikm, salt, None).expect("Key generation should succeed")
+  fn create_test_private_key() -> BlsPrivateKey {
+    let mut rng = rand::thread_rng();
+    BlsPrivateKey::generate_random(&mut rng)
   }
 
   #[test]
   fn test_sign_and_verify() {
     let msg = b"Hello, BLS!";
-    let sk = create_test_private_key(1234);
+    let sk = create_test_private_key();
     let pk = sk.public_key();
     let sig = sk.sign(msg).expect("Signing should succeed");
     assert!(pk.verify(msg, &sig).is_err(), "Valid signature should verify correctly");
@@ -586,7 +489,7 @@ mod tests {
   #[test]
   fn test_empty_message() {
     let msg = b"";
-    let sk = create_test_private_key(5678);
+    let sk = create_test_private_key();
     let pk = sk.public_key();
     let sig = sk.sign(msg).expect("Signing an empty message should succeed");
     assert!(pk.verify(msg, &sig).is_err(), "Signature for empty message should verify correctly");
@@ -595,7 +498,7 @@ mod tests {
   #[test]
   fn test_invalid_signature() {
     let msg = b"Test message";
-    let sk = create_test_private_key(9012);
+    let sk = create_test_private_key();
     let pk = sk.public_key();
     let sig = sk.sign(msg).expect("Signing should succeed");
     let tampered_sig = BlsSignature { sig: sig.sig + AffinePoint::<PlutoExtendedCurve>::GENERATOR };
@@ -611,7 +514,7 @@ mod tests {
     // Generate several keypairs with fixed seeds
     let test_seeds = [1111, 2222, 3333, 4444];
     for seed in test_seeds {
-      let sk = create_test_private_key(seed);
+      let sk = create_test_private_key();
       public_keys.push(sk.public_key());
       signatures.push(sk.sign(msg).expect("Signing should succeed"));
     }
@@ -628,7 +531,7 @@ mod tests {
   #[test]
   fn test_verify_aggregated_empty_public_keys() {
     let msg = b"Aggregate with Empty Public Keys";
-    let sk = create_test_private_key(5555);
+    let sk = create_test_private_key();
     let sig = sk.sign(msg).expect("Signing should succeed");
 
     let res = verify_aggregated_signature(&[], &[], &sig);
