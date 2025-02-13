@@ -237,18 +237,18 @@ impl ProofOfPossession {
   /// Verifies the proof of possession for a BLS public key.
   pub fn verify(&self, pk: &BlsPublicKey) -> Result<(), BlsError> {
     pk.validate()?;
-     // Build the properly twisted generator G from the base-curve generator.
-     let g = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
-     AffinePoint::<PlutoBaseCurve>::GENERATOR
-   {
-     let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-     AffinePoint::<PlutoExtendedCurve>::new(
-       cube_root * PlutoBaseFieldExtension::from(x),
-       PlutoBaseFieldExtension::from(y),
-     )
-   } else {
-     return Err(BlsError::InvalidPoint);
-   };
+    // Build the properly twisted generator G from the base-curve generator.
+    let g = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
+      AffinePoint::<PlutoBaseCurve>::GENERATOR
+    {
+      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
+      AffinePoint::<PlutoExtendedCurve>::new(
+        cube_root * PlutoBaseFieldExtension::from(x),
+        PlutoBaseFieldExtension::from(y),
+      )
+    } else {
+      return Err(BlsError::InvalidPoint);
+    };
 
     let pk_ext = convert_to_extended(pk.pk);
     let left = pairing::<PlutoExtendedCurve, 17>(self.pop.sig, g);
@@ -291,14 +291,15 @@ impl BlsPrivateKey {
 
     Ok(BlsSignature { sig: canonicalize(sig_point) })
   }
-    /// Generates a proof of possession for the private key.
-    /// The proof is a signature on the public key bytes.
-    pub fn generate_proof_of_possession(&self) -> Result<ProofOfPossession, BlsError> {
-      let pk = self.public_key();
-      
-      // Sign the public key bytes
-      let pop =BlsSignature{sig: convert_to_extended(pk.pk) * self.sk};
-      Ok(ProofOfPossession { pop })
+
+  /// Generates a proof of possession for the private key.
+  /// The proof is a signature on the public key bytes.
+  pub fn generate_proof_of_possession(&self) -> Result<ProofOfPossession, BlsError> {
+    let pk = self.public_key();
+
+    // Sign the public key bytes
+    let pop = BlsSignature { sig: convert_to_extended(pk.pk) * self.sk };
+    Ok(ProofOfPossession { pop })
   }
 }
 impl BlsPublicKey {
