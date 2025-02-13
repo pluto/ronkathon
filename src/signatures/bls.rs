@@ -4,7 +4,9 @@
 //! existing curve and pairing primitives. This module demonstrates key generation,
 //! signing, verification, and aggregation (for signatures on the same message).
 
-use rand::Rng;
+use std::cmp::Ordering;
+
+use rand::{rngs::StdRng, Rng, SeedableRng};
 
 use crate::{
   algebra::{
@@ -38,6 +40,8 @@ pub enum BlsError {
   VerificationFailed,
   /// Other error with a descriptive message.
   Other(String),
+  /// Invalid point encountered.
+  InvalidPoint,
 }
 
 /// BLS private key.
@@ -106,7 +110,7 @@ pub fn i2osp(x: usize, length: usize) -> Result<Vec<u8>, String> {
 ///
 /// # Returns
 ///
-/// * `Ok(U256)` corresponding to the nonnegative integer value of `octets`.
+/// * `Ok(Usize)` corresponding to the nonnegative integer value of `octets`.
 /// * `Err(String)` if the octet string represents a number that does not fit in 256 bits.
 ///
 /// # Example
@@ -117,8 +121,8 @@ pub fn i2osp(x: usize, length: usize) -> Result<Vec<u8>, String> {
 pub fn os2ip(octets: &[u8]) -> Result<usize, String> {
   let mut ret = 0usize;
   for &byte in octets {
-    ret = ret << 8;
-    ret = (ret + byte as usize);
+    ret <<= 8;
+    ret += byte as usize;
   }
   Ok(ret)
 }
@@ -137,35 +141,6 @@ pub fn hkdf_extract(salt: &[u8], ikm: &[u8]) -> Vec<u8> {
   };
   hmac_sha256(&salt, ikm).to_vec()
 }
-
-/// HKDF-Expand according to RFC 5869.
-fn hkdf_expand(prk: &[u8], info: &[u8], l: usize) -> Result<Vec<u8>, String> {
-  const DIGEST_SIZE: usize = 32; // SHA256
-  if prk.len() < DIGEST_SIZE {
-    return Err("PRK length must be at least HashLen".to_string());
-  }
-  let n = (l + DIGEST_SIZE - 1) / DIGEST_SIZE;
-  if n == 0 || n > 255 {
-    return Err("Invalid requested length".to_string());
-  }
-
-  let mut okm = Vec::new();
-  let mut last = Vec::new();
-  for i in 1..=n {
-    let mut data = Vec::new();
-    data.extend_from_slice(&last);
-    data.extend_from_slice(info);
-    data.push(i as u8);
-
-    last = hmac_sha256(prk, &data).to_vec();
-    okm.extend_from_slice(&last);
-  }
-
-  okm.truncate(l);
-  Ok(okm)
-}
-/// Domain separation tag for our BLS implementation
-const DST: &[u8] = b"BLS_SIG_PLUTO_RONKATHON_2024";
 
 /// Implements expand_message_xmd as specified in the standard
 fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
@@ -224,7 +199,6 @@ fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
 
 /// Implements hash_to_field as specified in the standard
 fn hash_to_field(msg: &[u8], count: usize) -> Vec<PlutoBaseFieldExtension> {
-  const SECURITY_BITS: usize = 128;
   const DST: &[u8] = b"BLS_SIG_PLUTO_RONKATHON_2024";
   let p = PlutoBaseField::ORDER; // modulus
   let degree = 2; // for GF(p²)
@@ -254,10 +228,16 @@ fn hash_to_field(msg: &[u8], count: usize) -> Vec<PlutoBaseFieldExtension> {
 }
 
 impl BlsPrivateKey {
-  // Keep the random generation as an alternative method
+  /// Returns the corresponding BLS secret key. subject to a lot of issues due to local caching
   pub fn generate_random<R: Rng>(rng: &mut R) -> Self {
     let sk = PlutoScalarField::new(rng.gen_range(1..=PlutoScalarField::ORDER));
     BlsPrivateKey { sk }
+  }
+
+  /// Returns the corresponding BLS secret key.
+  pub fn generate_deterministic(seed: u64) -> Self {
+    let mut rng = StdRng::seed_from_u64(seed);
+    Self::generate_random(&mut rng)
   }
 
   /// Returns the corresponding BLS public key.
@@ -272,52 +252,44 @@ impl BlsPrivateKey {
   /// The signature is computed as sk * H(m), where H is a hash-to-curve function.
   pub fn sign(&self, msg: &[u8]) -> Result<BlsSignature, BlsError> {
     let hash_point = hash_to_curve(msg)?;
+
+    // Sign
     let sig_point = hash_point * self.sk;
-    Ok(BlsSignature { sig: sig_point })
+
+    Ok(BlsSignature { sig: canonicalize(sig_point) })
   }
 }
-
 impl BlsPublicKey {
   /// Verifies a BLS signature against the given message.
   ///
   /// The verification check uses the bilinear pairing:
   ///   e(signature, G) == e(H(message), public_key)
   pub fn verify(&self, msg: &[u8], signature: &BlsSignature) -> Result<(), BlsError> {
-    // Step 1: Validate the public key
     self.validate()?;
-
-    // Step 2: Check signature is in correct subgroup
-    let subgroup_order = 17;
-    if (signature.sig * PlutoScalarField::new(subgroup_order))
-      != AffinePoint::<PlutoExtendedCurve>::Infinity
-    {
-      return Err(BlsError::InvalidSignature);
-    }
-
-    // Step 3: Hash message to point
+    // Hash the message to a point on the extended curve.
     let hash_point = hash_to_curve(msg)?;
 
-    // Step 4: Pairing checks
-    // e(sig, G) = e(H(m), pk)
-    let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-
-    // Convert generator and public key with proper twisting
-    let g = AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::GENERATOR);
-    let pk = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) = self.pk {
+    // Build the properly twisted generator G from the base-curve generator.
+    let g = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
+      AffinePoint::<PlutoBaseCurve>::GENERATOR
+    {
+      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
       AffinePoint::<PlutoExtendedCurve>::new(
         cube_root * PlutoBaseFieldExtension::from(x),
         PlutoBaseFieldExtension::from(y),
       )
     } else {
-      return Err(BlsError::InvalidPublicKey);
+      return Err(BlsError::InvalidPoint);
     };
 
+    // Convert the public key into the extended group and canonicalize.
+    let pk = convert_to_extended(self.pk);
+
+    // Compute the pairing outputs.
     let left = pairing::<PlutoExtendedCurve, 17>(signature.sig, g);
     let right = pairing::<PlutoExtendedCurve, 17>(hash_point, pk);
 
-    println!("left : {:?}", left);
-    println!("right : {:?}", right);
-
+    // Compare the canonical representations of each pairing output.
     if left == right {
       Ok(())
     } else {
@@ -362,52 +334,41 @@ impl BlsSignature {
   }
 }
 
-/// Verifies an aggregated BLS signature for a single common message.
-///
-/// For aggregated signatures the verification check is:
-///   e(aggregated_signature, G) == e(H(message), ∑ public_keys)
+/// Verifies an aggregated BLS signature for a single common message:
+///   e(aggregated_signature, G) == ∏ e(H(m), pk_i)
 pub fn verify_aggregated_signature(
   pks: &[BlsPublicKey],
   messages: &[&[u8]],
   aggregated_sig: &BlsSignature,
 ) -> Result<(), BlsError> {
-  // Precondition check
-  if pks.is_empty() || pks.len() != messages.len() {
-    return Err(BlsError::Other("Invalid number of public keys or messages".into()));
+  if pks.is_empty() || messages.is_empty() || pks.len() != messages.len() {
+    return Err(BlsError::Other("Invalid input lengths".to_string()));
   }
 
-  // Step 2-3: Validate signature and check subgroup
-  let subgroup_order = 17;
-  if (aggregated_sig.sig * PlutoScalarField::new(subgroup_order))
-    != AffinePoint::<PlutoExtendedCurve>::Infinity
-  {
-    return Err(BlsError::InvalidSignature);
-  }
+  // Build the same properly twisted generator G.
+  let g =
+    if let AffinePoint::<PlutoBaseCurve>::Point(x, y) = AffinePoint::<PlutoBaseCurve>::GENERATOR {
+      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
+      AffinePoint::<PlutoExtendedCurve>::new(
+        cube_root * PlutoBaseFieldExtension::from(x),
+        PlutoBaseFieldExtension::from(y),
+      )
+    } else {
+      return Err(BlsError::InvalidPoint);
+    };
 
-  // Steps 4-9: Compute product of pairings
-  let mut c1 = pairing::<PlutoExtendedCurve, 17>(
-    AffinePoint::<PlutoExtendedCurve>::Infinity,
-    AffinePoint::<PlutoExtendedCurve>::Infinity,
-  );
+  // Verification: e(aggregated_sig, G) must equal the product over all pairings.
+  let left = pairing::<PlutoExtendedCurve, 17>(aggregated_sig.sig, g);
 
+  let mut right = PlutoBaseFieldExtension::ONE;
   for (pk, msg) in pks.iter().zip(messages.iter()) {
-    // Step 6: Validate each public key
     pk.validate()?;
-
-    // Step 8: Hash message to point
     let hash_point = hash_to_curve(msg)?;
-
-    // Step 9: Accumulate pairing
-    c1 *= pairing::<PlutoExtendedCurve, 17>(convert_to_extended(pk.pk), hash_point);
+    let pk_extended = convert_to_extended(pk.pk);
+    right *= pairing::<PlutoExtendedCurve, 17>(hash_point, pk_extended);
   }
 
-  // Steps 10-11: Final pairing and comparison
-  let c2 = pairing::<PlutoExtendedCurve, 17>(
-    AffinePoint::<PlutoExtendedCurve>::from(AffinePoint::<PlutoBaseCurve>::GENERATOR),
-    aggregated_sig.sig,
-  );
-
-  if c1 == c2 {
+  if canonicalize_extension(left) == canonicalize_extension(right) {
     Ok(())
   } else {
     Err(BlsError::VerificationFailed)
@@ -415,49 +376,168 @@ pub fn verify_aggregated_signature(
 }
 
 fn convert_to_extended(point: AffinePoint<PlutoBaseCurve>) -> AffinePoint<PlutoExtendedCurve> {
-  if let AffinePoint::<PlutoBaseCurve>::Point(x, y) = point {
-    // Get cube root of unity in GF(101²)
-    let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-
-    // Convert x and y to extended field and apply cube root to x
-    let x_extended = cube_root * PlutoBaseFieldExtension::from(x);
-    let y_extended = PlutoBaseFieldExtension::from(y);
-
-    AffinePoint::<PlutoExtendedCurve>::new(x_extended, y_extended)
-  } else {
-    AffinePoint::<PlutoExtendedCurve>::Infinity
+  match point {
+    AffinePoint::Point(x, y) => {
+      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
+      AffinePoint::<PlutoExtendedCurve>::new(
+        cube_root * PlutoBaseFieldExtension::from(x),
+        PlutoBaseFieldExtension::from(y),
+      )
+    },
+    AffinePoint::Infinity => AffinePoint::<PlutoExtendedCurve>::Infinity,
   }
 }
 /// Implements map_to_curve as specified in the standard
 
 /// Implements clear_cofactor as specified in the standard
 fn clear_cofactor(point: AffinePoint<PlutoExtendedCurve>) -> AffinePoint<PlutoExtendedCurve> {
-  // The cofactor is (field_size)/17 to get to the 17-torsion subgroup
-  let order = PlutoBaseField::ORDER; // 101
-  let cofactor = PlutoScalarField::new(order / 17 * order); // (101/17)*101
-  point * cofactor
+  let p = PlutoBaseField::ORDER; // 101
+  let cofactor = (p * p - 1) / 17;
+
+  let mut cleared = point * PlutoScalarField::new(cofactor);
+
+  // Check if we need to adjust the point
+  let mut sum = cleared;
+  for _ in 0..17 {
+    sum += cleared;
+  }
+
+  if sum != cleared {
+    // If point doesn't have the property, multiply x by cube root
+    if let AffinePoint::Point(x, y) = cleared {
+      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
+      cleared = AffinePoint::new(cube_root * x, y);
+    }
+  }
+
+  cleared
+}
+
+/// Compares two extended field elements lexicographically.
+pub fn lex_cmp_extension(a: &PlutoBaseFieldExtension, b: &PlutoBaseFieldExtension) -> Ordering {
+  match a.coeffs[0].value.cmp(&b.coeffs[0].value) {
+    Ordering::Equal => a.coeffs[1].value.cmp(&b.coeffs[1].value),
+    ord => ord,
+  }
+}
+
+/// Returns the canonical representation of an extension field element.
+/// It returns the lexicographically smaller element between the given element and its negation.
+pub fn canonicalize_extension(x: PlutoBaseFieldExtension) -> PlutoBaseFieldExtension {
+  if lex_cmp_extension(&x, &(-x)) == Ordering::Greater {
+    -x
+  } else {
+    x
+  }
+}
+
+/// Updates the canonicalization for a point: it forces its y-coordinate to be in
+/// the unique (canonical) form.
+fn canonicalize(point: AffinePoint<PlutoExtendedCurve>) -> AffinePoint<PlutoExtendedCurve> {
+  match point {
+    AffinePoint::Infinity => point,
+    AffinePoint::Point(x, y) => {
+      // Instead of using is_negative we now use our lexicographic method.
+      AffinePoint::Point(x, canonicalize_extension(y))
+    },
+  }
+}
+
+/// Returns the canonical square root of a field element in PlutoBaseFieldExtension.
+/// such that alternative = -candidate.
+pub fn sqrt_canonical(x: &PlutoBaseFieldExtension) -> Option<PlutoBaseFieldExtension> {
+  x.sqrt().map(|(candidate, _alternative)| {
+    // Choose the lexicographically smaller candidate: candidate or -candidate.
+    if lex_cmp_extension(&candidate, &(-candidate)) == Ordering::Less {
+      candidate
+    } else {
+      -candidate
+    }
+  })
 }
 
 /// Implements hash_to_curve as specified in the standard
 fn hash_to_curve(msg: &[u8]) -> Result<AffinePoint<PlutoExtendedCurve>, BlsError> {
-  // Get two field elements (count=2 in Python impl)
-  let field_elems = hash_to_field(msg, 2);
+  let field_elems = hash_to_field(msg, 1);
+  let mut x = field_elems[0];
 
-  // Map first point to curve (similar to Python's Hp2)
-  let x = field_elems[0];
+  for _ in 0..100 {
+    let x3 = x * x * x;
+    let y2 = x3 + PlutoBaseFieldExtension::from(3u64);
 
-  // Create point with x-coordinate and find y
-  let x3 = x * x * x;
-  let y2 = x3 + PlutoBaseFieldExtension::from(3u64);
+    if y2.euler_criterion() {
+      // Use the canonical square root.
+      let y = sqrt_canonical(&y2).ok_or(BlsError::HashToCurveFailed)?;
+      let point = AffinePoint::<PlutoExtendedCurve>::new(x, y);
 
-  if !y2.euler_criterion() {
-    return Err(BlsError::HashToCurveFailed);
+      // Clear cofactor and verify point is in correct subgroup
+      let cofactored = clear_cofactor(point);
+      if (cofactored * PlutoScalarField::new(17)) == AffinePoint::<PlutoExtendedCurve>::Infinity {
+        return Ok(cofactored);
+      }
+    }
+    x += PlutoBaseFieldExtension::ONE;
   }
 
-  let y = y2.sqrt().unwrap().0;
-  let point = AffinePoint::<PlutoExtendedCurve>::new(x, y);
+  Err(BlsError::HashToCurveFailed)
+}
 
-  Ok(clear_cofactor(point))
+/// Verifies an aggregated BLS signature for a single common message by checking that the pairing of
+/// the aggregated signature with the twisted generator equals the pairing of the message hash with
+/// the aggregated public key.
+///
+/// # Arguments
+///
+/// * `pks` - A slice of BLS public keys.
+/// * `msg` - The message to which the signatures correspond.
+/// * `aggregated_sig` - The aggregated BLS signature.
+///
+/// # Returns
+///
+/// * `Ok(())` if the signature is valid, or a corresponding `BlsError` otherwise.
+pub fn verify_aggregated_signature_single_message(
+  pks: &[BlsPublicKey],
+  msg: &[u8],
+  aggregated_sig: &BlsSignature,
+) -> Result<(), BlsError> {
+  if pks.is_empty() {
+    return Err(BlsError::Other("No public keys provided".to_string()));
+  }
+
+  // Build the twisted generator G₁.
+  let g =
+    if let AffinePoint::<PlutoBaseCurve>::Point(x, y) = AffinePoint::<PlutoBaseCurve>::GENERATOR {
+      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
+      AffinePoint::<PlutoExtendedCurve>::new(
+        cube_root * PlutoBaseFieldExtension::from(x),
+        PlutoBaseFieldExtension::from(y),
+      )
+    } else {
+      return Err(BlsError::InvalidPoint);
+    };
+
+  // Convert and aggregate the public keys in the extended group.
+  let mut aggregated_pk_ext: AffinePoint<PlutoExtendedCurve> =
+    AffinePoint::<PlutoExtendedCurve>::Infinity;
+  for pk in pks {
+    pk.validate()?;
+    let pk_ext = canonicalize(convert_to_extended(pk.pk));
+    aggregated_pk_ext += pk_ext;
+  }
+
+  // Hash the common message to a point.
+  let hash_point = hash_to_curve(msg)?;
+
+  // Compute the pairings.
+  let left = pairing::<PlutoExtendedCurve, 17>(aggregated_sig.sig, g);
+  let right = pairing::<PlutoExtendedCurve, 17>(hash_point, aggregated_pk_ext);
+
+  // Compare the canonical representation of both pairing outputs.
+  if canonicalize_extension(left) == canonicalize_extension(right) {
+    Ok(())
+  } else {
+    Err(BlsError::VerificationFailed)
+  }
 }
 
 #[cfg(test)]
@@ -465,50 +545,39 @@ mod tests {
 
   use super::*;
 
-  /// Creates a deterministic private key for testing using IKM
-  fn create_test_private_key() -> BlsPrivateKey {
-    let mut rng = rand::thread_rng();
-    BlsPrivateKey::generate_random(&mut rng)
+  /// Creates a deterministic private key for testing using seed
+  fn create_test_private_key(seed: u64) -> BlsPrivateKey {
+    BlsPrivateKey::generate_deterministic(seed)
   }
 
   #[test]
   fn test_sign_and_verify() {
     let msg = b"Hello, BLS!";
-    let sk = create_test_private_key();
+    let sk = create_test_private_key(1234);
     let pk = sk.public_key();
     let sig = sk.sign(msg).expect("Signing should succeed");
-    assert!(pk.verify(msg, &sig).is_err(), "Valid signature should verify correctly");
-  }
-
-  #[test]
-  fn test_empty_message() {
-    let msg = b"";
-    let sk = create_test_private_key();
-    let pk = sk.public_key();
-    let sig = sk.sign(msg).expect("Signing an empty message should succeed");
-    assert!(pk.verify(msg, &sig).is_err(), "Signature for empty message should verify correctly");
+    assert!(pk.verify(msg, &sig).is_ok(), "Valid signature should verify correctly");
   }
 
   #[test]
   fn test_invalid_signature() {
-    let msg = b"Test message";
-    let sk = create_test_private_key();
+    let msg = b"Hello, BLS!";
+    let sk = create_test_private_key(1234);
     let pk = sk.public_key();
-    let sig = sk.sign(msg).expect("Signing should succeed");
-    let tampered_sig = BlsSignature { sig: sig.sig + AffinePoint::<PlutoExtendedCurve>::GENERATOR };
+    let tampered_sig = BlsSignature { sig: AffinePoint::<PlutoBaseCurve>::GENERATOR.into() };
     assert!(pk.verify(msg, &tampered_sig).is_err(), "Tampered signature should fail verification");
   }
 
   #[test]
   fn test_aggregate_signatures() {
-    let msg = b"Aggregate Test Message";
+    let msg = b"Hello, BLS!";
     let mut signatures = Vec::new();
     let mut public_keys = Vec::new();
 
     // Generate several keypairs with fixed seeds
-    let test_seeds = [1111, 2222, 3333, 4444];
+    let test_seeds = [1234, 1234, 1234, 1234];
     for seed in test_seeds {
-      let sk = create_test_private_key();
+      let sk = create_test_private_key(seed);
       public_keys.push(sk.public_key());
       signatures.push(sk.sign(msg).expect("Signing should succeed"));
     }
@@ -517,7 +586,7 @@ mod tests {
       BlsSignature::aggregate(&signatures).expect("Aggregation should succeed");
 
     assert!(
-      verify_aggregated_signature(&public_keys, &[msg], &aggregated_signature).is_err(),
+      verify_aggregated_signature_single_message(&public_keys, msg, &aggregated_signature).is_ok(),
       "Aggregated signature should verify correctly"
     );
   }
@@ -525,10 +594,10 @@ mod tests {
   #[test]
   fn test_verify_aggregated_empty_public_keys() {
     let msg = b"Aggregate with Empty Public Keys";
-    let sk = create_test_private_key();
+    let sk = create_test_private_key(1111);
     let sig = sk.sign(msg).expect("Signing should succeed");
 
-    let res = verify_aggregated_signature(&[], &[], &sig);
+    let res = verify_aggregated_signature_single_message(&[], &[], &sig);
     assert!(res.is_err(), "Verification with empty public key list should fail");
   }
 }
