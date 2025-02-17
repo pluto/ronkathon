@@ -11,7 +11,7 @@
 use super::*;
 use crate::algebra::field::extension::PlutoExtensions;
 
-/// The [`PlutoBaseCurve`] is an the base field set to the [`PlutoBaseField`]. This is the curve
+/// The [`PlutoBaseCurve`] has the base field set to the [`PlutoBaseField`]. This is the curve
 /// used in the Pluto `ronkathon` system. The curve is defined by the equation `y^2 = x^3 + 3`.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct PlutoBaseCurve;
