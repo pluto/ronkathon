@@ -21,7 +21,7 @@ Now if our base field $F_{101}$ is of prime order, then any point in the curve g
 So in practice you can pick a point and double it until you get back to itself (remember to check the inverse!).
 This defines the scalar field $F_r$ where $r$ is the order. 
 In our case this is $17$. 
-Once we have have this we can computer the embedding degree.
+Once we have have this we can compute the embedding degree.
 The embedding degree is the smallest number $k$ such that $r | p^k - 1$ where $r$ is the order of the curve: $17$
 For us this is $2$, we can check that 17 divides $101^2 -1$ as $10200 / 17 = 600$ ✅. 
 So now we have an embedding degree of our curve. 
