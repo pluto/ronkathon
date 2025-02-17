@@ -134,11 +134,9 @@ fn fft(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
     PlutoBaseField::new(99),
     PlutoBaseField::new(18)
   ]);
-  
 }
 
 #[rstest]
 fn ifft(poly: Polynomial<Monomial, PlutoBaseField, 4>) {
   assert_eq!(poly.fft().ifft().coefficients, poly.coefficients);
-  
 }
