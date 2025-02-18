@@ -72,6 +72,7 @@ impl<F: FiniteField> Basis for Lagrange<F> {
 }
 
 impl<B: Basis, F: FiniteField, const D: usize> Polynomial<B, F, D> {
+  const CHECK : () = assert!(D.is_power_of_two());
   /// A polynomial in any basis has a fixed number of independent terms.
   /// For example, in [`Monomial`] basis, the number of terms is one more than the degree of the
   /// polynomial.
@@ -95,7 +96,9 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   /// - A new polynomial in [`Monomial`] basis with the given coefficients.
   /// - The polynomial is automatically simplified to have a non-zero leading coefficient, that is
   ///   coefficient on the highest power term x^d.
-  pub fn new(coefficients: [F; D]) -> Self { Self { coefficients, basis: Monomial } }
+  pub fn new(coefficients: [F; D]) -> Self { 
+    Self::CHECK;
+    Self { coefficients, basis: Monomial } }
 
   /// Helper method to remove leading zeros from coefficients
   fn trim_zeros(coefficients: &mut Vec<F>) {
@@ -259,8 +262,8 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
 
   /// Computes the Fast Fourier Transform (FFT) of a polynomial in the Monomial basis.
   pub fn fft(&self) -> Polynomial<Lagrange<F>, F, D> {
+    
     let n = self.num_terms();
-    assert!(n.is_power_of_two(), "Length must be power of 2");
 
     // Get primitive root of unity for the field
     let omega = F::primitive_root_of_unity(n);
@@ -330,6 +333,7 @@ impl<const P: usize, const D: usize> Display for Polynomial<Monomial, PrimeField
 }
 
 impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
+  
   /// Create a new polynomial in [`Lagrange`] basis by supplying a number of coefficients.
   /// Assumes that a field has a root of unity for the amount of terms given in the coefficients.
   ///
@@ -344,12 +348,12 @@ impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
   /// - This function will panic if the field does not have roots of unity for the length of the
   ///   polynomial.
   pub fn new(coefficients: [F; D]) -> Self {
+
     // Check that the polynomial degree divides the field order so that there are roots of unity.
     let n = coefficients.len();
     assert_eq!((F::ORDER - 1) % n, 0);
     let primitive_root = F::primitive_root_of_unity(n);
     let nodes: Vec<F> = (0..n).map(|i| primitive_root.pow(i)).collect();
-
     Self { coefficients, basis: Lagrange { nodes } }
   }
 
@@ -408,7 +412,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
   /// Converts from point-value representation back to coefficient representation.
   pub fn ifft(&self) -> Polynomial<Monomial, F, D> {
     let n = self.num_terms();
-    assert!(n.is_power_of_two(), "Length must be power of 2");
+   const _: ()= assert!(D.is_power_of_two());
 
     // Get inverse primitive root of unity
     let omega = F::primitive_root_of_unity(n).inverse().unwrap();
