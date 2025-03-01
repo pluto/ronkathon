@@ -2,6 +2,8 @@
 
 use std::fmt::Debug;
 
+use rand::distr::StandardUniform;
+
 use super::*;
 
 /// Compute the simplified Tate pairing of two points on the curve.
@@ -197,7 +199,7 @@ pub fn tangent_line<C: EllipticCurve>(a: AffinePoint<C>, input: AffinePoint<C>) 
   line_function::<C>(a, a, input)
 }
 
-impl Distribution<AffinePoint<PlutoBaseCurve>> for Standard {
+impl Distribution<AffinePoint<PlutoBaseCurve>> for StandardUniform {
   #[inline]
   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> AffinePoint<PlutoBaseCurve> {
     loop {
@@ -214,12 +216,14 @@ impl Distribution<AffinePoint<PlutoBaseCurve>> for Standard {
   }
 }
 
-impl Distribution<AffinePoint<PlutoExtendedCurve>> for Standard {
+impl Distribution<AffinePoint<PlutoExtendedCurve>> for StandardUniform {
   #[inline]
   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> AffinePoint<PlutoExtendedCurve> {
     loop {
-      let x =
-        PlutoBaseFieldExtension::new([rng.gen::<PlutoBaseField>(), rng.gen::<PlutoBaseField>()]);
+      let x = PlutoBaseFieldExtension::new([
+        rng.random::<PlutoBaseField>(),
+        rng.random::<PlutoBaseField>(),
+      ]);
       let rhs: PlutoBaseFieldExtension =
         x.pow(3) + x * PlutoExtendedCurve::EQUATION_A + PlutoExtendedCurve::EQUATION_B;
       if rhs.euler_criterion() {
@@ -257,10 +261,10 @@ mod tests {
 
     // to keep the support disjoint, a random element `S` on extended curve is used, which shouldn't
     // be equal to P, -Q, P-Q
-    let mut rng = rand::thread_rng();
-    let mut s = rng.gen::<AffinePoint<PlutoExtendedCurve>>();
+    let mut rng = rand::rng();
+    let mut s = rng.random::<AffinePoint<PlutoExtendedCurve>>();
     while s == p || s == -q || s == p - q {
-      s = rng.gen::<AffinePoint<PlutoExtendedCurve>>();
+      s = rng.random::<AffinePoint<PlutoExtendedCurve>>();
     }
 
     // (D_Q) ~ (Q+S) - (S) (equivalent divisors)
@@ -278,11 +282,11 @@ mod tests {
 
   #[test]
   fn random_point() {
-    let mut rng = rand::thread_rng();
-    let point = rng.gen::<AffinePoint<PlutoBaseCurve>>();
+    let mut rng = rand::rng();
+    let point = rng.random::<AffinePoint<PlutoBaseCurve>>();
     println!("Random point: {point:?}");
 
-    let ext_point = rng.gen::<AffinePoint<PlutoExtendedCurve>>();
+    let ext_point = rng.random::<AffinePoint<PlutoExtendedCurve>>();
     println!("Random extended point: {ext_point:?}");
   }
 

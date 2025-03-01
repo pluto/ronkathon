@@ -14,11 +14,8 @@
 //! - Compiler: Simple DSL to write circuits which can be compiled to polynomials used in PLONK.
 
 #![allow(incomplete_features)]
-#![feature(effects)]
 #![feature(const_trait_impl)]
-#![feature(const_mut_refs)]
 #![feature(const_for)]
-#![feature(const_option)]
 #![feature(generic_const_exprs)]
 #![feature(specialization)]
 #![feature(test)]
@@ -47,20 +44,20 @@ use core::{
 };
 
 use rand::{
-  distributions::{Distribution, Standard},
   Rng,
+  distr::{Distribution, StandardUniform},
 };
 #[cfg(test)] use rstest::{fixture, rstest};
 
 use self::{
   algebra::field::{
+    Field,
     extension::{GaloisField, PlutoBaseFieldExtension},
     prime::{PlutoBaseField, PlutoPrime, PlutoScalarField, PrimeField},
-    Field,
   },
   curve::{
-    pluto_curve::{PlutoBaseCurve, PlutoExtendedCurve},
     AffinePoint,
+    pluto_curve::{PlutoBaseCurve, PlutoExtendedCurve},
   },
   polynomial::{Monomial, Polynomial},
 };

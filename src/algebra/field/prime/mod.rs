@@ -5,7 +5,7 @@
 
 use std::{fmt, str::FromStr};
 
-use rand::{distributions::Standard, prelude::Distribution, Rng};
+use rand::{Rng, distr::StandardUniform, prelude::Distribution};
 
 use super::*;
 use crate::algebra::Finite;
@@ -210,7 +210,7 @@ impl<const P: usize> fmt::Display for PrimeField<P> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.value) }
 }
 
-impl<const P: usize> Distribution<PrimeField<P>> for Standard {
+impl<const P: usize> Distribution<PrimeField<P>> for StandardUniform {
   #[inline]
   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PrimeField<P> {
     loop {
@@ -251,11 +251,7 @@ impl<const P: usize> From<PrimeField<P>> for usize {
 impl<const P: usize> From<i32> for PrimeField<P> {
   fn from(value: i32) -> Self {
     let abs = Self::new(value.unsigned_abs() as usize);
-    if value.is_positive() {
-      abs
-    } else {
-      -abs
-    }
+    if value.is_positive() { abs } else { -abs }
   }
 }
 

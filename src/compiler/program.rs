@@ -14,10 +14,10 @@ use super::{
   utils::get_product_key,
 };
 use crate::{
-  algebra::field::FiniteField,
-  compiler::parser::{parse_constraints, WireCoeffs},
-  polynomial::{Lagrange, Polynomial},
   Field, PlutoScalarField,
+  algebra::field::FiniteField,
+  compiler::parser::{WireCoeffs, parse_constraints},
+  polynomial::{Lagrange, Polynomial},
 };
 
 /// Column represents all three columns in the execution trace which a variable
@@ -253,9 +253,9 @@ impl<'a, const GROUP_ORDER: usize> Program<'a, GROUP_ORDER> {
 
   /// Evaluates the circuit and fill intermediate variable assignments
   pub fn evaluate_circuit(
-    &'a self,
-    starting_assignments: HashMap<Option<&'a str>, PlutoScalarField>,
-  ) -> Result<HashMap<Option<&'a str>, PlutoScalarField>, ProgramError> {
+    &self,
+    starting_assignments: HashMap<Option<&str>, PlutoScalarField>,
+  ) -> Result<HashMap<Option<&str>, PlutoScalarField>, ProgramError> {
     let mut out = starting_assignments.clone();
     out.insert(None, PlutoScalarField::ZERO);
 

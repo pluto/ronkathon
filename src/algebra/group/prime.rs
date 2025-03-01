@@ -99,20 +99,20 @@ mod tests {
   fn mul_group_properties() {
     type MulGroup = MultiplicativePrimeGroup<5, 2>;
 
-    let gen = MultiplicativePrimeGroup::<5, 2>::GENERATOR;
+    let generator = MultiplicativePrimeGroup::<5, 2>::GENERATORERATOR;
 
     let ident = MulGroup::IDENTITY;
 
-    println!("{:?}, {:?}, {}", gen, gen.inverse().unwrap(), MulGroup::ORDER);
+    println!("{:?}, {:?}, {}", generator, generator.inverse().unwrap(), MulGroup::ORDER);
     // commutativity
-    assert_eq!(gen + ident, ident + gen);
+    assert_eq!(generator + ident, ident + generator);
     // inverse
-    assert_eq!(gen + gen.inverse().unwrap(), ident);
+    assert_eq!(generator + generator.inverse().unwrap(), ident);
     // associativity
-    assert_eq!(gen + (ident + gen), (gen + gen) + ident);
+    assert_eq!(generator + (ident + generator), (generator + generator) + ident);
     // scalar multiplication
-    assert_eq!(gen * 2, gen + gen);
+    assert_eq!(generator * 2, generator + generator);
     // order
-    assert_eq!(gen.order(), MulGroup::ORDER);
+    assert_eq!(generator.order(), MulGroup::ORDER);
   }
 }

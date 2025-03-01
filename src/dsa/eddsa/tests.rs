@@ -103,7 +103,7 @@ fn test_large() {
 
 #[bench]
 fn bench_keygen(b: &mut Bencher) {
-  let mut rng = rand::thread_rng();
+  let mut rng = rand::rng();
   let sk_v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
   let mut sk_b = [0u8; 32];
   sk_b.copy_from_slice(&sk_v);
@@ -118,7 +118,7 @@ macro_rules! bench_sign {
     ($($test_name:ident, $n:literal)+) => {
     $(#[bench]
     fn $test_name(b: &mut Bencher) {
-      let mut rng = rand::thread_rng();
+      let mut rng = rand::rng();
       let sk_v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
       let mut sk_b = [0u8; 32];
       sk_b.copy_from_slice(&sk_v);
@@ -142,7 +142,7 @@ bench_sign![
     bench_sign_100, 100
     bench_sign_1000, 1000
     bench_sign_10000, 10000
-    bench_sign_100000, 100000
+    bench_sign_100000, 100_000
 ];
 
 macro_rules! bench_verify {
@@ -150,7 +150,7 @@ macro_rules! bench_verify {
     $(
     #[bench]
     fn $name(b: &mut Bencher) {
-      let mut rng = rand::thread_rng();
+      let mut rng = rand::rng();
       let sk_v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
       let mut sk_b = [0u8; 32];
       sk_b.copy_from_slice(&sk_v);
@@ -177,5 +177,5 @@ bench_verify![
     bench_verify_100, 100
     bench_verify_1000, 1000
     bench_verify_10000, 10000
-    bench_verify_100000, 100000
+    bench_verify_100000, 100_000
 ];
