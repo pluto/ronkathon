@@ -100,7 +100,10 @@ jobs:
           fetch-depth: 0
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2024-06-10
+          components: clippy
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
