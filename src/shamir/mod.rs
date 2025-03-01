@@ -8,13 +8,12 @@
 //! secret is less than PRIME.
 
 use rand::Rng;
+use super::algebra::field::prime::{PlutoBaseField,PlutoPrime::Base };
+use crate::polynomial::*;
 
-/// Prime modulus for finite field arithmetic: 2^127 - 1.
-const PRIME: u128 = 170141183460469231731687303715884105727;
-
+const PRIME :u128 = Base as u128;
 /// A share is represented as a tuple (x, y) where both x and y are elements of GF(PRIME).
 pub type Share = (u128, u128);
-
 /// Splits the secret into `share_count` shares, any `threshold` of which are needed to reconstruct
 /// the secret. The secret is assumed to be less than PRIME.
 ///
@@ -32,24 +31,25 @@ pub type Share = (u128, u128);
 /// # Returns
 ///
 /// A vector of shares, where each share is a tuple (x, y).
-pub fn split_secret(secret: u128, threshold: usize, share_count: usize) -> Vec<Share> {
-  assert!(threshold > 0, "threshold must be at least 1");
-  assert!(share_count >= threshold, "share count must be at least the threshold");
-  assert!(secret < PRIME, "secret must be less than PRIME");
+pub fn split_secret<const THRESHOLD: usize>(secret: u128, share_count: usize) -> Vec<Share> {
+  assert!(THRESHOLD > 0, "threshold must be at least 1");
+  assert!(share_count >= THRESHOLD, "share count must be at least the threshold");
 
   // Generate random coefficients for the polynomial.
-  // The polynomial has degree (threshold - 1) with a0 = secret.
+  // The polynomial has degree (THRESHOLD - 1) with a0 = secret.
   let mut rng = rand::thread_rng();
-  let mut coeffs = vec![secret];
-  for _ in 1..threshold {
-    coeffs.push(rng.gen_range(0..PRIME));
+  let mut coeffs = Vec::with_capacity(THRESHOLD);
+  coeffs.push(PlutoBaseField::new(secret as usize));
+  for _ in 1..THRESHOLD {
+    coeffs.push(PlutoBaseField::new(rng.gen()));
   }
 
-  // Evaluate polynomial at x = 1, 2, ... share_count.
+  // Create polynomial once and evaluate it for each share.
+  let p = Polynomial::<Monomial, PlutoBaseField, { THRESHOLD }>::new(coeffs.try_into().unwrap());
   let mut shares = Vec::with_capacity(share_count);
   for i in 1..=share_count as u128 {
-    let y = eval_poly(&coeffs, i);
-    shares.push((i, y));
+    let y: usize = p.evaluate(PlutoBaseField::new(i as usize)).into();
+    shares.push((i, y as u128));
   }
   shares
 }
@@ -91,27 +91,7 @@ pub fn combine_shares(shares: &[Share]) -> u128 {
   secret
 }
 
-/// Evaluates the polynomial with the given coefficients at x.
-/// Coefficients should be ordered such that coeffs[0] is the constant term.
-/// All arithmetic is performed modulo PRIME using modular multiplication.
-///
-/// # Arguments
-///
-/// * `coeffs` - Slice of polynomial coefficients.
-/// * `x` - The point at which to evaluate the polynomial.
-///
-/// # Returns
-///
-/// The evaluated value modulo PRIME.
-fn eval_poly(coeffs: &[u128], x: u128) -> u128 {
-  let mut result = 0u128;
-  let mut power = 1u128;
-  for &coeff in coeffs {
-    result = (result + mod_mul(coeff, power, PRIME)) % PRIME;
-    power = mod_mul(power, x, PRIME);
-  }
-  result
-}
+
 
 /// Computes the modular inverse of a modulo p using the Extended Euclidean Algorithm.
 ///
@@ -125,8 +105,8 @@ fn eval_poly(coeffs: &[u128], x: u128) -> u128 {
 /// Panics if the modular inverse does not exist (i.e. if `a` and `p` are not coprime).
 fn mod_inv(a: u128, p: u128) -> u128 {
   // Convert a and p to i128 for computation. This is safe because PRIME < 2^127.
-  let mut a = a as i128;
-  let mut p = p as i128;
+  let a = a as i128;
+  let p = p as i128;
   let (mut t, mut newt) = (0i128, 1i128);
   let (mut r, mut newr) = (p, a);
 
@@ -181,41 +161,39 @@ fn mod_mul(a: u128, b: u128, modulus: u128) -> u128 {
 #[cfg(test)]
 mod tests {
   use super::*;
-
   #[test]
   fn test_split_and_combine_single() {
-    let secret = 123456789u128;
-    let threshold = 3;
+    let secret = 12u128;
     let share_count = 5;
-    let shares = split_secret(secret, threshold, share_count);
-
+    let shares = split_secret::<3>(secret, share_count);
+  
     // Reconstruct using exactly the threshold number of shares.
-    let subset = &shares[..threshold];
+    let subset = &shares[..3];
     let recovered = combine_shares(subset);
     assert_eq!(secret, recovered);
   }
+  
 
   #[test]
   fn test_split_and_combine_all() {
-    let secret = 987654321u128;
-    let threshold = 4;
+    let secret = 98u128;
     let share_count = 7;
-    let shares = split_secret(secret, threshold, share_count);
-
+    let shares = split_secret::<4>(secret, share_count);
+  
     // Reconstruct using all shares.
     let recovered = combine_shares(&shares);
     assert_eq!(secret, recovered);
   }
 
+  
   #[test]
   fn test_interpolation_properties() {
     // Ensure that different subsets of shares (with at least the threshold) can reconstruct the
     // secret.
     let secret = 42u128;
-    let threshold = 3;
     let share_count = 6;
-    let shares = split_secret(secret, threshold, share_count);
-
+    let shares = split_secret::<3>(secret, share_count);
+  
     // Test multiple combinations.
     for indices in vec![[0, 2, 4], [1, 3, 5], [0, 1, 2]] {
       let subset: Vec<Share> = indices.iter().map(|&i| shares[i]).collect();
