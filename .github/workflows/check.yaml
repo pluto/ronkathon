@@ -39,13 +39,10 @@ jobs:
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Install cargo-binstall
+      - name: Install taplo
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-binstall
-
-      - name: Install taplo
-        run: cargo binstall --no-confirm taplo-cli
+          tool: taplo-cli
 
       - name: Run taplo fmt
         run: taplo fmt --check
@@ -99,10 +96,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Rust (stable 1.81.0+)
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust (nightly for project)
+        uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: stable-2024-02-08  
+          toolchain: nightly-2024-06-10
+
+      - name: Install stable Rust (for semver)
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
@@ -111,4 +111,4 @@ jobs:
         uses: taiki-e/install-action@cargo-semver-checks
 
       - name: Run semver checks
-        run: cargo semver-checks check-release --workspace
+        run: cargo +stable semver-checks check-release --workspace
