@@ -72,8 +72,6 @@ impl<F: FiniteField> Basis for Lagrange<F> {
 }
 
 impl<B: Basis, F: FiniteField, const D: usize> Polynomial<B, F, D> {
-  const CHECK: () = assert!(D.is_power_of_two());
-
   /// A polynomial in any basis has a fixed number of independent terms.
   /// For example, in [`Monomial`] basis, the number of terms is one more than the degree of the
   /// polynomial.
@@ -97,10 +95,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   /// - A new polynomial in [`Monomial`] basis with the given coefficients.
   /// - The polynomial is automatically simplified to have a non-zero leading coefficient, that is
   ///   coefficient on the highest power term x^d.
-  pub fn new(coefficients: [F; D]) -> Self {
-    Self::CHECK;
-    Self { coefficients, basis: Monomial }
-  }
+  pub fn new(coefficients: [F; D]) -> Self { Self { coefficients, basis: Monomial } }
 
   /// Helper method to remove leading zeros from coefficients
   fn trim_zeros(coefficients: &mut Vec<F>) {
@@ -263,7 +258,8 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   }
 
   /// Computes the Fast Fourier Transform (FFT) of a polynomial in the Monomial basis.
-  pub fn fft(&self) -> Polynomial<Lagrange<F>, F, D> {
+  pub fn fft(&self) -> Polynomial<Lagrange<F>, F, D>
+  where [(); D.is_power_of_two() as usize - 1]: {
     let n = self.num_terms();
 
     // Get primitive root of unity for the field
@@ -353,7 +349,6 @@ impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
     assert_eq!((F::ORDER - 1) % n, 0);
     let primitive_root = F::primitive_root_of_unity(n);
     let nodes: Vec<F> = (0..n).map(|i| primitive_root.pow(i)).collect();
-    Self::CHECK;
     Self { coefficients, basis: Lagrange { nodes } }
   }
 
@@ -410,12 +405,10 @@ impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
   /// Computes the Inverse Fast Fourier Transform (IFFT) of a polynomial in the Lagrange basis.
   /// Uses the Cooley-Tukey butterfly algorithm for O(n log n) complexity.
   /// Converts from point-value representation back to coefficient representation.
-  pub fn ifft(&self) -> Polynomial<Monomial, F, D> {
-    let n = self.num_terms();
-    assert!(n.is_power_of_two(), "Length must be power of 2");
-
+  pub fn ifft(&self) -> Polynomial<Monomial, F, D>
+  where [(); D.is_power_of_two() as usize - 1]: {
     // Get inverse primitive root of unity
-    let omega = F::primitive_root_of_unity(n).inverse().unwrap();
+    let omega = F::primitive_root_of_unity(D).inverse().unwrap();
 
     // Copy values to work with
     let mut coeffs: Vec<F> = self.coefficients.to_vec();
@@ -423,10 +416,10 @@ impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
     // Perform IFFT in-place
     Self::ifft_recursive(&mut coeffs, omega);
 
-    // Scale by 1/n
-    let n_inv = F::from(n).inverse().unwrap();
+    // Scale by 1/D
+    let d_inv = F::from(D).inverse().unwrap();
     for coeff in &mut coeffs {
-      *coeff *= n_inv;
+      *coeff *= d_inv;
     }
 
     // Convert back to polynomial in Monomial basis
