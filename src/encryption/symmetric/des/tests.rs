@@ -1,4 +1,4 @@
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 
 use super::{left_shift, *};
 
@@ -24,7 +24,7 @@ fn exhaustive_key_search(
 #[test]
 /// use multiple keys for more confidence
 fn known_plaintext_attack() {
-  let mut rng = thread_rng();
+  let mut rng = rng();
   let mut plaintext1 = [0u8; 8];
   rng.fill(&mut plaintext1);
   let mut plaintext2 = [0u8; 8];
@@ -45,12 +45,12 @@ fn known_plaintext_attack() {
 #[test]
 fn des() {
   for _ in 0..100 {
-    let mut rng = thread_rng();
-    let secret_key = rng.gen();
+    let mut rng = rng();
+    let secret_key = rng.random();
 
     let des = DES::new(secret_key).unwrap();
 
-    let message = rng.gen();
+    let message = rng.random();
     let encrypted = des.encrypt(&message).unwrap();
     let decrypted = des.decrypt(&encrypted).unwrap();
 
@@ -60,12 +60,12 @@ fn des() {
 
 #[test]
 fn des_fuzz() {
-  let mut rng = thread_rng();
-  let key: [u8; 8] = rng.gen();
+  let mut rng = rng();
+  let key: [u8; 8] = rng.random();
 
   let des_fuzz = DES::new(key).unwrap();
 
-  let data: [u8; 8] = rng.gen();
+  let data: [u8; 8] = rng.random();
 
   let encrypted = des_fuzz.encrypt(&data).unwrap();
 
@@ -100,12 +100,12 @@ fn weak_keys() {
 #[test]
 /// DES has a nice property where $y=ENC_k(x)$ and $y'=ENC_{k'}(x')$
 fn bit_complement() {
-  let mut rng = thread_rng();
-  let secret_key: u64 = rng.gen();
+  let mut rng = rng();
+  let secret_key: u64 = rng.random();
 
   let des = DES::new(secret_key.to_be_bytes()).unwrap();
 
-  let message: u64 = rng.gen();
+  let message: u64 = rng.random();
   let encrypted = des.encrypt(&message.to_be_bytes()).unwrap();
 
   let key_complement = u64::MAX ^ secret_key;

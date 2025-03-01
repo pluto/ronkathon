@@ -69,13 +69,13 @@ pub fn compute_shared_secret(
 
   let pairing = pairing::<_, { PlutoBaseCurve::ORDER }>(p_b, q_c);
 
-  let shared_secret = pairing.pow(d_a.value);
-
-  shared_secret
+  pairing.pow(d_a.value)
 }
 
 #[cfg(test)]
 mod tests {
+  use rand::rng;
+
   use super::*;
   use crate::{
     algebra::{field::prime::PlutoScalarField, group::FiniteCyclicGroup, Finite},
@@ -84,9 +84,9 @@ mod tests {
 
   #[test]
   fn test_compute_local_pair() {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rng();
 
-    let d_a = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
+    let d_a = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..=PlutoScalarField::ORDER));
 
     let (p_a, q_a) = compute_local_pair(d_a);
 
@@ -96,14 +96,14 @@ mod tests {
 
   #[test]
   fn test_compute_tripartite_shared_secret() {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rng();
 
     let p = AffinePoint::<PlutoBaseCurve>::GENERATOR;
     let q = AffinePoint::<PlutoExtendedCurve>::GENERATOR;
 
-    let d_a = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..PlutoScalarField::ORDER));
-    let d_b = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..PlutoScalarField::ORDER));
-    let d_c = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..PlutoScalarField::ORDER));
+    let d_a = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..PlutoScalarField::ORDER));
+    let d_b = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..PlutoScalarField::ORDER));
+    let d_c = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..PlutoScalarField::ORDER));
 
     let p_a = p * d_a;
     let p_b = p * d_b;

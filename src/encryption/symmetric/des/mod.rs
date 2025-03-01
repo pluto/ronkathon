@@ -57,9 +57,9 @@ impl DES {
   ///
   /// ## Example
   /// ```rust
-  /// use rand::{thread_rng, Rng};
+  /// use rand::{rng, Rng};
   /// use ronkathon::encryption::symmetric::des::DES;
-  /// let mut rng = thread_rng();
+  /// let mut rng = rng();
   /// let secret_key = rng.gen();
   ///
   /// let subkeys = DES::setup(secret_key);
@@ -205,9 +205,9 @@ impl Encryption for DES {
   ///
   /// ## Example
   /// ```rust
-  /// use rand::{thread_rng, Rng};
+  /// use rand::{rng, Rng};
   /// use ronkathon::encryption::{symmetric::des::DES, Encryption};
-  /// let mut rng = thread_rng();
+  /// let mut rng = rng();
   /// let secret_key = rng.gen();
   /// let message = rng.gen();
   /// let des = DES::new(secret_key).unwrap();
@@ -244,9 +244,9 @@ impl Encryption for DES {
   ///
   /// ## Example
   /// ```rust
-  /// use rand::{thread_rng, Rng};
+  /// use rand::{rng, Rng};
   /// use ronkathon::encryption::{symmetric::des::DES, Encryption};
-  /// let mut rng = thread_rng();
+  /// let mut rng = rng();
   /// let secret_key = rng.gen();
   /// let message = rng.gen();
   /// let des = DES::new(secret_key).unwrap();

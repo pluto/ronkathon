@@ -13,7 +13,7 @@ use ark_crypto_primitives::sponge::{
   CryptographicSponge, FieldBasedCryptographicSponge,
 };
 use constants::{constants, ALPHA, NUM_F, NUM_P, WIDTH};
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 
 fn load_constants<F: Field>() -> (Vec<F>, Vec<Vec<F>>) {
   let (rc, mds) = constants();
@@ -26,13 +26,13 @@ fn load_constants<F: Field>() -> (Vec<F>, Vec<Vec<F>>) {
 
 #[allow(dead_code)]
 fn random_constants<F: Field>(width: usize, num_rounds: usize) -> (Vec<F>, Vec<Vec<F>>)
-where rand::distributions::Standard: rand::distributions::Distribution<F> {
-  let mut rng = thread_rng();
-  let rc: Vec<F> = (0..num_rounds * width).map(|_| rng.gen::<F>()).collect();
+where rand::distr::StandardUniform: rand::distr::Distribution<F> {
+  let mut rng = rng();
+  let rc: Vec<F> = (0..num_rounds * width).map(|_| rng.random::<F>()).collect();
 
   let mut mds: Vec<Vec<F>> = vec![vec![F::ZERO; width]; width];
   for row in mds.iter_mut() {
-    *row = (0..width).map(|_| rng.gen::<F>()).collect();
+    *row = (0..width).map(|_| rng.random::<F>()).collect();
   }
   (rc, mds)
 }
@@ -41,12 +41,12 @@ where rand::distributions::Standard: rand::distributions::Distribution<F> {
 fn rate() -> usize { 6 }
 
 fn input(absorb_size: usize) -> (Vec<PlutoBaseField>, Vec<Fr>) {
-  let mut rng = thread_rng();
+  let mut rng = rng();
   let mut pluto_input = Vec::new();
   let mut ark_input = Vec::new();
 
   for _ in 0..absorb_size {
-    let elem = rng.gen::<u32>();
+    let elem = rng.random::<u32>();
     pluto_input.push(PlutoBaseField::from(elem));
     ark_input.push(Fr::from(elem));
   }

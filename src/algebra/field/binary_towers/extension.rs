@@ -6,7 +6,7 @@ use std::{
 };
 
 use rand::{
-  distributions::{Distribution, Standard},
+  distr::{Distribution, StandardUniform},
   Rng,
 };
 
@@ -262,12 +262,12 @@ where
   }
 }
 
-impl<const K: usize> Distribution<BinaryTowers<K>> for Standard
+impl<const K: usize> Distribution<BinaryTowers<K>> for StandardUniform
 where [(); 1 << K]:
 {
   #[inline]
   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> BinaryTowers<K> {
-    let num = rng.gen_range(1..1 << (1 << K));
+    let num = rng.random_range(1..1 << (1 << K));
     let coefficients = to_bool_vec(num, 1 << K).try_into().unwrap_or_else(|v: Vec<BinaryField>| {
       panic!("Expected a Vec of length {} but it was {}", 1 << K, v.len())
     });

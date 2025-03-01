@@ -13,7 +13,6 @@ use super::Finite;
 
 /// A field is a set of elements on which addition, subtraction, multiplication, and division are
 /// defined.
-
 #[const_trait]
 pub trait Field:
   std::fmt::Debug

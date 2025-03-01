@@ -184,9 +184,9 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   ///
   /// ## Usage
   /// ```
-  /// use rand::{thread_rng, Rng};
+  /// use rand::{rng, Rng};
   /// use ronkathon::encryption::symmetric::chacha::{ChaCha, Counter};
-  /// let mut rng = thread_rng();
+  /// let mut rng = rng();
   /// let key: [u32; 8] = rng.gen();
   /// let nonce: [u32; 3] = rng.gen();
   ///
@@ -249,9 +249,9 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
   ///
   /// ## Usage
   /// ```
-  /// use rand::{thread_rng, Rng};
+  /// use rand::{rng, Rng};
   /// use ronkathon::encryption::symmetric::chacha::{ChaCha, Counter};
-  /// let mut rng = thread_rng();
+  /// let mut rng = rng();
   /// let key: [u32; 8] = rng.gen();
   /// let nonce: [u32; 3] = rng.gen();
   ///
@@ -272,24 +272,6 @@ impl<const R: usize, const N: usize, const C: usize> ChaCha<R, N, C> {
     ciphertext: &[u8],
   ) -> Result<Vec<u8>, <Self as Encryption>::Error> {
     self.encrypt(counter, ciphertext)
-  }
-
-  /// Encrypts a plaintext of arbitrary length using [`Self::encrypt`] with a given counter.
-
-  fn encrypt_with_counter(
-    &self,
-    counter: &Counter<C>,
-    plaintext: &[u8],
-  ) -> Result<Vec<u8>, <Self as Encryption>::Error> {
-    self.encrypt(counter, plaintext)
-  }
-
-  fn decrypt_with_counter(
-    &self,
-    counter: &Counter<C>,
-    ciphertext: &[u8],
-  ) -> Result<Vec<u8>, <Self as Encryption>::Error> {
-    self.decrypt(counter, ciphertext)
   }
 }
 

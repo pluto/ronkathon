@@ -31,13 +31,13 @@ impl<C: Encryption + BlockOperations> CBC<C> {
   /// ```
   /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
-  /// use rand::{thread_rng, Rng};
+  /// use rand::{rng, Rng};
   /// use ronkathon::encryption::symmetric::{
   ///   aes::{Block, Key, AES},
   ///   modes::cbc::CBC,
   /// };
   ///
-  /// let mut rng = thread_rng();
+  /// let mut rng = rng();
   /// let rand_key: [u8; 16] = rng.gen();
   /// let key = Key::<128>::new(rand_key);
   /// let iv = Block(rng.gen());
@@ -82,13 +82,13 @@ impl<C: Encryption + BlockOperations> CBC<C> {
   /// ```
   /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
-  /// use rand::{thread_rng, Rng};
+  /// use rand::{rng, Rng};
   /// use ronkathon::encryption::symmetric::{
   ///   aes::{Block, Key, AES},
   ///   modes::cbc::CBC,
   /// };
   ///
-  /// let mut rng = thread_rng();
+  /// let mut rng = rng();
   /// let rand_key: [u8; 16] = rng.gen();
   /// let key = Key::<128>::new(rand_key);
   /// let iv = Block(rng.gen());
@@ -135,7 +135,7 @@ impl<C: Encryption + BlockOperations> CBC<C> {
 
 #[cfg(test)]
 mod tests {
-  use rand::{thread_rng, Rng};
+  use rand::{rng, Rng};
   use rstest::{fixture, rstest};
 
   use super::*;
@@ -143,21 +143,21 @@ mod tests {
 
   #[fixture]
   fn rand_key() -> Key<128> {
-    let mut rng = thread_rng();
-    let rand_key: [u8; 16] = rng.gen();
+    let mut rng = rng();
+    let rand_key: [u8; 16] = rng.random();
     Key::new(rand_key)
   }
 
   #[fixture]
   fn rand_iv() -> Block {
-    let mut rng = thread_rng();
-    Block(rng.gen())
+    let mut rng = rng();
+    Block(rng.random())
   }
 
   fn rand_message(length: usize) -> Vec<u8> {
-    let mut rng = thread_rng();
+    let mut rng = rng();
 
-    (0..length).map(|_| rng.gen::<u8>()).collect()
+    (0..length).map(|_| rng.random::<u8>()).collect()
   }
 
   #[rstest]
@@ -165,8 +165,8 @@ mod tests {
     let cbc = CBC::<AES<128>>::new(rand_iv);
 
     for _ in 0..10 {
-      let mut rng = thread_rng();
-      let plaintext = rand_message(rng.gen_range(1000..10000));
+      let mut rng = rng();
+      let plaintext = rand_message(rng.random_range(1000..10000));
       let ciphertext = cbc.encrypt(&rand_key, &plaintext);
 
       let decrypted = cbc.decrypt(&rand_key, &ciphertext);
@@ -185,8 +185,8 @@ mod tests {
 
     let cbc2 = CBC::<AES<128>>::new(rand_iv);
 
-    let mut rng = thread_rng();
-    let plaintext = rand_message(rng.gen_range(1000..100000));
+    let mut rng = rng();
+    let plaintext = rand_message(rng.random_range(1000..100000));
 
     let ciphertext = cbc.encrypt(&rand_key, &plaintext);
     let ciphertext2 = cbc2.encrypt(&rand_key, &plaintext);

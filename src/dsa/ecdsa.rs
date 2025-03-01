@@ -27,9 +27,9 @@ pub fn sign<F: FiniteField, G: CurveGroup<Scalar = F>>(message: &[u8], private_k
   let bit_count = (F::ORDER.leading_zeros() - 1) as usize;
   let z = hash_and_extract_bits::<F>(message, bit_count);
 
-  let mut rng = rand::rngs::OsRng;
+  let mut rng = rand::rng();
   // Select a cryptographically secure random integer k from [1, n-1].
-  let k = F::from(rand::Rng::gen_range(&mut rng, 1..=F::ORDER));
+  let k = F::from(rand::Rng::random_range(&mut rng, 1..=F::ORDER));
 
   // Compute the curve point (x_1, y_1) = k × G.
   let point = G::GENERATOR * k;
@@ -116,14 +116,17 @@ fn hash_and_extract_bits<F: Field>(m: &[u8], bit_count: usize) -> F {
 
 #[cfg(test)]
 mod tests {
+  use rand::rng;
+
   use super::*;
   use crate::algebra::{field::prime::PlutoScalarField, group::FiniteCyclicGroup, Finite};
 
   #[test]
   fn test_sign_verify() {
     // secret key
-    let mut rng = rand::rngs::OsRng;
-    let s_key = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
+    let mut rng = rng();
+    let s_key =
+      PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..=PlutoScalarField::ORDER));
 
     // public key
     let q_a = AffinePoint::<PlutoBaseCurve>::GENERATOR * s_key;
@@ -136,8 +139,9 @@ mod tests {
   #[test]
   fn test_invalid_signature() {
     // secret key
-    let mut rng = rand::rngs::OsRng;
-    let s_key = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
+    let mut rng = rng();
+    let s_key =
+      PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..=PlutoScalarField::ORDER));
     // public key
     let q_a = AffinePoint::<PlutoBaseCurve>::GENERATOR * s_key;
     let m = b"Hello, Pluto!";
