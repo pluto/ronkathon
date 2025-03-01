@@ -28,7 +28,7 @@ where [(); C::BLOCK_SIZE - M]:
   /// ```
   /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
-  /// use rand::{thread_rng, Rng};
+  /// use rand::{rng, Rng};
   /// use ronkathon::encryption::{
   ///   symmetric::{
   ///     aes::{Key, AES},
@@ -38,7 +38,7 @@ where [(); C::BLOCK_SIZE - M]:
   ///   BlockOperations,
   /// };
   ///
-  /// let mut rng = thread_rng();
+  /// let mut rng = rng();
   /// let rand_key: [u8; 16] = rng.gen();
   /// let key = Key::<128>::new(rand_key);
   /// let nonce: [u8; 12] = rng.gen();
@@ -83,7 +83,7 @@ where [(); C::BLOCK_SIZE - M]:
   /// ```
   /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
-  /// use rand::{thread_rng, Rng};
+  /// use rand::{rng, Rng};
   /// use ronkathon::encryption::{
   ///   symmetric::{
   ///     aes::{Key, AES},
@@ -93,7 +93,7 @@ where [(); C::BLOCK_SIZE - M]:
   ///   BlockOperations,
   /// };
   ///
-  /// let mut rng = thread_rng();
+  /// let mut rng = rng();
   /// let rand_key: [u8; 16] = rng.gen();
   /// let key = Key::<128>::new(rand_key);
   /// let nonce: [u8; 12] = rng.gen();
@@ -119,7 +119,7 @@ where [(); C::BLOCK_SIZE - M]:
 mod tests {
   use std::{fmt::Write, num::ParseIntError};
 
-  use rand::{thread_rng, Rng};
+  use rand::{rng, Rng};
   use rstest::{fixture, rstest};
 
   use super::*;
@@ -127,27 +127,27 @@ mod tests {
 
   #[fixture]
   fn rand_key() -> Key<128> {
-    let mut rng = thread_rng();
-    let rand_key: [u8; 16] = rng.gen();
+    let mut rng = rng();
+    let rand_key: [u8; 16] = rng.random();
     Key::new(rand_key)
   }
 
   fn rand_message(length: usize) -> Vec<u8> {
-    let mut rng = thread_rng();
+    let mut rng = rng();
 
-    (0..length).map(|_| rng.gen::<u8>()).collect()
+    (0..length).map(|_| rng.random::<u8>()).collect()
   }
 
   #[rstest]
   fn test_ctr_rand_key(rand_key: Key<128>) {
     for _ in 0..10 {
-      let mut rng = thread_rng();
-      let nonce: [u8; AES::<128>::BLOCK_SIZE - 4] = rng.gen();
+      let mut rng = rng();
+      let nonce: [u8; AES::<128>::BLOCK_SIZE - 4] = rng.random();
       let counter: Counter<4> = Counter::from(0);
 
       let ctr = CTR::<AES<128>, 4>::new(nonce);
 
-      let plaintext = rand_message(rng.gen_range(1000..10000));
+      let plaintext = rand_message(rng.random_range(1000..10000));
       let ciphertext = ctr.encrypt(&rand_key, &counter, &plaintext).unwrap();
 
       let decrypted = ctr.decrypt(&rand_key, &counter, &ciphertext).unwrap();

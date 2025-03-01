@@ -1,4 +1,4 @@
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 use rstest::rstest;
 
 use super::*;
@@ -54,9 +54,9 @@ fn num_digit(#[case] num: u64, #[case] digits: usize) {
 
 #[test]
 fn add_sub_neg() {
-  let mut rng = thread_rng();
-  let a = rng.gen::<BinaryTowers<3>>();
-  let b = rng.gen::<BinaryTowers<3>>();
+  let mut rng = rng();
+  let a = rng.random::<BinaryTowers<3>>();
+  let b = rng.random::<BinaryTowers<3>>();
 
   assert_eq!(a + a, BinaryTowers::<3>::ZERO);
   assert_eq!(a + a, b + b);
@@ -87,11 +87,11 @@ fn mul_div(#[case] a: BinaryTowers<3>, #[case] b: BinaryTowers<3>, #[case] res: 
 
 #[test]
 fn small_by_large_mul() {
-  let mut rng = thread_rng();
+  let mut rng = rng();
   for _ in 0..100 {
-    let a = rng.gen::<BinaryTowers<5>>();
+    let a = rng.random::<BinaryTowers<5>>();
 
-    let val = rng.gen_range(0..1 << (1 << 3));
+    let val = rng.random_range(0..1 << (1 << 3));
 
     let b = BinaryTowers::<3>::from(val);
     let d = BinaryTowers::<5>::from(val);
@@ -111,8 +111,8 @@ fn small_by_large_mul() {
 
 #[test]
 fn efficient_embedding() {
-  let mut rng = thread_rng();
-  let a = rng.gen::<BinaryTowers<4>>();
+  let mut rng = rng();
+  let a = rng.random::<BinaryTowers<4>>();
 
   let (a1, a2) = a.into();
 

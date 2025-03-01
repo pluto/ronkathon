@@ -25,10 +25,10 @@ mod tests {
 
   #[test]
   fn test_compute_shared_secret() {
-    let mut rng = rand::rngs::OsRng;
+    let mut rng = rand::rng();
 
-    let d_a = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
-    let d_b = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
+    let d_a = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..=PlutoScalarField::ORDER));
+    let d_b = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..=PlutoScalarField::ORDER));
 
     let q_a = AffinePoint::<PlutoBaseCurve>::GENERATOR * d_a;
     let q_b = AffinePoint::<PlutoBaseCurve>::GENERATOR * d_b;

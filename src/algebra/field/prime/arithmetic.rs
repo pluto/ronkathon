@@ -134,10 +134,10 @@ mod tests {
   }
 
   fn combined_arithmetic_check<const P: usize>() {
-    let mut rng = rand::thread_rng();
-    let x = rng.gen::<PrimeField<P>>();
-    let y = rng.gen::<PrimeField<P>>();
-    let z = rng.gen::<PrimeField<P>>();
+    let mut rng = rand::rng();
+    let x = rng.random::<PrimeField<P>>();
+    let y = rng.random::<PrimeField<P>>();
+    let z = rng.random::<PrimeField<P>>();
     assert_eq!(x + (-x), <PrimeField<P>>::ZERO);
     assert_eq!(-x, <PrimeField<P>>::ZERO - x);
     assert_eq!(x + x, x * <PrimeField<P>>::new(2));
@@ -148,7 +148,7 @@ mod tests {
     assert_eq!(x - (y + z), (x - y) - z);
     assert_eq!((x + y) - z, x + (y - z));
     assert_eq!(x * (y + z), x * y + x * z);
-    assert_eq!(x + y + z + x + y + z, [x, x, y, y, z, z].iter().cloned().sum());
+    assert_eq!(x + y + z + x + y + z, [x, x, y, y, z, z].iter().copied().sum());
   }
 
   #[rstest]

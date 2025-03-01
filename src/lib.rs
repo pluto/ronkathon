@@ -47,7 +47,7 @@ use core::{
 };
 
 use rand::{
-  distributions::{Distribution, Standard},
+  distr::{Distribution, StandardUniform},
   Rng,
 };
 #[cfg(test)] use rstest::{fixture, rstest};

@@ -35,12 +35,6 @@ const RC: [u64; 24] = [
   0x8000000080008008,
 ];
 
-/// Rotation offsets for ρ step
-const RHO: [[u32; 5]; 5] =
-  [[0, 36, 3, 41, 18], [1, 44, 10, 45, 2], [62, 6, 43, 15, 61], [28, 55, 25, 21, 56], [
-    27, 20, 39, 8, 14,
-  ]];
-
 #[derive(Clone, Debug)]
 struct KeccakState {
   lanes: [[u64; 5]; 5],
@@ -275,6 +269,10 @@ impl<const SECURITY_BITS: usize> Shake<SECURITY_BITS> {
     self.finalize_if_needed();
     self.state.squeeze(output, self.rate);
   }
+}
+
+impl<const SECURITY_BITS: usize> Default for Shake<SECURITY_BITS> {
+  fn default() -> Self { Self::new() }
 }
 
 /// Type alias for SHA3-224.

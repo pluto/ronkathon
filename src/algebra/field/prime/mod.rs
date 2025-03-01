@@ -5,7 +5,7 @@
 
 use std::{fmt, str::FromStr};
 
-use rand::{distributions::Standard, prelude::Distribution, Rng};
+use rand::{distr::StandardUniform, prelude::Distribution, Rng};
 
 use super::*;
 use crate::algebra::Finite;
@@ -210,7 +210,7 @@ impl<const P: usize> fmt::Display for PrimeField<P> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.value) }
 }
 
-impl<const P: usize> Distribution<PrimeField<P>> for Standard {
+impl<const P: usize> Distribution<PrimeField<P>> for StandardUniform {
   #[inline]
   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PrimeField<P> {
     loop {

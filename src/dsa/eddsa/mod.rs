@@ -50,8 +50,8 @@ impl Ed25519 {
     let sk = match secret_key {
       Some(sk) => sk,
       None => {
-        let mut rng = rand::thread_rng();
-        let v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
+        let mut rng = rand::rng();
+        let v: Vec<_> = (0..32).map(|_| rng.random_range(0..=255)).collect();
         let mut a = [0u8; 32];
         a.copy_from_slice(&v);
         a

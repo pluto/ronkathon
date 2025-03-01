@@ -6,7 +6,7 @@
 //! attacker can detect which original message was used in the ciphertext which is shown here.
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 use ronkathon::encryption::symmetric::{
   aes::{Block, Key, AES},
   modes::cbc::CBC,
@@ -52,18 +52,18 @@ fn attacker<'a>(key: &Key<128>, iv: &Block, ciphertext: Vec<u8>) -> &'a [u8] {
 /// We simulate Chained CBC and show that attacker can know whether initial plaintext was message 1
 /// or 2.
 fn main() {
-  let mut rng = thread_rng();
+  let mut rng = rng();
 
   // generate a random key and publicly known IV, and initiate CBC with AES cipher
-  let key = Key::<128>::new(rng.gen());
-  let iv = Block(rng.gen());
+  let key = Key::<128>::new(rng.random());
+  let iv = Block(rng.random());
   let cbc = CBC::<AES<128>>::new(iv);
 
   // Chose 2 random messages, {m_0, m_1}
   let messages = attacker_chosen_message();
 
   // select a uniform bit b, and chose message m_b for encryption
-  let bit = rng.gen_range(0..=1);
+  let bit = rng.random_range(0..=1);
   let encrypted = cbc.encrypt(&key, messages[bit]);
 
   let predicted_message = attacker(&key, &iv, encrypted);

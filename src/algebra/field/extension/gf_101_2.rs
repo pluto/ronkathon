@@ -8,7 +8,7 @@
 //! verified by finding out embedding degree of the curve, i.e. smallest k such that r|q^k-1.
 
 use super::*;
-use crate::{Distribution, Monomial, Polynomial, Rng, Standard};
+use crate::{Distribution, Monomial, Polynomial, Rng, StandardUniform};
 
 impl ExtensionField<2, 101> for PlutoBaseFieldExtension {
   /// irreducible polynomial used to reduce field polynomials to second degree:
@@ -127,10 +127,11 @@ impl FiniteField for PlutoBaseFieldExtension {
   const PRIMITIVE_ELEMENT: Self = Self::new([PlutoBaseField::new(14), PlutoBaseField::new(9)]);
 }
 
-impl<const N: usize, const P: usize> Distribution<GaloisField<N, P>> for Standard {
+impl<const N: usize, const P: usize> Distribution<GaloisField<N, P>> for StandardUniform {
   #[inline]
   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GaloisField<N, P> {
-    let coeffs = (0..N).map(|_| rng.gen::<PrimeField<P>>()).collect::<Vec<_>>().try_into().unwrap();
+    let coeffs =
+      (0..N).map(|_| rng.random::<PrimeField<P>>()).collect::<Vec<_>>().try_into().unwrap();
     GaloisField::<N, P>::new(coeffs)
   }
 }
@@ -147,7 +148,7 @@ impl Mul for PlutoBaseFieldExtension {
       Polynomial::<Monomial, PlutoBaseField, 3>::from(Self::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS);
     let product = (poly_self * poly_rhs) % poly_irred;
     let res: [PlutoBaseField; 2] =
-      array::from_fn(|i| product.coefficients.get(i).cloned().unwrap_or(PlutoBaseField::ZERO));
+      array::from_fn(|i| product.coefficients.get(i).copied().unwrap_or(PlutoBaseField::ZERO));
 
     Self::new(res)
   }
@@ -251,10 +252,10 @@ mod tests {
 
   #[test]
   fn add_sub_neg_mul() {
-    let mut rng = rand::thread_rng();
-    let x = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
-    let y = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
-    let z = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
+    let mut rng = rand::rng();
+    let x = <PlutoBaseFieldExtension>::from(rng.random::<PlutoBaseField>());
+    let y = <PlutoBaseFieldExtension>::from(rng.random::<PlutoBaseField>());
+    let z = <PlutoBaseFieldExtension>::from(rng.random::<PlutoBaseField>());
     assert_eq!(x + (-x), <PlutoBaseFieldExtension>::ZERO);
     assert_eq!(-x, <PlutoBaseFieldExtension>::ZERO - x);
     assert_eq!(
@@ -268,13 +269,13 @@ mod tests {
     assert_eq!(x - (y + z), (x - y) - z);
     assert_eq!((x + y) - z, x + (y - z));
     assert_eq!(x * (y + z), x * y + x * z);
-    assert_eq!(x + y + z + x + y + z, [x, x, y, y, z, z].iter().cloned().sum());
+    assert_eq!(x + y + z + x + y + z, [x, x, y, y, z, z].iter().copied().sum());
   }
 
   #[test]
   fn pow() {
-    let mut rng = rand::thread_rng();
-    let x = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
+    let mut rng = rand::rng();
+    let x = <PlutoBaseFieldExtension>::from(rng.random::<PlutoBaseField>());
 
     assert_eq!(x, x.pow(1));
 
@@ -284,24 +285,24 @@ mod tests {
 
   #[test]
   fn inv_div() {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     // Loop rng's until we get something with inverse.
     let mut x = <PlutoBaseFieldExtension>::ZERO;
     let mut x_inv = None;
     while x_inv.is_none() {
-      x = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
+      x = <PlutoBaseFieldExtension>::from(rng.random::<PlutoBaseField>());
       x_inv = x.inverse();
     }
     let mut y = <PlutoBaseFieldExtension>::ZERO;
     let mut y_inv = None;
     while y_inv.is_none() {
-      y = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
+      y = <PlutoBaseFieldExtension>::from(rng.random::<PlutoBaseField>());
       y_inv = y.inverse();
     }
     let mut z = <PlutoBaseFieldExtension>::ZERO;
     let mut z_inv = None;
     while z_inv.is_none() {
-      z = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
+      z = <PlutoBaseFieldExtension>::from(rng.random::<PlutoBaseField>());
       z_inv = z.inverse();
     }
     assert_eq!(x * x.inverse().unwrap(), <PlutoBaseFieldExtension>::ONE);
@@ -329,12 +330,12 @@ mod tests {
 
   #[test]
   fn add_sub_mul_subfield() {
-    let mut rng = rand::thread_rng();
-    let x = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
+    let mut rng = rand::rng();
+    let x = <PlutoBaseFieldExtension>::from(rng.random::<PlutoBaseField>());
     let mut y = <PlutoBaseFieldExtension>::ZERO;
     let mut y_inv = None;
     while y_inv.is_none() {
-      y = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
+      y = <PlutoBaseFieldExtension>::from(rng.random::<PlutoBaseField>());
       y_inv = y.inverse();
     }
 
@@ -362,8 +363,8 @@ mod tests {
 
   #[test]
   fn sqrt() {
-    let mut rng = rand::thread_rng();
-    let x = <PlutoBaseFieldExtension>::from(rng.gen::<PlutoBaseField>());
+    let mut rng = rand::rng();
+    let x = <PlutoBaseFieldExtension>::from(rng.random::<PlutoBaseField>());
     let x_sq = x.pow(2);
 
     let res = x_sq.sqrt();
@@ -371,8 +372,8 @@ mod tests {
 
     assert_eq!(res.unwrap().0 * res.unwrap().0, x * x);
 
-    let x_0 = rng.gen::<PlutoBaseField>();
-    let x_1 = rng.gen::<PlutoBaseField>();
+    let x_0 = rng.random::<PlutoBaseField>();
+    let x_1 = rng.random::<PlutoBaseField>();
     let x = <PlutoBaseFieldExtension>::new([x_0, x_1]);
 
     let x_sq = x.pow(2);

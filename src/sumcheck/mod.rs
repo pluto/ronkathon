@@ -9,7 +9,7 @@
 //! - [`SumCheckVerifier`] represents the verifier in the protocol.
 //! - [`SumCheck`] encapsulates both prover and verifier, managing the entire protocol.
 
-use rand::thread_rng;
+use rand::rng;
 
 use super::*;
 use crate::{algebra::field::FiniteField, multi_var_poly::MultiVarPolynomial};
@@ -179,8 +179,8 @@ impl<F: FiniteField> SumCheckVerifier<F> {
       "Verifier Abort: Prover's polynomial doesn't evaluate to claimed value"
     );
 
-    let mut rng = thread_rng();
-    let challenge = F::from(rng.gen::<usize>());
+    let mut rng = rng();
+    let challenge = F::from(rng.random::<u64>().try_into().unwrap());
 
     // This is the value the Verifier will check against in the next round
     // new_claim = h_poly(challenge) as a univariate polynomial

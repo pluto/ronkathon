@@ -372,13 +372,13 @@ where [(); N / 8]:
   /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   ///
-  /// use rand::{thread_rng, Rng};
+  /// use rand::{rng, Rng};
   /// use ronkathon::encryption::{
   ///   symmetric::aes::{Block, Key, AES},
   ///   Encryption,
   /// };
   ///
-  /// let mut rng = thread_rng();
+  /// let mut rng = rng();
   /// let key = Key::<128>::new(rng.gen());
   /// let plaintext = rng.gen();
   /// let aes = AES::new(key).unwrap();
@@ -438,12 +438,12 @@ where [(); N / 8]:
   /// #![allow(incomplete_features)]
   /// #![feature(generic_const_exprs)]
   ///
-  /// use rand::{thread_rng, Rng};
+  /// use rand::{rng, Rng};
   /// use ronkathon::encryption::{
   ///   symmetric::aes::{Block, Key, AES},
   ///   Encryption,
   /// };
-  /// let mut rng = thread_rng();
+  /// let mut rng = rng();
   /// let key = Key::<128>::new(rng.gen());
   /// let plaintext = rng.gen();
   /// let aes = AES::new(key).unwrap();
