@@ -3,7 +3,7 @@
 //! References:
 //!     1. [RFC8032] "Edwards-Curve Digital Signature Algorithm (EdDSA)".
 use crypto_bigint::{Encoding, U256, U512};
-use curve::{Coordinate, ScalarField, ScalarField64, GENERATOR, ORDER};
+use curve::{Coordinate, GENERATOR, ORDER, ScalarField, ScalarField64};
 use rand::Rng;
 
 use crate::hashes::sha::Sha512;
@@ -50,7 +50,7 @@ impl Ed25519 {
     let sk = match secret_key {
       Some(sk) => sk,
       None => {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let v: Vec<_> = (0..32).map(|_| rng.gen_range(0..=255)).collect();
         let mut a = [0u8; 32];
         a.copy_from_slice(&v);

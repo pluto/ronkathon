@@ -1,13 +1,13 @@
 //! Tripartite Elliptic Curve Diffie Hellman Key Exchange Algorithm.
 use crate::{
   algebra::{
-    field::{extension::PlutoBaseFieldExtension, prime::PlutoScalarField, Field},
+    field::{Field, extension::PlutoBaseFieldExtension, prime::PlutoScalarField},
     group::FiniteCyclicGroup,
   },
   curve::{
+    AffinePoint, EllipticCurve,
     pairing::pairing,
     pluto_curve::{PlutoBaseCurve, PlutoExtendedCurve},
-    AffinePoint, EllipticCurve,
   },
 };
 
@@ -78,15 +78,15 @@ pub fn compute_shared_secret(
 mod tests {
   use super::*;
   use crate::{
-    algebra::{field::prime::PlutoScalarField, group::FiniteCyclicGroup, Finite},
-    curve::{pluto_curve::PlutoBaseCurve, AffinePoint},
+    algebra::{Finite, field::prime::PlutoScalarField, group::FiniteCyclicGroup},
+    curve::{AffinePoint, pluto_curve::PlutoBaseCurve},
   };
 
   #[test]
   fn test_compute_local_pair() {
     let mut rng = rand::rngs::OsRng;
 
-    let d_a = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
+    let d_a = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..=PlutoScalarField::ORDER));
 
     let (p_a, q_a) = compute_local_pair(d_a);
 
@@ -101,9 +101,9 @@ mod tests {
     let p = AffinePoint::<PlutoBaseCurve>::GENERATOR;
     let q = AffinePoint::<PlutoExtendedCurve>::GENERATOR;
 
-    let d_a = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..PlutoScalarField::ORDER));
-    let d_b = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..PlutoScalarField::ORDER));
-    let d_c = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..PlutoScalarField::ORDER));
+    let d_a = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..PlutoScalarField::ORDER));
+    let d_b = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..PlutoScalarField::ORDER));
+    let d_c = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..PlutoScalarField::ORDER));
 
     let p_a = p * d_a;
     let p_b = p * d_b;

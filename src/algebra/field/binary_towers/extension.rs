@@ -6,8 +6,8 @@ use std::{
 };
 
 use rand::{
-  distributions::{Distribution, Standard},
   Rng,
+  distr::{Distribution, StandardUniform},
 };
 
 use super::{BinaryField, Field, Finite, FiniteField};
@@ -262,7 +262,7 @@ where
   }
 }
 
-impl<const K: usize> Distribution<BinaryTowers<K>> for Standard
+impl<const K: usize> Distribution<BinaryTowers<K>> for StandardUniform
 where [(); 1 << K]:
 {
   #[inline]

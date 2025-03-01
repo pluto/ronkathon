@@ -19,16 +19,16 @@ pub fn compute_shared_secret<F: FiniteField, G: CurveGroup<Scalar = F>>(d_a: F, 
 mod tests {
   use super::*;
   use crate::{
-    algebra::{field::prime::PlutoScalarField, group::FiniteCyclicGroup, Finite},
-    curve::{pluto_curve::PlutoBaseCurve, AffinePoint},
+    algebra::{Finite, field::prime::PlutoScalarField, group::FiniteCyclicGroup},
+    curve::{AffinePoint, pluto_curve::PlutoBaseCurve},
   };
 
   #[test]
   fn test_compute_shared_secret() {
     let mut rng = rand::rngs::OsRng;
 
-    let d_a = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
-    let d_b = PlutoScalarField::new(rand::Rng::gen_range(&mut rng, 1..=PlutoScalarField::ORDER));
+    let d_a = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..=PlutoScalarField::ORDER));
+    let d_b = PlutoScalarField::new(rand::Rng::random_range(&mut rng, 1..=PlutoScalarField::ORDER));
 
     let q_a = AffinePoint::<PlutoBaseCurve>::GENERATOR * d_a;
     let q_b = AffinePoint::<PlutoBaseCurve>::GENERATOR * d_b;

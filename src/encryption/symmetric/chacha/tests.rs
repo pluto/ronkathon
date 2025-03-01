@@ -1,14 +1,14 @@
 //! Test vectors from: https://datatracker.ietf.org/doc/html/rfc8439
 
 use chacha20::{
-  cipher::{KeyIvInit, StreamCipher, StreamCipherSeek},
   ChaCha20,
+  cipher::{KeyIvInit, StreamCipher, StreamCipherSeek},
 };
 use hex::FromHex;
-use rand::{thread_rng, Rng};
+use rand::{Rng, rng};
 use rstest::rstest;
 
-use super::{block, quarter_round, ChaCha, Counter};
+use super::{ChaCha, Counter, block, quarter_round};
 use crate::encryption::symmetric::chacha::IETFChaCha20;
 
 #[test]
@@ -103,10 +103,10 @@ fn counter<const C: usize>(#[case] a: [u32; C], #[case] b: [u32; C]) {
 
 #[test]
 fn chacha_fuzz() {
-  let mut rng = thread_rng();
+  let mut rng = rng();
 
-  let key: [u32; 8] = rng.gen();
-  let nonce: [u32; 3] = rng.gen();
+  let key: [u32; 8] = rng.random();
+  let nonce: [u32; 3] = rng.random();
   let plaintext = <[u8; 16]>::from_hex("000102030405060708090A0B0C0D0E0F").unwrap();
 
   // ronk chacha cipher

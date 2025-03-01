@@ -8,7 +8,7 @@ cgt* # ignore instatiations of my test template
 # exclude compiled files and binaries
 debug/
 target/
-
+rustc-ice-*
 
 # vs code
 .vscode

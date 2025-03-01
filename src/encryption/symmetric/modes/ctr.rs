@@ -1,6 +1,6 @@
 //! Contains implementation for Counter (CTR) mode of operation in block ciphers
 
-use crate::encryption::{symmetric::counter::Counter, BlockOperations, Encryption};
+use crate::encryption::{BlockOperations, Encryption, symmetric::counter::Counter};
 
 /// [`BlockCipher`] counter mode of operation with two parameters:
 /// - `C`, a cipher that implements the `BlockCipher` trait.
@@ -119,30 +119,30 @@ where [(); C::BLOCK_SIZE - M]:
 mod tests {
   use std::{fmt::Write, num::ParseIntError};
 
-  use rand::{thread_rng, Rng};
+  use rand::{Rng, rng};
   use rstest::{fixture, rstest};
 
   use super::*;
-  use crate::encryption::symmetric::aes::{Key, AES};
+  use crate::encryption::symmetric::aes::{AES, Key};
 
   #[fixture]
   fn rand_key() -> Key<128> {
-    let mut rng = thread_rng();
-    let rand_key: [u8; 16] = rng.gen();
+    let mut rng = rng();
+    let rand_key: [u8; 16] = rng.random();
     Key::new(rand_key)
   }
 
   fn rand_message(length: usize) -> Vec<u8> {
-    let mut rng = thread_rng();
+    let mut rng = rng();
 
-    (0..length).map(|_| rng.gen::<u8>()).collect()
+    (0..length).map(|_| rng.random::<u8>()).collect()
   }
 
   #[rstest]
   fn test_ctr_rand_key(rand_key: Key<128>) {
     for _ in 0..10 {
-      let mut rng = thread_rng();
-      let nonce: [u8; AES::<128>::BLOCK_SIZE - 4] = rng.gen();
+      let mut rng = rng();
+      let nonce: [u8; AES::<128>::BLOCK_SIZE - 4] = rng.random();
       let counter: Counter<4> = Counter::from(0);
 
       let ctr = CTR::<AES<128>, 4>::new(nonce);
