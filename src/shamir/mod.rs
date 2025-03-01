@@ -8,10 +8,11 @@
 //! secret is less than PRIME.
 
 use rand::Rng;
-use super::algebra::field::prime::{PlutoBaseField,PlutoPrime::Base };
+
+use super::algebra::field::prime::{PlutoBaseField, PlutoPrime::Base};
 use crate::polynomial::*;
 
-const PRIME :u128 = Base as u128;
+const PRIME: u128 = Base as u128;
 /// A share is represented as a tuple (x, y) where both x and y are elements of GF(PRIME).
 pub type Share = (u128, u128);
 /// Splits the secret into `share_count` shares, any `threshold` of which are needed to reconstruct
@@ -91,8 +92,6 @@ pub fn combine_shares(shares: &[Share]) -> u128 {
   secret
 }
 
-
-
 /// Computes the modular inverse of a modulo p using the Extended Euclidean Algorithm.
 ///
 /// # Arguments
@@ -166,26 +165,24 @@ mod tests {
     let secret = 12u128;
     let share_count = 5;
     let shares = split_secret::<3>(secret, share_count);
-  
+
     // Reconstruct using exactly the threshold number of shares.
     let subset = &shares[..3];
     let recovered = combine_shares(subset);
     assert_eq!(secret, recovered);
   }
-  
 
   #[test]
   fn test_split_and_combine_all() {
     let secret = 98u128;
     let share_count = 7;
     let shares = split_secret::<4>(secret, share_count);
-  
+
     // Reconstruct using all shares.
     let recovered = combine_shares(&shares);
     assert_eq!(secret, recovered);
   }
 
-  
   #[test]
   fn test_interpolation_properties() {
     // Ensure that different subsets of shares (with at least the threshold) can reconstruct the
@@ -193,7 +190,7 @@ mod tests {
     let secret = 42u128;
     let share_count = 6;
     let shares = split_secret::<3>(secret, share_count);
-  
+
     // Test multiple combinations.
     for indices in vec![[0, 2, 4], [1, 3, 5], [0, 1, 2]] {
       let subset: Vec<Share> = indices.iter().map(|&i| shares[i]).collect();
