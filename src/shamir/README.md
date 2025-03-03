@@ -13,11 +13,11 @@ Reconstruction is achieved using Lagrange interpolation, which recovers the poly
 
 ## Finite Field Considerations
 
-This implementation performs arithmetic in the finite field GF(PRIME), where:
+This implementation performs arithmetic in the finite field PlutoBaseField, where:
 
-  $PRIME = 2^{127} - 1  =170141183460469231731687303715884105727$
+  $PRIME =101$
 
-All arithmetic operations (addition, multiplication, inversion) are carried out modulo PRIME. It is vital that the secret is a u128 integer smaller than PRIME.
+All arithmetic operations (addition, multiplication, inversion) are carried out in the PlutoBaseField. It is vital that the secret is a integer smaller than PRIME.
 
 ## Module Capabilities
 
@@ -40,7 +40,7 @@ use ronkathon::shamir::{split_secret, combine_shares};
 let secret: u128 = 123456789;
 let threshold = 3;
 let share_count = 5;
-let shares = split_secret(secret, threshold, share_count);
+let shares = split_secret<threshold>(secret, share_count);
 ```
 
 ### Reconstructing a Secret

@@ -4,17 +4,16 @@
 //! of shares such that any subset of shares of size at least `threshold` (k,n) where n = 2k-1
 //! can reconstruct the secret using Lagrange interpolation over a finite field.
 //!
-//! The chosen finite field is GF(PRIME) with PRIME = 2^127 - 1. Be sure that the provided
-//! secret is less than PRIME.
+//! The chosen finite field is GF(PRIME) with PRIME = PlutoBaseField base prime = 101. Be sure that
+//! the provided secret is less than PRIME.
 
 use rand::Rng;
 
-use super::algebra::field::prime::{PlutoBaseField, PlutoPrime::Base};
+use super::algebra::field::{prime::PlutoBaseField, Field};
 use crate::polynomial::*;
 
-const PRIME: u128 = Base as u128;
-/// A share is represented as a tuple (x, y) where both x and y are elements of GF(PRIME).
-pub type Share = (u128, u128);
+/// A share is represented as a tuple (x, y) where both x and y are elements of PLutoBaseField.
+pub type Share = (PlutoBaseField, PlutoBaseField);
 /// Splits the secret into `share_count` shares, any `threshold` of which are needed to reconstruct
 /// the secret. The secret is assumed to be less than PRIME.
 ///
@@ -48,9 +47,9 @@ pub fn split_secret<const THRESHOLD: usize>(secret: u128, share_count: usize) ->
   // Create polynomial once and evaluate it for each share.
   let p = Polynomial::<Monomial, PlutoBaseField, { THRESHOLD }>::new(coeffs.try_into().unwrap());
   let mut shares = Vec::with_capacity(share_count);
-  for i in 1..=share_count as u128 {
-    let y: usize = p.evaluate(PlutoBaseField::new(i as usize)).into();
-    shares.push((i, y as u128));
+  for i in 1..=share_count {
+    let y = p.evaluate(PlutoBaseField::new(i as usize));
+    shares.push((PlutoBaseField::new(i), y));
   }
   shares
 }
@@ -69,92 +68,27 @@ pub fn split_secret<const THRESHOLD: usize>(secret: u128, share_count: usize) ->
 /// # Returns
 ///
 /// The reconstructed secret as a u128.
-pub fn combine_shares(shares: &[Share]) -> u128 {
+pub fn combine_shares(shares: &[Share]) -> usize {
   assert!(!shares.is_empty(), "at least one share is required");
 
-  let mut secret = 0u128;
+  let mut secret = PlutoBaseField::ZERO;
   for (j, &(xj, yj)) in shares.iter().enumerate() {
-    let mut numerator = 1u128;
-    let mut denominator = 1u128;
+    let mut numerator = PlutoBaseField::ONE;
+    let mut denominator = PlutoBaseField::ONE;
     for (m, &(xm, _)) in shares.iter().enumerate() {
       if m == j {
         continue;
       }
-      let term_numer = (PRIME + 0 - xm) % PRIME;
-      numerator = mod_mul(numerator, term_numer, PRIME);
-      let term_denom = (xj + PRIME - xm) % PRIME;
-      denominator = mod_mul(denominator, term_denom, PRIME);
+      let term_numer = PlutoBaseField::ZERO - xm;
+      numerator *= term_numer;
+      let term_denom = xj - xm;
+      denominator *= term_denom;
     }
-    let inv = mod_inv(denominator, PRIME);
-    let lagrange_coeff = mod_mul(numerator, inv, PRIME);
-    secret = (secret + mod_mul(yj, lagrange_coeff, PRIME)) % PRIME;
+    let inv = denominator.inverse().expect("denominator is not invertible");
+    let lagrange_coeff = numerator * inv;
+    secret += yj * lagrange_coeff;
   }
-  secret
-}
-
-/// Computes the modular inverse of a modulo p using the Extended Euclidean Algorithm.
-///
-/// # Arguments
-///
-/// * `a` - The value for which to compute the inverse (must be nonzero and coprime to p).
-/// * `p` - The prime modulus.
-///
-/// # Panics
-///
-/// Panics if the modular inverse does not exist (i.e. if `a` and `p` are not coprime).
-fn mod_inv(a: u128, p: u128) -> u128 {
-  // Convert a and p to i128 for computation. This is safe because PRIME < 2^127.
-  let a = a as i128;
-  let p = p as i128;
-  let (mut t, mut newt) = (0i128, 1i128);
-  let (mut r, mut newr) = (p, a);
-
-  while newr != 0 {
-    let quotient = r / newr;
-    let temp_t = newt;
-    newt = t - quotient * newt;
-    t = temp_t;
-
-    let temp_r = newr;
-    newr = r - quotient * newr;
-    r = temp_r;
-  }
-
-  if r != 1 {
-    panic!("a is not invertible");
-  }
-  if t < 0 {
-    t += p;
-  }
-  t as u128
-}
-
-/// Performs modular multiplication of two values `a` and `b` modulo `modulus`.
-///
-/// This routine uses an iterative doubling method to avoid overflow that can occur when directly
-/// multiplying two u128 values.
-///
-/// # Arguments
-///
-/// * `a` - The first operand.
-/// * `b` - The second operand.
-/// * `modulus` - The modulus under which to perform the multiplication.
-///
-/// # Returns
-///
-/// The value of (a * b) % modulus.
-fn mod_mul(a: u128, b: u128, modulus: u128) -> u128 {
-  let mut result = 0u128;
-  let mut a = a % modulus;
-  let mut b = b;
-  while b > 0 {
-    if b & 1 == 1 {
-      result = (result + a) % modulus;
-    }
-    a = (a << 1) % modulus;
-    b >>= 1;
-  }
-  result
+  secret.into()
 }
 
 #[cfg(test)]
@@ -169,7 +103,7 @@ mod tests {
     // Reconstruct using exactly the threshold number of shares.
     let subset = &shares[..3];
     let recovered = combine_shares(subset);
-    assert_eq!(secret, recovered);
+    assert_eq!(secret, recovered.try_into().unwrap());
   }
 
   #[test]
@@ -180,7 +114,7 @@ mod tests {
 
     // Reconstruct using all shares.
     let recovered = combine_shares(&shares);
-    assert_eq!(secret, recovered);
+    assert_eq!(secret, recovered.try_into().unwrap());
   }
 
   #[test]
@@ -195,7 +129,7 @@ mod tests {
     for indices in vec![[0, 2, 4], [1, 3, 5], [0, 1, 2]] {
       let subset: Vec<Share> = indices.iter().map(|&i| shares[i]).collect();
       let recovered = combine_shares(&subset);
-      assert_eq!(secret, recovered);
+      assert_eq!(secret, recovered.try_into().unwrap());
     }
   }
 }
