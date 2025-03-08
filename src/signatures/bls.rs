@@ -67,13 +67,13 @@ pub struct ProofOfPossession {
 
 /// Converts a nonnegative integer to an octet string of a specified length using crypto-bigint.
 ///
-/// I2OSP (Integer-to-Octet-String Primitive) converts a nonnegative integer `x` (represented as a
-/// 256-bit integer) into its big-endian representation, trimmed of any excess leading zeroes, and
+/// I2OSP (Integer-to-Octet-String Primitive) converts a nonnegative integer `x`
+/// into its big-endian representation, trimmed of any excess leading zeroes, and
 /// left-padded with zeroes so that the result has exactly `length` bytes.
 ///
 /// # Arguments
 ///
-/// * `x` - A reference to a `U256` representing the nonnegative integer.
+/// * `x` - A reference to a `usize` representing the nonnegative integer.
 /// * `length` - The number of octets (bytes) the output string should have.
 ///
 /// # Returns
@@ -208,7 +208,7 @@ fn hash_to_field(msg: &[u8], count: usize) -> Vec<PlutoBaseFieldExtension> {
   const DST: &[u8] = b"BLS_SIG_PLUTO_RONKATHON_2024";
   let p = PlutoBaseField::ORDER; // modulus
   let degree = 2; // for GF(p²)
-  let blen = 64; // same as Python impl
+  let blen = 64; //
 
   let len_in_bytes = count * degree * blen;
   let uniform_bytes = expand_message_xmd(msg, DST, len_in_bytes);
