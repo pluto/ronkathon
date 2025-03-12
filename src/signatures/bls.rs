@@ -204,7 +204,7 @@ fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
 }
 
 /// Implements hash_to_field as specified in the standard
-fn  hash_to_field<const P : usize>(msg: &[u8], count: usize) -> Vec<GaloisField<2, P>> {
+fn hash_to_field<const P: usize>(msg: &[u8], count: usize) -> Vec<GaloisField<2, P>> {
   const DST: &[u8] = b"BLS_SIG_PLUTO_RONKATHON_2024";
   let p = GaloisField::<2, P>::ORDER; // modulus
   let degree = 2; // for GF(p²)
@@ -227,7 +227,7 @@ fn  hash_to_field<const P : usize>(msg: &[u8], count: usize) -> Vec<GaloisField<
       }
       e_vals[j] = PrimeField::new(val);
     }
-    result.push(GaloisField::<2,P>::new(e_vals));
+    result.push(GaloisField::<2, P>::new(e_vals));
   }
 
   result
