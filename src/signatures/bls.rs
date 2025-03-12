@@ -11,7 +11,7 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use crate::{
   algebra::{
     field::{
-      extension::PlutoBaseFieldExtension,
+      extension::{GaloisField, PlutoBaseFieldExtension},
       prime::{PlutoBaseField, PlutoScalarField, PrimeField},
       Field, FiniteField,
     },
@@ -204,9 +204,9 @@ fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
 }
 
 /// Implements hash_to_field as specified in the standard
-fn hash_to_field(msg: &[u8], count: usize) -> Vec<PlutoBaseFieldExtension> {
+fn  hash_to_field<const P : usize>(msg: &[u8], count: usize) -> Vec<GaloisField<2, P>> {
   const DST: &[u8] = b"BLS_SIG_PLUTO_RONKATHON_2024";
-  let p = PlutoBaseField::ORDER; // modulus
+  let p = GaloisField::<2, P>::ORDER; // modulus
   let degree = 2; // for GF(p²)
   let blen = 64; //
 
@@ -227,7 +227,7 @@ fn hash_to_field(msg: &[u8], count: usize) -> Vec<PlutoBaseFieldExtension> {
       }
       e_vals[j] = PrimeField::new(val);
     }
-    result.push(PlutoBaseFieldExtension::new(e_vals));
+    result.push(GaloisField::<2,P>::new(e_vals));
   }
 
   result
@@ -501,7 +501,7 @@ pub fn sqrt_canonical(x: &PlutoBaseFieldExtension) -> Option<PlutoBaseFieldExten
 
 /// Implements hash_to_curve as specified in the standard
 fn hash_to_curve(msg: &[u8]) -> Result<AffinePoint<PlutoExtendedCurve>, BlsError> {
-  let field_elems = hash_to_field(msg, 1);
+  let field_elems = hash_to_field::<101>(msg, 1);
   let mut x = field_elems[0];
 
   for _ in 0..100 {
