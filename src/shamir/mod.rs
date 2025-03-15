@@ -30,7 +30,10 @@ pub type Share<F> = (F, F);
 /// # Returns
 ///
 /// A vector of shares, where each share is a tuple (x, y).
-pub fn split_secret<F: FiniteField, const THRESHOLD: usize>(secret: F, share_count: usize) -> Vec<Share<F>> {
+pub fn split_secret<F: FiniteField, const THRESHOLD: usize>(
+  secret: F,
+  share_count: usize,
+) -> Vec<Share<F>> {
   assert!(THRESHOLD > 0, "threshold must be at least 1");
   assert!(share_count >= THRESHOLD, "share count must be at least the threshold");
 
@@ -97,7 +100,7 @@ pub fn combine_shares<F: FiniteField>(shares: &[Share<F>]) -> F {
 mod tests {
   use super::*;
   use crate::algebra::field::prime::PlutoBaseField;
-  
+
   #[test]
   fn test_split_and_combine_single() {
     let secret = PlutoBaseField::new(12);
