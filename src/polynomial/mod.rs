@@ -258,7 +258,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   }
 
   /// Computes the Fast Fourier Transform (FFT) of a polynomial in the Monomial basis.
-  /// 
+  ///
   /// of the polynomial in the [`Monomial`] basis by evaluating the polynomial at the roots of
   /// unity.
   /// This also converts a polynomial from [`Monomial`] to [`Lagrange`] [`Basis`] with node points
