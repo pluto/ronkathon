@@ -258,6 +258,18 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   }
 
   /// Computes the Fast Fourier Transform (FFT) of a polynomial in the Monomial basis.
+  /// 
+  /// of the polynomial in the [`Monomial`] basis by evaluating the polynomial at the roots of
+  /// unity.
+  /// This also converts a polynomial from [`Monomial`] to [`Lagrange`] [`Basis`] with node points
+  /// given by the roots of unity.
+  ///
+  /// ## Returns:
+  /// - A new polynomial in the [`Lagrange`] [`Basis`] that is the result of converting the
+  ///   evaluation of the polynomial at the roots of unity.
+  ///
+  /// ## Panics
+  /// - This function will panic in calling  if the no of coeff isnt a power of two
   pub fn fft(&self) -> Polynomial<Lagrange<F>, F, D>
   where [(); D.is_power_of_two() as usize - 1]: {
     let n = self.num_terms();
@@ -404,7 +416,17 @@ impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
 
   /// Computes the Inverse Fast Fourier Transform (IFFT) of a polynomial in the Lagrange basis.
   /// Uses the Cooley-Tukey butterfly algorithm for O(n log n) complexity.
-  /// Converts from point-value representation back to coefficient representation.
+  /// of the polynomial in the [`Monomial`] basis by evaluating the polynomial at the roots of
+  /// unity.
+  /// This also converts a polynomial from [`Lagrange`] to [`Monomial`] [`Basis`] with node points
+  /// given by the roots of unity.
+  ///
+  /// ## Returns:
+  /// - A new polynomial in the [`Monomial`] [`Basis`] that is the result of converting the
+  ///   evaluation of the polynomial at the roots of unity.
+  ///
+  /// ## Panics
+  /// - This function will panic in calling if the no of coeff isnt a power of two
   pub fn ifft(&self) -> Polynomial<Monomial, F, D>
   where [(); D.is_power_of_two() as usize - 1]: {
     // Get inverse primitive root of unity
