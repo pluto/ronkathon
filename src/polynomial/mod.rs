@@ -269,7 +269,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
   ///   evaluation of the polynomial at the roots of unity.
   ///
   /// ## Panics
-  /// - This function will panic in calling  if the no of coeff isnt a power of two
+  /// - This function will panic in calling  if the no of coeff isn't a power of two
   pub fn fft(&self) -> Polynomial<Lagrange<F>, F, D>
   where [(); D.is_power_of_two() as usize - 1]: {
     let n = self.num_terms();
@@ -426,7 +426,7 @@ impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
   ///   evaluation of the polynomial at the roots of unity.
   ///
   /// ## Panics
-  /// - This function will panic in calling if the no of coeff isnt a power of two
+  /// - This function will panic in calling if the no of coeff isn't a power of two
   pub fn ifft(&self) -> Polynomial<Monomial, F, D>
   where [(); D.is_power_of_two() as usize - 1]: {
     // Get inverse primitive root of unity
