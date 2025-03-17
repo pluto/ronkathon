@@ -74,3 +74,11 @@ pub trait FiniteField: Finite + Field {
     Self::PRIMITIVE_ELEMENT.pow(pow)
   }
 }
+
+/// traits that define some functions usable in signatures
+pub trait FieldExt: Sized {
+  /// Returns the square root of the field element.
+  fn sqrt(&self) -> Option<(Self, Self)>;
+
+  fn euler_criterion(&self) -> bool;
+}

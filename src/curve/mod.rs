@@ -10,7 +10,10 @@ use algebra::{
 
 use super::*;
 use crate::{
-  algebra::group::{FiniteCyclicGroup, Group},
+  algebra::{
+    field::FieldExt,
+    group::{FiniteCyclicGroup, Group},
+  },
   Field, PlutoScalarField,
 };
 
@@ -26,10 +29,10 @@ pub trait EllipticCurve: Copy + Debug + Eq {
 
   /// curve base field element type
   /// TODO: need to be converted for big integers later
-  type BaseField: FiniteField + Into<usize>;
+  type BaseField: FiniteField + Into<usize> + FieldExt;
 
   /// Curve scalar field type
-  type ScalarField: FiniteField + Into<usize>;
+  type ScalarField: FiniteField + Into<usize> + FieldExt;
 
   /// Order of this elliptic curve, i.e. number of elements in the scalar field.
   const ORDER: usize;

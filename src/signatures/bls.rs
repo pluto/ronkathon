@@ -4,7 +4,7 @@
 //! existing curve and pairing primitives. This module demonstrates key generation,
 //! signing, verification, and aggregation (for signatures on the same message).
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, convert, ops::Add};
 
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
@@ -13,7 +13,7 @@ use crate::{
     field::{
       extension::{GaloisField, PlutoBaseFieldExtension},
       prime::{PlutoBaseField, PlutoScalarField, PrimeField},
-      Field, FiniteField,
+      Field, FieldExt, FiniteField,
     },
     group::FiniteCyclicGroup,
     Finite,
@@ -21,7 +21,7 @@ use crate::{
   curve::{
     pairing::pairing,
     pluto_curve::{PlutoBaseCurve, PlutoExtendedCurve},
-    AffinePoint,
+    AffinePoint, EllipticCurve,
   },
   hashes::sha3::Sha3_256 as Sha256,
   hmac::hmac_sha256::hmac_sha256,
@@ -45,24 +45,25 @@ pub enum BlsError {
 }
 
 /// BLS private key.
-pub struct BlsPrivateKey {
-  sk: PlutoScalarField,
+pub struct BlsPrivateKey<C: EllipticCurve> {
+  sk:       <C as EllipticCurve>::ScalarField,
+  _phantom: std::marker::PhantomData<C>,
 }
 
 /// BLS public key.
-pub struct BlsPublicKey {
-  pk: AffinePoint<PlutoBaseCurve>,
+pub struct BlsPublicKey<C: EllipticCurve> {
+  pk: AffinePoint<C>,
 }
 
 /// BLS signature.
-pub struct BlsSignature {
-  sig: AffinePoint<PlutoExtendedCurve>,
+pub struct BlsSignature<C: EllipticCurve> {
+  sig: AffinePoint<C>,
 }
 
 /// Proof of Possession (PoP) for a BLS public key.
 /// This prevents rogue key attacks by requiring signers to prove knowledge of their secret key.
-pub struct ProofOfPossession {
-  pop: BlsSignature,
+pub struct ProofOfPossession<C: EllipticCurve> {
+  pop: BlsSignature<C>,
 }
 
 /// Converts a nonnegative integer to an octet string of a specified length using crypto-bigint.
@@ -204,18 +205,24 @@ fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
 }
 
 /// Implements hash_to_field as specified in the standard
-fn hash_to_field<const P: usize>(msg: &[u8], count: usize) -> Vec<GaloisField<2, P>> {
+fn hash_to_field<C: EllipticCurve, D: EllipticCurve>(
+  msg: &[u8],
+  count: usize,
+) -> Vec<<D as EllipticCurve>::BaseField>
+where
+  <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]>,
+{
   const DST: &[u8] = b"BLS_SIG_PLUTO_RONKATHON_2024";
-  let p = GaloisField::<2, P>::ORDER; // modulus
+  let p = <D as EllipticCurve>::BaseField::ORDER; // modulus
   let degree = 2; // for GF(p²)
   let blen = 64; //
 
   let len_in_bytes = count * degree * blen;
   let uniform_bytes = expand_message_xmd(msg, DST, len_in_bytes);
 
-  let mut result = Vec::with_capacity(count);
+  let mut result: Vec<<D as EllipticCurve>::BaseField> = Vec::with_capacity(count);
   for i in 0..count {
-    let mut e_vals = [PrimeField::ZERO; 2];
+    let mut e_vals = [<C as EllipticCurve>::BaseField::ZERO; 2];
     for j in 0..degree {
       let elm_offset = blen * (j + i * degree);
       let tv = &uniform_bytes[elm_offset..elm_offset + blen];
@@ -225,46 +232,36 @@ fn hash_to_field<const P: usize>(msg: &[u8], count: usize) -> Vec<GaloisField<2,
       for byte in tv {
         val = (val * 256 + *byte as usize) % p;
       }
-      e_vals[j] = PrimeField::new(val);
+      e_vals[j] = <C as EllipticCurve>::BaseField::from(val);
     }
-    result.push(GaloisField::<2, P>::new(e_vals));
+    result.push(<D as EllipticCurve>::BaseField::from(e_vals));
   }
 
   result
 }
 
-impl ProofOfPossession {
+impl<C: EllipticCurve> ProofOfPossession<C> {
   /// Verifies the proof of possession for a BLS public key.
-  pub fn verify(&self, pk: &BlsPublicKey) -> Result<(), BlsError> {
+  pub fn verify<D: EllipticCurve>(&self, pk: &BlsPublicKey<D>) -> Result<(), BlsError> {
     pk.validate()?;
     // Build the properly twisted generator G from the base-curve generator.
-    let g = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
-      AffinePoint::<PlutoBaseCurve>::GENERATOR
-    {
-      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-      AffinePoint::<PlutoExtendedCurve>::new(
-        cube_root * PlutoBaseFieldExtension::from(x),
-        PlutoBaseFieldExtension::from(y),
-      )
-    } else {
-      return Err(BlsError::InvalidPoint);
-    };
+    let g = AffinePoint::<C>::GENERATOR;
 
-    let pk_ext = convert_to_extended(pk.pk);
-    let left = pairing::<PlutoExtendedCurve, 17>(self.pop.sig, g);
-    let right = pairing::<PlutoExtendedCurve, 17>(pk_ext, pk_ext);
-    if canonicalize_extension(left) == canonicalize_extension(right) {
+    let pk_ext = convert_to_extended::<D, C>(pk.pk);
+    let left = pairing::<C, 17>(self.pop.sig, g);
+    let right = pairing::<C, 17>(pk_ext, pk_ext);
+    if left == right {
       Ok(())
     } else {
       Err(BlsError::VerificationFailed)
     }
   }
 }
-impl BlsPrivateKey {
+impl<C: EllipticCurve> BlsPrivateKey<C> {
   /// Returns the corresponding BLS secret key. subject to a lot of issues due to local caching
   pub fn generate_random<R: Rng>(rng: &mut R) -> Self {
-    let sk = PlutoScalarField::new(rng.gen_range(1..=PlutoScalarField::ORDER));
-    BlsPrivateKey { sk }
+    let sk = <C as EllipticCurve>::ScalarField::from(rng.gen_range(1..=PlutoScalarField::ORDER));
+    BlsPrivateKey { sk, _phantom: std::marker::PhantomData }
   }
 
   /// Returns the corresponding BLS secret key.
@@ -274,63 +271,66 @@ impl BlsPrivateKey {
   }
 
   /// Returns the corresponding BLS public key.
-  pub fn public_key(&self) -> BlsPublicKey {
+  pub fn public_key(&self) -> BlsPublicKey<C> {
     // Calculate public key as sk * G, where G is the generator of the subgroup.
-    let pk = AffinePoint::<PlutoBaseCurve>::GENERATOR * self.sk;
+    let pk = AffinePoint::<C>::GENERATOR * self.sk;
     BlsPublicKey { pk }
   }
 
   /// Signs a message using the BLS private key.
   ///
   /// The signature is computed as sk * H(m), where H is a hash-to-curve function.
-  pub fn sign(&self, msg: &[u8]) -> Result<BlsSignature, BlsError> {
-    let hash_point = hash_to_curve(msg)?;
+  pub fn sign<D: EllipticCurve>(&self, msg: &[u8]) -> Result<BlsSignature<D>, BlsError>
+  where <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]> {
+    let hash_point = hash_to_curve::<C, D>(msg)?;
 
     // Sign
-    let sig_point = hash_point * self.sk;
+    let sig_point = hash_point * <D as EllipticCurve>::ScalarField::from(self.sk.into());
 
-    Ok(BlsSignature { sig: canonicalize(sig_point) })
+    Ok(BlsSignature { sig: sig_point })
   }
 
   /// Generates a proof of possession for the private key.
   /// The proof is a signature on the public key bytes.
-  pub fn generate_proof_of_possession(&self) -> Result<ProofOfPossession, BlsError> {
+  pub fn generate_proof_of_possession<D: EllipticCurve>(
+    &self,
+  ) -> Result<ProofOfPossession<D>, BlsError> {
     let pk = self.public_key();
 
     // Sign the public key bytes
-    let pop = BlsSignature { sig: convert_to_extended(pk.pk) * self.sk };
+    let pop = BlsSignature {
+      sig: convert_to_extended::<C, D>(pk.pk)
+        * <D as EllipticCurve>::ScalarField::from(self.sk.into()),
+    };
     Ok(ProofOfPossession { pop })
   }
 }
-impl BlsPublicKey {
+impl<C: EllipticCurve> BlsPublicKey<C> {
   /// Verifies a BLS signature against the given message.
   ///
   /// The verification check uses the bilinear pairing:
   ///   e(signature, G) == e(H(message), public_key)
-  pub fn verify(&self, msg: &[u8], signature: &BlsSignature) -> Result<(), BlsError> {
+  pub fn verify<D: EllipticCurve>(
+    &self,
+    msg: &[u8],
+    signature: &BlsSignature<D>,
+  ) -> Result<(), BlsError>
+  where
+    <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]>,
+  {
     self.validate()?;
     // Hash the message to a point on the extended curve.
-    let hash_point = hash_to_curve(msg)?;
+    let hash_point = hash_to_curve::<C, D>(msg)?;
 
     // Build the properly twisted generator G from the base-curve generator.
-    let g = if let AffinePoint::<PlutoBaseCurve>::Point(x, y) =
-      AffinePoint::<PlutoBaseCurve>::GENERATOR
-    {
-      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-      AffinePoint::<PlutoExtendedCurve>::new(
-        cube_root * PlutoBaseFieldExtension::from(x),
-        PlutoBaseFieldExtension::from(y),
-      )
-    } else {
-      return Err(BlsError::InvalidPoint);
-    };
+    let g = convert_to_extended::<C, D>(AffinePoint::<C>::GENERATOR);
 
     // Convert the public key into the extended group and canonicalize.
-    let pk = convert_to_extended(self.pk);
+    let pk = convert_to_extended::<C, D>(self.pk);
 
     // Compute the pairing outputs.
-    let left = pairing::<PlutoExtendedCurve, 17>(signature.sig, g);
-    let right = pairing::<PlutoExtendedCurve, 17>(hash_point, pk);
+    let left = pairing::<D, 17>(signature.sig, g);
+    let right = pairing::<D, 17>(hash_point, pk);
 
     // Compare the canonical representations of each pairing output.
     if left == right {
@@ -345,13 +345,14 @@ impl BlsPublicKey {
     // Check if point is valid (implicitly done by AffinePoint type)
 
     // Check if point is identity element
-    if self.pk == AffinePoint::<PlutoBaseCurve>::Infinity {
+    if self.pk == AffinePoint::<C>::Infinity {
       return Err(BlsError::InvalidPublicKey);
     }
 
     // Check if point is in the correct subgroup
     let subgroup_order = 17;
-    if (self.pk * PlutoScalarField::new(subgroup_order)) != AffinePoint::<PlutoBaseCurve>::Infinity
+    if (self.pk * <C as EllipticCurve>::ScalarField::from(subgroup_order))
+      != AffinePoint::<C>::Infinity
     {
       return Err(BlsError::InvalidPublicKey);
     }
@@ -360,12 +361,12 @@ impl BlsPublicKey {
   }
 }
 
-impl BlsSignature {
+impl<C: EllipticCurve> BlsSignature<C> {
   /// Aggregates multiple BLS signatures into a single signature.
   ///
   /// This function sums the individual signature points. All signatures must be on the same
   /// message.
-  pub fn aggregate(signatures: &[BlsSignature]) -> Result<BlsSignature, BlsError> {
+  pub fn aggregate(signatures: &[BlsSignature<C>]) -> Result<BlsSignature<C>, BlsError> {
     if signatures.is_empty() {
       return Err(BlsError::Other("No signatures to aggregate".into()));
     }
@@ -379,65 +380,61 @@ impl BlsSignature {
 
 /// Verifies an aggregated BLS signature for a single common message:
 ///   e(aggregated_signature, G) == ∏ e(H(m), pk_i)
-pub fn verify_aggregated_signature(
-  pks: &[BlsPublicKey],
+pub fn verify_aggregated_signature<C: EllipticCurve, D: EllipticCurve>(
+  pks: &[BlsPublicKey<C>],
   messages: &[&[u8]],
-  aggregated_sig: &BlsSignature,
-) -> Result<(), BlsError> {
+  aggregated_sig: &BlsSignature<D>,
+) -> Result<(), BlsError>
+where
+  <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]>,
+{
   if pks.is_empty() || messages.is_empty() || pks.len() != messages.len() {
     return Err(BlsError::Other("Invalid input lengths".to_string()));
   }
 
   // Build the same properly twisted generator G.
-  let g =
-    if let AffinePoint::<PlutoBaseCurve>::Point(x, y) = AffinePoint::<PlutoBaseCurve>::GENERATOR {
-      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-      AffinePoint::<PlutoExtendedCurve>::new(
-        cube_root * PlutoBaseFieldExtension::from(x),
-        PlutoBaseFieldExtension::from(y),
-      )
-    } else {
-      return Err(BlsError::InvalidPoint);
-    };
+  let g = convert_to_extended::<C, D>(AffinePoint::<C>::GENERATOR);
 
   // Verification: e(aggregated_sig, G) must equal the product over all pairings.
-  let left = pairing::<PlutoExtendedCurve, 17>(aggregated_sig.sig, g);
+  let left = pairing::<D, 17>(aggregated_sig.sig, g);
 
-  let mut right = PlutoBaseFieldExtension::ONE;
+  let mut right = <D as EllipticCurve>::BaseField::ONE;
   for (pk, msg) in pks.iter().zip(messages.iter()) {
     pk.validate()?;
-    let hash_point = hash_to_curve(msg)?;
-    let pk_extended = convert_to_extended(pk.pk);
-    right *= pairing::<PlutoExtendedCurve, 17>(hash_point, pk_extended);
+    let hash_point = hash_to_curve::<C, D>(msg)?;
+    let pk_extended = convert_to_extended::<C, D>(pk.pk);
+    right *= pairing::<D, 17>(hash_point, pk_extended);
   }
 
-  if canonicalize_extension(left) == canonicalize_extension(right) {
+  if left == right {
     Ok(())
   } else {
     Err(BlsError::VerificationFailed)
   }
 }
 
-fn convert_to_extended(point: AffinePoint<PlutoBaseCurve>) -> AffinePoint<PlutoExtendedCurve> {
+fn convert_to_extended<C: EllipticCurve, D: EllipticCurve>(
+  point: AffinePoint<C>,
+) -> AffinePoint<D> {
   match point {
     AffinePoint::Point(x, y) => {
-      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-      AffinePoint::<PlutoExtendedCurve>::new(
-        cube_root * PlutoBaseFieldExtension::from(x),
-        PlutoBaseFieldExtension::from(y),
+      let cube_root = <D as EllipticCurve>::BaseField::primitive_root_of_unity(3);
+      AffinePoint::<D>::new(
+        cube_root * <D as EllipticCurve>::BaseField::from(x.into()),
+        <D as EllipticCurve>::BaseField::from(y.into()),
       )
     },
-    AffinePoint::Infinity => AffinePoint::<PlutoExtendedCurve>::Infinity,
+    AffinePoint::Infinity => AffinePoint::<D>::Infinity,
   }
 }
 /// Implements map_to_curve as specified in the standard
 
 /// Implements clear_cofactor as specified in the standard
-fn clear_cofactor(point: AffinePoint<PlutoExtendedCurve>) -> AffinePoint<PlutoExtendedCurve> {
-  let p = PlutoBaseField::ORDER; // 101
+fn clear_cofactor<C: EllipticCurve>(point: AffinePoint<C>) -> AffinePoint<C> {
+  let p = <C as EllipticCurve>::BaseField::ORDER; // 101
   let cofactor = (p * p - 1) / 17;
 
-  let mut cleared = point * PlutoScalarField::new(cofactor);
+  let mut cleared = point * <C as EllipticCurve>::ScalarField::from(cofactor);
 
   // Check if we need to adjust the point
   let mut sum = cleared;
@@ -448,7 +445,7 @@ fn clear_cofactor(point: AffinePoint<PlutoExtendedCurve>) -> AffinePoint<PlutoEx
   if sum != cleared {
     // If point doesn't have the property, multiply x by cube root
     if let AffinePoint::Point(x, y) = cleared {
-      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
+      let cube_root = <C as EllipticCurve>::BaseField::primitive_root_of_unity(3);
       cleared = AffinePoint::new(cube_root * x, y);
     }
   }
@@ -500,26 +497,29 @@ pub fn sqrt_canonical(x: &PlutoBaseFieldExtension) -> Option<PlutoBaseFieldExten
 }
 
 /// Implements hash_to_curve as specified in the standard
-fn hash_to_curve(msg: &[u8]) -> Result<AffinePoint<PlutoExtendedCurve>, BlsError> {
-  let field_elems = hash_to_field::<101>(msg, 1);
+fn hash_to_curve<C: EllipticCurve, D: EllipticCurve>(
+  msg: &[u8],
+) -> Result<AffinePoint<D>, BlsError>
+where <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]> + From<usize> {
+  let field_elems = hash_to_field::<C, D>(msg, 1);
   let mut x = field_elems[0];
 
   for _ in 0..100 {
     let x3 = x * x * x;
-    let y2 = x3 + PlutoBaseFieldExtension::from(3u64);
+    let y2 = x3 + <D as EllipticCurve>::BaseField::from(3usize);
 
     if y2.euler_criterion() {
       // Use the canonical square root.
-      let y = sqrt_canonical(&y2).ok_or(BlsError::HashToCurveFailed)?;
-      let point = AffinePoint::<PlutoExtendedCurve>::new(x, y);
+      let y = y2.sqrt().unwrap().0;
+      let point = AffinePoint::<D>::new(x, y);
 
       // Clear cofactor and verify point is in correct subgroup
-      let cofactored = clear_cofactor(point);
-      if (cofactored * PlutoScalarField::new(17)) == AffinePoint::<PlutoExtendedCurve>::Infinity {
+      let cofactored = clear_cofactor::<D>(point);
+      if (cofactored * <D as EllipticCurve>::ScalarField::from(17)) == AffinePoint::<D>::Infinity {
         return Ok(cofactored);
       }
     }
-    x += PlutoBaseFieldExtension::ONE;
+    x += <D as EllipticCurve>::BaseField::ONE;
   }
 
   Err(BlsError::HashToCurveFailed)
@@ -538,45 +538,38 @@ fn hash_to_curve(msg: &[u8]) -> Result<AffinePoint<PlutoExtendedCurve>, BlsError
 /// # Returns
 ///
 /// * `Ok(())` if the signature is valid, or a corresponding `BlsError` otherwise.
-pub fn verify_aggregated_signature_single_message(
-  pks: &[BlsPublicKey],
+pub fn verify_aggregated_signature_single_message<C: EllipticCurve, D: EllipticCurve>(
+  pks: &[BlsPublicKey<C>],
   msg: &[u8],
-  aggregated_sig: &BlsSignature,
-) -> Result<(), BlsError> {
+  aggregated_sig: &BlsSignature<D>,
+) -> Result<(), BlsError>
+where
+  <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]> + From<usize>,
+{
   if pks.is_empty() {
     return Err(BlsError::Other("No public keys provided".to_string()));
   }
 
   // Build the twisted generator G₁.
-  let g =
-    if let AffinePoint::<PlutoBaseCurve>::Point(x, y) = AffinePoint::<PlutoBaseCurve>::GENERATOR {
-      let cube_root = PlutoBaseFieldExtension::primitive_root_of_unity(3);
-      AffinePoint::<PlutoExtendedCurve>::new(
-        cube_root * PlutoBaseFieldExtension::from(x),
-        PlutoBaseFieldExtension::from(y),
-      )
-    } else {
-      return Err(BlsError::InvalidPoint);
-    };
+  let g = convert_to_extended::<C, D>(AffinePoint::<C>::GENERATOR);
 
   // Convert and aggregate the public keys in the extended group.
-  let mut aggregated_pk_ext: AffinePoint<PlutoExtendedCurve> =
-    AffinePoint::<PlutoExtendedCurve>::Infinity;
+  let mut aggregated_pk_ext: AffinePoint<D> = AffinePoint::<D>::Infinity;
   for pk in pks {
     pk.validate()?;
-    let pk_ext = canonicalize(convert_to_extended(pk.pk));
+    let pk_ext = convert_to_extended::<C, D>(pk.pk);
     aggregated_pk_ext += pk_ext;
   }
 
   // Hash the common message to a point.
-  let hash_point = hash_to_curve(msg)?;
+  let hash_point = hash_to_curve::<C, D>(msg)?;
 
   // Compute the pairings.
-  let left = pairing::<PlutoExtendedCurve, 17>(aggregated_sig.sig, g);
-  let right = pairing::<PlutoExtendedCurve, 17>(hash_point, aggregated_pk_ext);
+  let left = pairing::<D, 17>(aggregated_sig.sig, g);
+  let right = pairing::<D, 17>(hash_point, aggregated_pk_ext);
 
   // Compare the canonical representation of both pairing outputs.
-  if canonicalize_extension(left) == canonicalize_extension(right) {
+  if left == right {
     Ok(())
   } else {
     Err(BlsError::VerificationFailed)
@@ -589,7 +582,7 @@ mod tests {
   use super::*;
 
   /// Creates a deterministic private key for testing using seed
-  fn create_test_private_key(seed: u64) -> BlsPrivateKey {
+  fn create_test_private_key(seed: u64) -> BlsPrivateKey<PlutoBaseCurve> {
     BlsPrivateKey::generate_deterministic(seed)
   }
 
@@ -598,7 +591,7 @@ mod tests {
     let msg = b"Hello, BLS!";
     let sk = create_test_private_key(1234);
     let pk = sk.public_key();
-    let sig = sk.sign(msg).expect("Signing should succeed");
+    let sig = sk.sign::<PlutoExtendedCurve>(msg).expect("Signing should succeed");
     assert!(pk.verify(msg, &sig).is_ok(), "Valid signature should verify correctly");
   }
 
@@ -607,7 +600,7 @@ mod tests {
     let msg = b"Hello, BLS!";
     let sk = create_test_private_key(1234);
     let pk = sk.public_key();
-    let tampered_sig = BlsSignature { sig: AffinePoint::<PlutoBaseCurve>::GENERATOR.into() };
+    let tampered_sig = BlsSignature { sig: AffinePoint::<PlutoExtendedCurve>::GENERATOR };
     assert!(pk.verify(msg, &tampered_sig).is_err(), "Tampered signature should fail verification");
   }
 
@@ -622,14 +615,19 @@ mod tests {
     for seed in test_seeds {
       let sk = create_test_private_key(seed);
       public_keys.push(sk.public_key());
-      signatures.push(sk.sign(msg).expect("Signing should succeed"));
+      signatures.push(sk.sign::<PlutoExtendedCurve>(msg).expect("Signing should succeed"));
     }
 
     let aggregated_signature =
       BlsSignature::aggregate(&signatures).expect("Aggregation should succeed");
 
     assert!(
-      verify_aggregated_signature_single_message(&public_keys, msg, &aggregated_signature).is_ok(),
+      verify_aggregated_signature_single_message::<PlutoBaseCurve, PlutoExtendedCurve>(
+        &public_keys,
+        msg,
+        &aggregated_signature
+      )
+      .is_ok(),
       "Aggregated signature should verify correctly"
     );
   }
@@ -638,9 +636,13 @@ mod tests {
   fn test_verify_aggregated_empty_public_keys() {
     let msg = b"Aggregate with Empty Public Keys";
     let sk = create_test_private_key(1111);
-    let sig = sk.sign(msg).expect("Signing should succeed");
+    let sig = sk.sign::<PlutoExtendedCurve>(msg).expect("Signing should succeed");
 
-    let res = verify_aggregated_signature_single_message(&[], &[], &sig);
+    let res = verify_aggregated_signature_single_message::<PlutoBaseCurve, PlutoExtendedCurve>(
+      &[],
+      &[],
+      &sig,
+    );
     assert!(res.is_err(), "Verification with empty public key list should fail");
   }
 }
