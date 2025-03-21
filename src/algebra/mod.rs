@@ -2,6 +2,7 @@
 //! Defines algebraic types:
 //! - [`group::Group`]: Group
 //! - [`field::Field`]: Field
+pub mod bigfield;
 pub mod field;
 pub mod group;
 
