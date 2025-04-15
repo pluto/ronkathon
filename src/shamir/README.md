@@ -38,9 +38,8 @@ To generate shares from a secret, you specify the secret (a u128 number), the th
 use ronkathon::shamir::{split_secret, combine_shares};
 
 let secret: u128 = 123456789;
-let threshold = 3;
 let share_count = 5;
-let shares = split_secret<threshold>(secret, share_count);
+let shares = split_secret<3>(secret, share_count);
 ```
 
 ### Reconstructing a Secret
