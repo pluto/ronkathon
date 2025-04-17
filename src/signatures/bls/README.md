@@ -31,8 +31,35 @@ To verify a signature, the following steps are performed:
 1. **Hashing**: The original message is hashed to produce a fixed-size output.
 2. **Signature Verification**: The signature is verified by checking the pairing of the public key, the hashed message, and the signature.
 
-### Signature Aggregation
+## Signature Aggregation
 
 Multiple signatures can be aggregated into a single signature, which can then be verified against the combined public keys. This is particularly useful in scenarios where multiple parties sign the same message.
 
- 
+### Basic Principle
+Given multiple (message, signature) pairs from different signers:
+- (m₁, σ₁) from signer 1
+- (m₂, σ₂) from signer 2
+- ...
+- (mₙ, σₙ) from signer n
+
+We can combine them into a single aggregate signature: σ_agg = σ₁ + σ₂ + ... + σₙ
+
+### Properties
+1. **Size Efficiency**: The aggregate signature has the same size as a single signature
+2. **Verification Efficiency**: Verifying the aggregate signature is faster than verifying n signatures individually
+3. **Non-interactivity**: Signers don't need to coordinate or communicate
+4. **Public Key Aggregation**: Public keys can also be aggregated
+
+### Mathematical Background
+
+BLS signatures work on special elliptic curves with bilinear pairings. The key components are:
+
+1. **Groups**: Uses two groups G₁ and G₂ with a bilinear mapping e: G₁ × G₂ → Gₜ
+2. **Hash-to-Curve**: Messages are mapped to curve points using a special hash function
+3. **Pairing Check**: Verification uses the bilinear pairing property: e(g,h)ᵃᵇ = e(gᵃ,h) = e(g,hᵇ)
+
+## References
+
+- [BLS Signature Scheme Paper](https://www.iacr.org/archive/asiacrypt2001/22480516.pdf)
+- [BLS Signature Specification](https://tools.ietf.org/html/draft-irtf-cfrg-bls-signature)
+- [BLS12-381 For The Rest Of Us](https://hackmd.io/@benjaminion/bls12-381) 

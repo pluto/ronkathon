@@ -1,4 +1,3 @@
-
 use super::*;
 
 /// Creates a deterministic private key for testing using seed
