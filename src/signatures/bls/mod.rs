@@ -3,7 +3,7 @@
 //! Implements Boneh–Lynn–Shacham (BLS) digital signatures using ronkathon's
 //! existing curve and pairing primitives. This module demonstrates key generation,
 //! signing, verification, and aggregation (for signatures on the same message).
-
+pub mod tests;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 use crate::{
@@ -20,8 +20,6 @@ use crate::{
   hashes::sha3::Sha3_256 as Sha256,
   hmac::hmac_sha256::hmac_sha256,
 };
-
-#[cfg(test)] mod tests;
 
 /// Errors that can occur during BLS signature operations.
 #[derive(Debug)]
@@ -82,6 +80,8 @@ pub struct ProofOfPossession<C: EllipticCurve> {
 /// # Example
 ///
 /// ```
+
+/// ```
 pub fn i2osp(x: usize, length: usize) -> Result<Vec<u8>, String> {
   if x >= (1 << (8 * length)) {
     return Err(format!("Integer too large to encode in {} octets", length));
@@ -98,7 +98,6 @@ pub fn i2osp(x: usize, length: usize) -> Result<Vec<u8>, String> {
 
   Ok(result)
 }
-
 /// Converts an octet string to a nonnegative integer as a U256 using crypto-bigint.
 ///
 /// OS2IP (Octet-String-to-Integer Primitive) interprets an octet string as the big-endian
@@ -118,6 +117,8 @@ pub fn i2osp(x: usize, length: usize) -> Result<Vec<u8>, String> {
 /// # Example
 ///
 /// ```
+
+/// ```
 pub fn os2ip(octets: &[u8]) -> Result<usize, String> {
   let mut ret = 0usize;
   for &byte in octets {
@@ -126,6 +127,8 @@ pub fn os2ip(octets: &[u8]) -> Result<usize, String> {
   }
   Ok(ret)
 }
+
+// HKDF
 
 /// HKDF-Extract according to RFC 5869.
 /// If no salt is provided (i.e., salt is empty), a zero-filled salt of 32-bytes (SHA-256 output
