@@ -4,17 +4,11 @@
 //! existing curve and pairing primitives. This module demonstrates key generation,
 //! signing, verification, and aggregation (for signatures on the same message).
 
-use std::{cmp::Ordering, convert, ops::Add};
-
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 use crate::{
   algebra::{
-    field::{
-      extension::{GaloisField, PlutoBaseFieldExtension},
-      prime::{PlutoBaseField, PlutoScalarField, PrimeField},
-      Field, FieldExt, FiniteField,
-    },
+    field::{prime::PlutoScalarField, Field, FieldExt, FiniteField},
     group::FiniteCyclicGroup,
     Finite,
   },
@@ -281,7 +275,7 @@ impl<C: EllipticCurve> BlsPrivateKey<C> {
   ///
   /// The signature is computed as sk * H(m), where H is a hash-to-curve function.
   pub fn sign<D: EllipticCurve>(&self, msg: &[u8]) -> Result<BlsSignature<D>, BlsError>
-  where <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]> {
+  where <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]> + FieldExt {
     let hash_point = hash_to_curve::<C, D>(msg)?;
 
     // Sign
@@ -316,7 +310,7 @@ impl<C: EllipticCurve> BlsPublicKey<C> {
     signature: &BlsSignature<D>,
   ) -> Result<(), BlsError>
   where
-    <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]>,
+    <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]> + FieldExt,
   {
     self.validate()?;
     // Hash the message to a point on the extended curve.
@@ -332,7 +326,7 @@ impl<C: EllipticCurve> BlsPublicKey<C> {
     let left = pairing::<D, 17>(signature.sig, g);
     let right = pairing::<D, 17>(hash_point, pk);
 
-    // Compare the canonical representations of each pairing output.
+    // Compare the representations of each pairing output.
     if left == right {
       Ok(())
     } else {
@@ -361,7 +355,9 @@ impl<C: EllipticCurve> BlsPublicKey<C> {
   }
 }
 
-impl<C: EllipticCurve> BlsSignature<C> {
+impl<C: EllipticCurve> BlsSignature<C>
+where <C as EllipticCurve>::BaseField: FieldExt
+{
   /// Aggregates multiple BLS signatures into a single signature.
   ///
   /// This function sums the individual signature points. All signatures must be on the same
@@ -427,7 +423,6 @@ fn convert_to_extended<C: EllipticCurve, D: EllipticCurve>(
     AffinePoint::Infinity => AffinePoint::<D>::Infinity,
   }
 }
-/// Implements map_to_curve as specified in the standard
 
 /// Implements clear_cofactor as specified in the standard
 fn clear_cofactor<C: EllipticCurve>(point: AffinePoint<C>) -> AffinePoint<C> {
@@ -451,49 +446,6 @@ fn clear_cofactor<C: EllipticCurve>(point: AffinePoint<C>) -> AffinePoint<C> {
   }
 
   cleared
-}
-
-/// Compares two extended field elements lexicographically.
-pub fn lex_cmp_extension(a: &PlutoBaseFieldExtension, b: &PlutoBaseFieldExtension) -> Ordering {
-  match a.coeffs[0].value.cmp(&b.coeffs[0].value) {
-    Ordering::Equal => a.coeffs[1].value.cmp(&b.coeffs[1].value),
-    ord => ord,
-  }
-}
-
-/// Returns the canonical representation of an extension field element.
-/// It returns the lexicographically smaller element between the given element and its negation.
-pub fn canonicalize_extension(x: PlutoBaseFieldExtension) -> PlutoBaseFieldExtension {
-  if lex_cmp_extension(&x, &(-x)) == Ordering::Greater {
-    -x
-  } else {
-    x
-  }
-}
-
-/// Updates the canonicalization for a point: it forces its y-coordinate to be in
-/// the unique (canonical) form.
-fn canonicalize(point: AffinePoint<PlutoExtendedCurve>) -> AffinePoint<PlutoExtendedCurve> {
-  match point {
-    AffinePoint::Infinity => point,
-    AffinePoint::Point(x, y) => {
-      // Instead of using is_negative we now use our lexicographic method.
-      AffinePoint::Point(x, canonicalize_extension(y))
-    },
-  }
-}
-
-/// Returns the canonical square root of a field element in PlutoBaseFieldExtension.
-/// such that alternative = -candidate.
-pub fn sqrt_canonical(x: &PlutoBaseFieldExtension) -> Option<PlutoBaseFieldExtension> {
-  x.sqrt().map(|(candidate, _alternative)| {
-    // Choose the lexicographically smaller candidate: candidate or -candidate.
-    if lex_cmp_extension(&candidate, &(-candidate)) == Ordering::Less {
-      candidate
-    } else {
-      -candidate
-    }
-  })
 }
 
 /// Implements hash_to_curve as specified in the standard
