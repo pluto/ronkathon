@@ -42,7 +42,7 @@ Given multiple (message, signature) pairs from different signers:
 - ...
 - (mₙ, σₙ) from signer n
 
-We can combine them into a single aggregate signature: σ_agg = σ₁ + σ₂ + ... + σₙ
+We can combine them into a single aggregate signature: $σ\_agg = σ_1 + σ_2 + ... + σ_n$
 
 ### Properties
 1. **Size Efficiency**: The aggregate signature has the same size as a single signature
@@ -54,9 +54,9 @@ We can combine them into a single aggregate signature: σ_agg = σ₁ + σ₂ + 
 
 BLS signatures work on special elliptic curves with bilinear pairings. The key components are:
 
-1. **Groups**: Uses two groups G₁ and G₂ with a bilinear mapping e: G₁ × G₂ → Gₜ
+1. **Groups**: Uses two groups G₁ and G₂ with a bilinear mapping $e: G_1 × G_2 → G_t$
 2. **Hash-to-Curve**: Messages are mapped to curve points using a special hash function
-3. **Pairing Check**: Verification uses the bilinear pairing property: e(g,h)ᵃᵇ = e(gᵃ,h) = e(g,hᵇ)
+3. **Pairing Check**: Verification uses the bilinear pairing property: $e(g,h)^{ab} = e(g^a,h) = e(g,h^b)$
 
 ## References
 
