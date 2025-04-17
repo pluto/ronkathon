@@ -256,6 +256,71 @@ impl<F: FiniteField, const D: usize> Polynomial<Monomial, F, D> {
       }),
     )
   }
+
+  /// Computes the Fast Fourier Transform (FFT) of a polynomial in the Monomial basis.
+  ///
+  /// of the polynomial in the [`Monomial`] basis by evaluating the polynomial at the roots of
+  /// unity.
+  /// This also converts a polynomial from [`Monomial`] to [`Lagrange`] [`Basis`] with node points
+  /// given by the roots of unity.
+  ///
+  /// ## Returns:
+  /// - A new polynomial in the [`Lagrange`] [`Basis`] that is the result of converting the
+  ///   evaluation of the polynomial at the roots of unity.
+  ///
+  /// ## Panics
+  /// - This function will panic in calling  if the no of coeff isn't a power of two
+  pub fn fft(&self) -> Polynomial<Lagrange<F>, F, D>
+  where [(); D.is_power_of_two() as usize - 1]: {
+    let n = self.num_terms();
+
+    // Get primitive root of unity for the field
+    let omega = F::primitive_root_of_unity(n);
+
+    // Copy coefficients to work with
+    let mut values: Vec<F> = self.coefficients.to_vec();
+
+    // Perform FFT in-place
+    Self::fft_recursive(&mut values, omega);
+
+    // Convert back to polynomial in Lagrange basis
+    Polynomial::<Lagrange<F>, F, D>::new(
+      values.try_into().unwrap_or_else(|v: Vec<F>| {
+        panic!("Expected a Vec of length {} but it was {}", D, v.len())
+      }),
+    )
+  }
+
+  /// Recursive helper function for FFT implementation
+  fn fft_recursive(values: &mut [F], omega: F) {
+    let n = values.len();
+    if n <= 1 {
+      return;
+    }
+
+    let half = n / 2;
+
+    // Split into even and odd coefficients
+    let mut even = vec![F::ZERO; half];
+    let mut odd = vec![F::ZERO; half];
+    for i in 0..half {
+      even[i] = values[2 * i];
+      odd[i] = values[2 * i + 1];
+    }
+
+    // Recursive FFT on even and odd parts
+    Self::fft_recursive(&mut even, omega.pow(2));
+    Self::fft_recursive(&mut odd, omega.pow(2));
+
+    // Combine results using butterfly operations
+    let mut current_root = F::ONE;
+    for i in 0..half {
+      let t = current_root * odd[i];
+      values[i] = even[i] + t;
+      values[i + half] = even[i] - t;
+      current_root *= omega;
+    }
+  }
 }
 
 impl<const P: usize, const D: usize> Display for Polynomial<Monomial, PrimeField<P>, D> {
@@ -296,7 +361,6 @@ impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
     assert_eq!((F::ORDER - 1) % n, 0);
     let primitive_root = F::primitive_root_of_unity(n);
     let nodes: Vec<F> = (0..n).map(|i| primitive_root.pow(i)).collect();
-
     Self { coefficients, basis: Lagrange { nodes } }
   }
 
@@ -348,6 +412,75 @@ impl<F: FiniteField, const D: usize> Polynomial<Lagrange<F>, F, D> {
           acc + c * *w / (x - n)
         },
       )
+  }
+
+  /// Computes the Inverse Fast Fourier Transform (IFFT) of a polynomial in the Lagrange basis.
+  /// Uses the Cooley-Tukey butterfly algorithm for O(n log n) complexity.
+  /// of the polynomial in the [`Monomial`] basis by evaluating the polynomial at the roots of
+  /// unity.
+  /// This also converts a polynomial from [`Lagrange`] to [`Monomial`] [`Basis`] with node points
+  /// given by the roots of unity.
+  ///
+  /// ## Returns:
+  /// - A new polynomial in the [`Monomial`] [`Basis`] that is the result of converting the
+  ///   evaluation of the polynomial at the roots of unity.
+  ///
+  /// ## Panics
+  /// - This function will panic in calling if the no of coeff isn't a power of two
+  pub fn ifft(&self) -> Polynomial<Monomial, F, D>
+  where [(); D.is_power_of_two() as usize - 1]: {
+    // Get inverse primitive root of unity
+    let omega = F::primitive_root_of_unity(D).inverse().unwrap();
+
+    // Copy values to work with
+    let mut coeffs: Vec<F> = self.coefficients.to_vec();
+
+    // Perform IFFT in-place
+    Self::ifft_recursive(&mut coeffs, omega);
+
+    // Scale by 1/D
+    let d_inv = F::from(D).inverse().unwrap();
+    for coeff in &mut coeffs {
+      *coeff *= d_inv;
+    }
+
+    // Convert back to polynomial in Monomial basis
+    Polynomial::<Monomial, F, D>::new(
+      coeffs.try_into().unwrap_or_else(|v: Vec<F>| {
+        panic!("Expected a Vec of length {} but it was {}", D, v.len())
+      }),
+    )
+  }
+
+  /// Recursive helper function for IFFT implementation
+  fn ifft_recursive(values: &mut [F], omega: F) {
+    let n = values.len();
+    if n <= 1 {
+      return;
+    }
+
+    let half = n / 2;
+
+    // Split into even and odd coefficients
+    let mut even = vec![F::ZERO; half];
+    let mut odd = vec![F::ZERO; half];
+    for i in 0..half {
+      even[i] = values[2 * i];
+      odd[i] = values[2 * i + 1];
+    }
+
+    // Recursive IFFT on even and odd parts
+    Self::ifft_recursive(&mut even, omega.pow(2));
+    Self::ifft_recursive(&mut odd, omega.pow(2));
+
+    // Combine results using butterfly operations
+    let mut current_root = F::ONE;
+    for i in 0..half {
+      let t = current_root * odd[i];
+      values[i] = even[i] + t;
+      values[i + half] = even[i] - t;
+      current_root *= omega;
+    }
   }
 }
 
