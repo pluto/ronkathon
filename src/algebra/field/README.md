@@ -7,7 +7,7 @@
 
 
 The two traits used in this module are `FiniteField` and `ExtensionField` which are located in the `field` and `field::extension` modules respectively.
-These traits are interfacial components that provide the necessary functionality for field-like objects to adhere to to be used in cryptographic systems.
+These traits are interfacial components that provide the necessary functionality for field-like objects to adhere to be used in cryptographic systems.
 
 
 ### `FiniteField`
