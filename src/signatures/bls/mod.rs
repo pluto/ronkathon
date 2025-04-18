@@ -76,12 +76,7 @@ pub struct ProofOfPossession<C: EllipticCurve> {
 /// * `Ok(Vec<u8>)` containing the octet string if the integer can be represented in the specified
 ///   length.
 /// * `Err(String)` if the integer is too large to be encoded in the given number of octets.
-///
-/// # Example
-///
-/// ```
 
-/// ```
 pub fn i2osp(x: usize, length: usize) -> Result<Vec<u8>, String> {
   if x >= (1 << (8 * length)) {
     return Err(format!("Integer too large to encode in {} octets", length));
@@ -113,12 +108,6 @@ pub fn i2osp(x: usize, length: usize) -> Result<Vec<u8>, String> {
 ///
 /// * `Ok(Usize)` corresponding to the nonnegative integer value of `octets`.
 /// * `Err(String)` if the octet string represents a number that does not fit in 256 bits.
-///
-/// # Example
-///
-/// ```
-
-/// ```
 pub fn os2ip(octets: &[u8]) -> Result<usize, String> {
   let mut ret = 0usize;
   for &byte in octets {
@@ -143,8 +132,23 @@ pub fn hkdf_extract(salt: &[u8], ikm: &[u8]) -> Vec<u8> {
   hmac_sha256(&salt, ikm).to_vec()
 }
 
-/// Implements expand_message_xmd as specified in the standard
-fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
+/// Expands a message into a uniformly random byte string using XMD (eXpandable Message Digest)
+/// as specified in the hash-to-curve standard.
+///
+/// This function implements the expand_message_xmd operation which takes an arbitrary length input
+/// and produces a pseudo-random byte string of the requested length. It uses SHA-256 as the
+/// underlying hash function.
+///
+/// # Arguments
+///
+/// * `msg` - The input message to be expanded
+/// * `dst` - Domain Separation Tag (DST) to prevent collisions between different applications
+/// * `len_in_bytes` - The desired length of the output in bytes
+///
+/// # Returns
+///
+/// A vector of `len_in_bytes` pseudo-random bytes derived from the input message
+pub fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
   // Parameters for SHA-256
   const B_IN_BYTES: usize = 32; // hash digest size
   const R_IN_BYTES: usize = 64; // hash block size
@@ -198,7 +202,21 @@ fn expand_message_xmd(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
   uniform_bytes
 }
 
-/// Implements hash_to_field as specified in the standard
+/// Maps field elements to points on the curve using the hash_to_field operation.
+///
+/// # Arguments
+///
+/// * `msg` - The input message to hash
+/// * `count` - Number of field elements to generate
+///
+/// # Returns
+///
+/// A vector of field elements in the target field D derived from the input message
+///
+/// # Type Parameters
+///
+/// * `C` - The base curve type
+/// * `D` - The target curve type
 fn hash_to_field<C: EllipticCurve, D: EllipticCurve>(
   msg: &[u8],
   count: usize,
@@ -234,7 +252,9 @@ where
   result
 }
 
-impl<C: EllipticCurve> ProofOfPossession<C> {
+impl<C: EllipticCurve> ProofOfPossession<C>
+where [(); <C as EllipticCurve>::ScalarField::ORDER]:
+{
   /// Verifies the proof of possession for a BLS public key.
   pub fn verify<D: EllipticCurve>(&self, pk: &BlsPublicKey<D>) -> Result<(), BlsError> {
     pk.validate()?;
@@ -242,8 +262,8 @@ impl<C: EllipticCurve> ProofOfPossession<C> {
     let g = AffinePoint::<C>::GENERATOR;
 
     let pk_ext = convert_to_extended::<D, C>(pk.pk);
-    let left = pairing::<C, 17>(self.pop.sig, g);
-    let right = pairing::<C, 17>(pk_ext, pk_ext);
+    let left = pairing::<C, { <C as EllipticCurve>::ScalarField::ORDER }>(self.pop.sig, g);
+    let right = pairing::<C, { <C as EllipticCurve>::ScalarField::ORDER }>(pk_ext, pk_ext);
     if left == right {
       Ok(())
     } else {
@@ -251,7 +271,9 @@ impl<C: EllipticCurve> ProofOfPossession<C> {
     }
   }
 }
-impl<C: EllipticCurve> BlsPrivateKey<C> {
+impl<C: EllipticCurve> BlsPrivateKey<C>
+where [(); <C as EllipticCurve>::ScalarField::ORDER]:
+{
   /// Returns the corresponding BLS secret key. subject to a lot of issues due to local caching
   pub fn generate_random<R: Rng>(rng: &mut R) -> Self {
     let sk = <C as EllipticCurve>::ScalarField::from(rng.gen_range(1..=PlutoScalarField::ORDER));
@@ -311,6 +333,7 @@ impl<C: EllipticCurve> BlsPublicKey<C> {
   ) -> Result<(), BlsError>
   where
     <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]> + FieldExt,
+    [(); <D as EllipticCurve>::ScalarField::ORDER]:,
   {
     self.validate()?;
     // Hash the message to a point on the extended curve.
@@ -323,8 +346,8 @@ impl<C: EllipticCurve> BlsPublicKey<C> {
     let pk = convert_to_extended::<C, D>(self.pk);
 
     // Compute the pairing outputs.
-    let left = pairing::<D, 17>(signature.sig, g);
-    let right = pairing::<D, 17>(hash_point, pk);
+    let left = pairing::<D, { <D as EllipticCurve>::ScalarField::ORDER }>(signature.sig, g);
+    let right = pairing::<D, { <D as EllipticCurve>::ScalarField::ORDER }>(hash_point, pk);
 
     // Compare the representations of each pairing output.
     if left == right {
@@ -344,7 +367,7 @@ impl<C: EllipticCurve> BlsPublicKey<C> {
     }
 
     // Check if point is in the correct subgroup
-    let subgroup_order = 17;
+    let subgroup_order = <C as EllipticCurve>::ScalarField::ORDER;
     if (self.pk * <C as EllipticCurve>::ScalarField::from(subgroup_order))
       != AffinePoint::<C>::Infinity
     {
@@ -383,6 +406,7 @@ pub fn verify_aggregated_signature<C: EllipticCurve, D: EllipticCurve>(
 ) -> Result<(), BlsError>
 where
   <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]>,
+  [(); <D as EllipticCurve>::ScalarField::ORDER]:,
 {
   if pks.is_empty() || messages.is_empty() || pks.len() != messages.len() {
     return Err(BlsError::Other("Invalid input lengths".to_string()));
@@ -392,14 +416,14 @@ where
   let g = convert_to_extended::<C, D>(AffinePoint::<C>::GENERATOR);
 
   // Verification: e(aggregated_sig, G) must equal the product over all pairings.
-  let left = pairing::<D, 17>(aggregated_sig.sig, g);
+  let left = pairing::<D, { <D as EllipticCurve>::ScalarField::ORDER }>(aggregated_sig.sig, g);
 
   let mut right = <D as EllipticCurve>::BaseField::ONE;
   for (pk, msg) in pks.iter().zip(messages.iter()) {
     pk.validate()?;
     let hash_point = hash_to_curve::<C, D>(msg)?;
     let pk_extended = convert_to_extended::<C, D>(pk.pk);
-    right *= pairing::<D, 17>(hash_point, pk_extended);
+    right *= pairing::<D, { <D as EllipticCurve>::ScalarField::ORDER }>(hash_point, pk_extended);
   }
 
   if left == right {
@@ -409,7 +433,7 @@ where
   }
 }
 
-fn convert_to_extended<C: EllipticCurve, D: EllipticCurve>(
+pub fn convert_to_extended<C: EllipticCurve, D: EllipticCurve>(
   point: AffinePoint<C>,
 ) -> AffinePoint<D> {
   match point {
@@ -424,16 +448,24 @@ fn convert_to_extended<C: EllipticCurve, D: EllipticCurve>(
   }
 }
 
-/// Implements clear_cofactor as specified in the standard
-fn clear_cofactor<C: EllipticCurve>(point: AffinePoint<C>) -> AffinePoint<C> {
-  let p = <C as EllipticCurve>::BaseField::ORDER; // 101
-  let cofactor = (p * p - 1) / 17;
+/// Clears the cofactor of a point to ensure it is in the correct prime-order subgroup.
+///
+/// # Arguments
+///
+/// * `point` - An affine point on the curve that may not be in the prime-order subgroup
+///
+/// # Returns
+///
+/// A point guaranteed to be in the prime-order subgroup
+pub fn clear_cofactor<C: EllipticCurve>(point: AffinePoint<C>) -> AffinePoint<C> {
+  let p = <C as EllipticCurve>::BaseField::ORDER;
+  let cofactor = (p * p - 1) / <C as EllipticCurve>::ScalarField::ORDER;
 
   let mut cleared = point * <C as EllipticCurve>::ScalarField::from(cofactor);
 
   // Check if we need to adjust the point
   let mut sum = cleared;
-  for _ in 0..17 {
+  for _ in 0..<C as EllipticCurve>::ScalarField::ORDER {
     sum += cleared;
   }
 
@@ -448,8 +480,22 @@ fn clear_cofactor<C: EllipticCurve>(point: AffinePoint<C>) -> AffinePoint<C> {
   cleared
 }
 
-/// Implements hash_to_curve as specified in the standard
-fn hash_to_curve<C: EllipticCurve, D: EllipticCurve>(
+/// Maps an arbitrary message to a point on the curve using the hash-to-curve specification.
+///
+/// # Arguments
+///
+/// * `msg` - The message to hash to a curve point
+///
+/// # Returns
+///
+/// * `Ok(AffinePoint)` - A point in the prime-order subgroup of the curve
+/// * `Err(BlsError)` - If the hash-to-curve operation fails
+///
+/// # Type Parameters
+///
+/// * `C` - The base curve type
+/// * `D` - The target curve type
+pub fn hash_to_curve<C: EllipticCurve, D: EllipticCurve>(
   msg: &[u8],
 ) -> Result<AffinePoint<D>, BlsError>
 where <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]> + From<usize> {
@@ -467,7 +513,10 @@ where <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]
 
       // Clear cofactor and verify point is in correct subgroup
       let cofactored = clear_cofactor::<D>(point);
-      if (cofactored * <D as EllipticCurve>::ScalarField::from(17)) == AffinePoint::<D>::Infinity {
+      if (cofactored
+        * <D as EllipticCurve>::ScalarField::from(<D as EllipticCurve>::ScalarField::ORDER))
+        == AffinePoint::<D>::Infinity
+      {
         return Ok(cofactored);
       }
     }
@@ -497,6 +546,7 @@ pub fn verify_aggregated_signature_single_message<C: EllipticCurve, D: EllipticC
 ) -> Result<(), BlsError>
 where
   <D as EllipticCurve>::BaseField: From<[<C as EllipticCurve>::BaseField; 2]> + From<usize>,
+  [(); { <D as EllipticCurve>::ScalarField::ORDER }]:,
 {
   if pks.is_empty() {
     return Err(BlsError::Other("No public keys provided".to_string()));
@@ -517,8 +567,9 @@ where
   let hash_point = hash_to_curve::<C, D>(msg)?;
 
   // Compute the pairings.
-  let left = pairing::<D, 17>(aggregated_sig.sig, g);
-  let right = pairing::<D, 17>(hash_point, aggregated_pk_ext);
+  let left = pairing::<D, { <D as EllipticCurve>::ScalarField::ORDER }>(aggregated_sig.sig, g);
+  let right =
+    pairing::<D, { <D as EllipticCurve>::ScalarField::ORDER }>(hash_point, aggregated_pk_ext);
 
   // Compare the canonical representation of both pairing outputs.
   if left == right {
