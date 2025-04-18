@@ -101,7 +101,7 @@ impl GHASH {
     Self { hash_key: GCMField::from(h) }
   }
 
-  /// Get the hash digest using using two u8 slices `a` and `c`.
+  /// Get the hash digest using two u8 slices `a` and `c`.
   /// In context of AES-GCM they correspond to,
   /// 'aad' - additional authenticated data(AAD)
   /// 'ct' - ciphertext encrypted using AES.
