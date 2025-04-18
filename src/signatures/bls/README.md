@@ -37,10 +37,10 @@ Multiple signatures can be aggregated into a single signature, which can then be
 
 ### Basic Principle
 Given multiple (message, signature) pairs from different signers:
-- (m₁, σ₁) from signer 1
-- (m₂, σ₂) from signer 2
+- ($m_1$, $\sigma_1$) from signer 1
+- ($m_2$, $\sigma_2$) from signer 2
 - ...
-- (mₙ, σₙ) from signer n
+- ($m_n$, $\sigma_n$) from signer $n$
 
 We can combine them into a single aggregate signature: $\sigma\_\textrm{agg}= \sigma_1 + \sigma_2 + \cdots + \sigma_n$
 
