@@ -6,7 +6,7 @@
 - [Codes](src/codes/README.md)
 - [Compiler](src/compiler/README.md)
 - [Curve](src/curve/README.md)
-- [Digital Signature Algorithms](src/dsa/README.md)
+- [Digital Signature Algorithms](src/signatures/dsa/README.md)
 - [Encryption]()
     - [Asymmetric]()
         - [RSA](src/encryption/asymmetric/rsa/README.md)
