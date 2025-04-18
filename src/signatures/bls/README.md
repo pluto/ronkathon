@@ -58,6 +58,33 @@ BLS signatures work on special elliptic curves with bilinear pairings. The key c
 2. **Hash-to-Curve**: Messages are mapped to curve points using a special hash function
 3. **Pairing Check**: Verification uses the bilinear pairing property: $e(g,h)^{ab} = e(g^a,h) = e(g,h^b)$
 
+
+### Verification Efficiency Deep Dive
+
+When verifying n individual signatures, we need to compute 2n pairings:
+- For each signature i: $e(\sigma_i, g) = e(H(m_i), pk_i)$
+- This requires 2 pairings per verification
+- Total cost: 2n pairing operations
+
+With signature aggregation:
+1. For same-message aggregation:
+   - $e(\sigma\_\textrm{agg}, g) = e(H(m), pk_\textrm{agg})$
+   - Only 2 pairings total, regardless of n.
+   
+2. For distinct-message aggregation:
+   - $e(\sigma\_\textrm{agg}, g) = \prod_{i=1}^{n} e(H(m_i), pk_i)$
+   - Requires n+1 pairings
+   - Still faster than 2n pairings for individual verification
+
+Since pairing operations are the most computationally expensive part of verification , this optimization is significant:
+
+- Individual verification: O(n) pairings
+- Aggregated verification (same message): O(1) pairings
+- Aggregated verification (different messages): O(n) pairings but with better constants
+
+This makes BLS particularly efficient for scenarios like blockchain consensus where 
+many parties sign the same message.
+
 ## References
 
 - [BLS Signature Scheme Paper](https://www.iacr.org/archive/asiacrypt2001/22480516.pdf)

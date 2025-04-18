@@ -271,9 +271,7 @@ where [(); <C as EllipticCurve>::ScalarField::ORDER]:
     }
   }
 }
-impl<C: EllipticCurve> BlsPrivateKey<C>
-where [(); <C as EllipticCurve>::ScalarField::ORDER]:
-{
+impl<C: EllipticCurve> BlsPrivateKey<C> {
   /// Returns the corresponding BLS secret key. subject to a lot of issues due to local caching
   pub fn generate_random<R: Rng>(rng: &mut R) -> Self {
     let sk = <C as EllipticCurve>::ScalarField::from(rng.gen_range(1..=PlutoScalarField::ORDER));
@@ -432,7 +430,7 @@ where
     Err(BlsError::VerificationFailed)
   }
 }
-
+/// converts between two elliptic curve
 pub fn convert_to_extended<C: EllipticCurve, D: EllipticCurve>(
   point: AffinePoint<C>,
 ) -> AffinePoint<D> {
