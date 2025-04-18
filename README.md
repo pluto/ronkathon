@@ -32,9 +32,9 @@ Ronkathon is a collection of cryptographic primitives implemented in Rust. It is
 
 ### Signatures
 
-- [Digital Signature Algorithms](src/dsa/README.md)
-    - [Elliptic Curve Digital Signature Algorithm(ECDSA)](src/dsa/ecdsa.rs)
-    - [Edwards-Curve Digital Signature Algorithm(EdDSA)](src/dsa/eddsa/mod.rs)
+- [Digital Signature Algorithms](src/signatures/dsa/README.md)
+    - [Elliptic Curve Digital Signature Algorithm(ECDSA)](src/signatures/dsa/ecdsa.rs)
+    - [Edwards-Curve Digital Signature Algorithm(EdDSA)](src/signatures/dsa/eddsa/mod.rs)
 
 ### Encryption
 
