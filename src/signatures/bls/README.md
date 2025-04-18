@@ -42,7 +42,7 @@ Given multiple (message, signature) pairs from different signers:
 - ...
 - (mₙ, σₙ) from signer n
 
-We can combine them into a single aggregate signature: $σ\_agg = σ_1 + σ_2 + ... + σ_n$
+We can combine them into a single aggregate signature: $\sigma\_\textrm{agg}= \sigma_1 + \sigma_2 + \cdots + \sigma_n$
 
 ### Properties
 1. **Size Efficiency**: The aggregate signature has the same size as a single signature
