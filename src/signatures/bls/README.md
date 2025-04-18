@@ -54,7 +54,7 @@ We can combine them into a single aggregate signature: $σ\_agg = σ_1 + σ_2 + 
 
 BLS signatures work on special elliptic curves with bilinear pairings. The key components are:
 
-1. **Groups**: Uses two groups G₁ and G₂ with a bilinear mapping $e: G_1 × G_2 → G_t$
+1. **Groups**: Uses two groups $G_1$ and $G_2$ with a bilinear mapping $e: G_1 \times G_2 \to G_t$
 2. **Hash-to-Curve**: Messages are mapped to curve points using a special hash function
 3. **Pairing Check**: Verification uses the bilinear pairing property: $e(g,h)^{ab} = e(g^a,h) = e(g,h^b)$
 
