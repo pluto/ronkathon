@@ -1,5 +1,5 @@
 /// Example of Ed25519 digital signature algorithm.
-use ronkathon::dsa::eddsa::Ed25519;
+use ronkathon::signatures::eddsa::Ed25519;
 
 fn main() {
   let ed25519 = Ed25519::new(None);

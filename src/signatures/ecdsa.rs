@@ -1,8 +1,11 @@
 //! ECDSA signature verification
-use std::hash::{DefaultHasher, Hasher};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 use super::*;
-use crate::{algebra::field::FiniteField, curve::CurveGroup};
+use crate::{
+  algebra::field::{Field, FiniteField},
+  curve::CurveGroup,
+};
 
 // PARAMETERS
 // *******************************************

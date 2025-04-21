@@ -92,6 +92,12 @@ impl Rem for TestExtension {
   fn rem(self, rhs: Self) -> Self::Output { self - (self / rhs) * rhs }
 }
 
+impl FieldExt for TestExtension {
+  fn sqrt(&self) -> Option<(Self, Self)> { todo!() }
+
+  fn euler_criterion(&self) -> bool { todo!() }
+}
+
 #[cfg(test)]
 mod tests {
 

@@ -49,90 +49,6 @@ impl<const P: usize> PrimeField<P> {
     is_prime(P);
     Self { value: value % P }
   }
-
-  /// Computes euler criterion of the field element, i.e. Returns true if the element is a quadratic
-  /// residue (a square number) in the field.
-  ///
-  /// ## NOTES
-  /// By fermat's little theorem, (assume `is_congruent_to` is =)
-  ///     x^(p-1) - 1 = 0 mod P
-  ///
-  /// All primes > 2 are odd, a.k.a P is odd, hence (P-1) is even.
-  /// So, we can split as follows:
-  ///     (x^(p-1)/2 - 1)(x^(p-1)/2 + 1) = 0 mod P
-  /// or       L        *     R          = 0 mod P
-  ///
-  /// All quadratic residues are of the form (g^(2k)) where `g` is the
-  /// multiplicative generator and k is some natural number. All non-residues
-  /// on the other hand are of the form (g^(2k+1)).
-  ///
-  /// In case of QR, substitute x = g^2k
-  ///     g^(2k)((p-1)/2) = 1 mod P
-  ///     g^(p-1) = 1 mod P
-  /// which is true by fermat's little theorem
-  ///
-  /// In the other case, the same doesn't hold.
-  /// Hence, the case `L` should hold for all quadratic residues and is the
-  /// test for quadratic residuosity.
-  ///
-  /// More info here: https://www.youtube.com/watch?v=2IBPOI43jek
-  pub fn euler_criterion(&self) -> bool { self.pow((P - 1) / 2).value == 1 }
-
-  /// Computes the square root of a field element using the [Tonelli-Shanks algorithm](https://en.wikipedia.org/wiki/Tonelli–Shanks_algorithm).
-  pub fn sqrt(&self) -> Option<(Self, Self)> {
-    if *self == Self::ZERO {
-      return Some((Self::ZERO, Self::ZERO));
-    }
-
-    assert!(self.euler_criterion(), "Element is not a quadratic residue");
-
-    // First define the Q and S values for the prime number P.
-    let q: usize;
-    let mut s = 1;
-    loop {
-      let lhs = P - 1;
-      let rhs = 2_usize.pow(s);
-      let check_value = lhs % rhs;
-      if check_value == 0 {
-        s += 1;
-      } else {
-        s -= 1;
-        q = (P - 1) / 2_usize.pow(s);
-        break;
-      }
-    }
-
-    // Find a z that is not a quadratic residue
-    let mut z = Self::new(2);
-    while z.euler_criterion() {
-      z += Self::ONE;
-    }
-    let mut m = s;
-    let mut c = z.pow(q);
-    let mut t = self.pow(q);
-    let mut r = self.pow((q + 1) / 2);
-    loop {
-      if t == Self::ONE {
-        if -r < r {
-          return Some((-r, r));
-        } else {
-          return Some((r, -r));
-        }
-      }
-      // Repeatedly square to find a t^2^i = 1
-      let mut i = 1;
-      let mut t_pow = t.pow(2);
-      while t_pow != Self::ONE {
-        t_pow = t_pow.pow(2);
-        i += 1;
-      }
-      let b = c.pow(2_usize.pow(m - i - 1));
-      m = i;
-      c = b.pow(2);
-      t *= c;
-      r *= b;
-    }
-  }
 }
 
 impl<const P: usize> const Finite for PrimeField<P> {
@@ -223,6 +139,91 @@ impl<const P: usize> Distribution<PrimeField<P>> for Standard {
   }
 }
 
+impl<const P: usize> FieldExt for PrimeField<P> {
+  /// Computes euler criterion of the field element, i.e. Returns true if the element is a quadratic
+  /// residue (a square number) in the field.
+  ///
+  /// ## NOTES
+  /// By fermat's little theorem, (assume `is_congruent_to` is =)
+  ///     x^(p-1) - 1 = 0 mod P
+  ///
+  /// All primes > 2 are odd, a.k.a P is odd, hence (P-1) is even.
+  /// So, we can split as follows:
+  ///     (x^(p-1)/2 - 1)(x^(p-1)/2 + 1) = 0 mod P
+  /// or       L        *     R          = 0 mod P
+  ///
+  /// All quadratic residues are of the form (g^(2k)) where `g` is the
+  /// multiplicative generator and k is some natural number. All non-residues
+  /// on the other hand are of the form (g^(2k+1)).
+  ///
+  /// In case of QR, substitute x = g^2k
+  ///     g^(2k)((p-1)/2) = 1 mod P
+  ///     g^(p-1) = 1 mod P
+  /// which is true by fermat's little theorem
+  ///
+  /// In the other case, the same doesn't hold.
+  /// Hence, the case `L` should hold for all quadratic residues and is the
+  /// test for quadratic residuosity.
+  ///
+  /// More info here: https://www.youtube.com/watch?v=2IBPOI43jek
+  fn euler_criterion(&self) -> bool { self.pow((P - 1) / 2).value == 1 }
+
+  /// Computes the square root of a field element using the [Tonelli-Shanks algorithm](https://en.wikipedia.org/wiki/Tonelli–Shanks_algorithm).
+  fn sqrt(&self) -> Option<(Self, Self)> {
+    if *self == Self::ZERO {
+      return Some((Self::ZERO, Self::ZERO));
+    }
+
+    assert!(self.euler_criterion(), "Element is not a quadratic residue");
+
+    // First define the Q and S values for the prime number P.
+    let q: usize;
+    let mut s = 1;
+    loop {
+      let lhs = P - 1;
+      let rhs = 2_usize.pow(s);
+      let check_value = lhs % rhs;
+      if check_value == 0 {
+        s += 1;
+      } else {
+        s -= 1;
+        q = (P - 1) / 2_usize.pow(s);
+        break;
+      }
+    }
+
+    // Find a z that is not a quadratic residue
+    let mut z = Self::new(2);
+    while z.euler_criterion() {
+      z += Self::ONE;
+    }
+    let mut m = s;
+    let mut c = z.pow(q);
+    let mut t = self.pow(q);
+    let mut r = self.pow((q + 1) / 2);
+    loop {
+      if t == Self::ONE {
+        if -r < r {
+          return Some((-r, r));
+        } else {
+          return Some((r, -r));
+        }
+      }
+      // Repeatedly square to find a t^2^i = 1
+      let mut i = 1;
+      let mut t_pow = t.pow(2);
+      while t_pow != Self::ONE {
+        t_pow = t_pow.pow(2);
+        i += 1;
+      }
+      let b = c.pow(2_usize.pow(m - i - 1));
+      m = i;
+      c = b.pow(2);
+      t *= c;
+      r *= b;
+    }
+  }
+}
 impl<const P: usize> From<u32> for PrimeField<P> {
   fn from(val: u32) -> Self { Self::new(val as usize) }
 }

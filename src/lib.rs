@@ -29,7 +29,6 @@ pub mod codes;
 pub mod compiler;
 pub mod curve;
 pub mod diffie_hellman;
-pub mod dsa;
 pub mod encryption;
 pub mod hashes;
 pub mod hmac;

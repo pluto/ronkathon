@@ -18,64 +18,10 @@ impl ExtensionField<2, 101> for PlutoBaseFieldExtension {
 }
 
 impl PlutoBaseFieldExtension {
-  fn norm(&self) -> PlutoBaseField {
+  pub fn norm(&self) -> PlutoBaseField {
     let mut result = self.coeffs[0].pow(2);
     result -= -PlutoBaseField::new(2) * self.coeffs[1].pow(2);
     result
-  }
-
-  /// Computes euler criterion of the field element, i.e. Returns true if the element is a quadratic
-  /// residue (a square number) in the field.
-  pub fn euler_criterion(&self) -> bool { self.norm().euler_criterion() }
-
-  /// Computes square root of the quadratic field element `(x_0 + x_1*u)` (if it exists) and return
-  /// a tuple of `(r, -r)` where `r` is lower.
-  ///
-  /// - `(a_0 + a_1*u)^2 = a_0^2+2*a_0*a_1*u+βa_1^2 = (x_0 + x_1*u)`. Equating x_0 and x_1 with LHS:
-  /// - `x_0 = a_0^2 + βa_1^2`
-  /// - `x_1 = 2a_0*a_1`
-  pub fn sqrt(&self) -> Option<(Self, Self)> {
-    let (a0, a1) = (self.coeffs[0], self.coeffs[1]);
-
-    // irreducible poly: F[X]/(X^2+2)
-    let residue = -PlutoBaseFieldExtension::IRREDUCIBLE_POLYNOMIAL_COEFFICIENTS[0];
-
-    // x_0 = a_0^2 + βa_1^2
-    if a1 == PlutoBaseField::ZERO {
-      // if a_1 = 0, then straight away compute sqrt of a_0 as base field element
-      if a0.euler_criterion() {
-        return a0.sqrt().map(|(res0, res1)| (Self::from(res0), Self::from(res1)));
-      } else {
-        // if a_0 is not a square, then compute a_1 = sqrt(x_0 / β)
-        return a0.div(residue).sqrt().map(|(res0, res1)| {
-          (Self::new([PlutoBaseField::ZERO, res0]), Self::new([PlutoBaseField::ZERO, res1]))
-        });
-      }
-    }
-
-    // x_0 = ((a_0 ± (a_0² − βa_1²)^½)/2)^½
-    // x_1 = a_1/(2x_0)
-
-    // α = (a_0² − βa_1²)
-    let alpha = self.norm();
-    let two_inv = PlutoBaseField::new(2).inverse().expect("2 should have an inverse");
-
-    alpha.sqrt().map(|(alpha, _)| {
-      let mut delta = (alpha + a0) * two_inv;
-      if !delta.euler_criterion() {
-        delta -= alpha;
-      }
-
-      let x0 = delta.sqrt().expect("delta must have an square root").0;
-      let x0_inv = x0.inverse().expect("x0 must have an inverse");
-      let x1 = a1 * two_inv * x0_inv;
-      let x = Self::new([x0, x1]);
-      if -x < x {
-        (-x, x)
-      } else {
-        (x, -x)
-      }
-    })
   }
 }
 
@@ -179,6 +125,9 @@ impl Rem for PlutoBaseFieldExtension {
   fn rem(self, rhs: Self) -> Self::Output { self - (self / rhs) * rhs }
 }
 
+impl From<[PlutoBaseField; 2]> for PlutoBaseFieldExtension {
+  fn from(value: [PlutoBaseField; 2]) -> Self { Self { coeffs: value } }
+}
 #[cfg(test)]
 mod tests {
   use rstest::rstest;

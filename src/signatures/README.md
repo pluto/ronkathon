@@ -1,53 +1,50 @@
-# Lamport Signatures
+# Digital Signatures
 
-Lamport signatures are a one-time use digital signature scheme invented by Leslie Lamport . Unlike most common signature schemes , Lamport signatures are believed to be secure against attacks from quantum computers, making them a candidate for post-quantum cryptography.
+Digital signatures are cryptographic primitives that provide three essential security properties:
 
-## How Lamport Signatures Work
+1. **Authentication** - Verifies the identity of the signer
+2. **Non-repudiation** - The signer cannot deny having signed the message
+3. **Integrity** - The message has not been altered since signing
 
-The security of Lamport signatures relies solely on the security of cryptographic hash functions, specifically on their one-way (preimage resistance) property.
+## How Digital Signatures Work
 
-### Key Generation
+Digital signatures typically involve two main operations:
 
-1. For each bit position in the hash digest :
-   - Generate two random values 
-   - This gives us 512 random values total for the private key
-   
-2. The public key consists of the hash of each random value:
-   - Hash each of the 512 values
-   - The public key is these 512 hash values
+1. **Signing**: Using a private key to generate a signature for a message
+   - Input: Message + Private Key
+   - Output: Signature
 
-### Signing a Message
+2. **Verification**: Using a public key to verify the signature matches the message
+   - Input: Message + Signature + Public Key 
+   - Output: True/False (valid/invalid)
 
-1. Hash the message to produce a 256-bit digest
-2. For each bit position in the digest:
-   - If the bit is 0, reveal the first random value from the corresponding pair
-   - If the bit is 1, reveal the second random value
-3. The signature consists of these 256 revealed values
+## Types of Digital Signatures
 
-### Verifying a Signature
+### Traditional Signatures (e.g. ECDSA)
+- Based on elliptic curve cryptography
+- Widely used in Bitcoin and other blockchains
+- Each signature is independent
+- Size grows linearly with number of signers
 
-1. Hash the message to produce the same 256-bit digest
-2. For each bit position in the digest:
-   - If the bit is 0, hash the revealed value and check if it matches the first hash in the public key pair
-   - If the bit is 1, hash the revealed value and check if it matches the second hash in the public key pair
-3. The signature is valid only if all 256 hash checks pass
+### BLS Signatures
+- Based on bilinear pairings on elliptic curves
+- Allows signature aggregation
+- Multiple signatures can be combined into one
+- Constant size regardless of number of signers
+- More computationally intensive than ECDSA
+
+## Use Cases
+
+- Document signing
+- Software authentication
+- Blockchain transactions
+- Secure messaging
+- Identity verification
 
 ## Security Considerations
 
-### One-Time Use
-
-**Critical**: Each private key must be used exactly once. Reusing a private key for multiple signatures can compromise security by revealing enough of the private key for an attacker to forge signatures.
-
-### Size Trade-offs
-
-Lamport signatures are quite large:
-- Private key: 512 × 256 bits = 16KB
-- Public key: 512 × 256 bits = 16KB  
-- Signature: 256 × 256 bits = 8KB
-
-This is significantly larger than conventional signature schemes like ECDSA, which can fit in a few hundred bits.
-
-### Quantum Resistance
-
-The security of Lamport signatures relies on the one-way property of hash functions, which is believed to be resistant to quantum computer attacks. This contrasts with schemes based on integer factorization or discrete logarithms , which can be broken by Shor's algorithm running on a quantum computer.
-
+- Private keys must be kept secure
+- Use cryptographically secure random number generators
+- Implement proper key management
+- Be aware of potential attacks (e.g. replay attacks)
+- Use standardized implementations when possible 
