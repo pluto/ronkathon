@@ -1,4 +1,5 @@
 pub mod bls;
-pub mod dsa;
+pub mod eddsa;
+pub mod ecdsa;
 pub mod lamport;
 use super::*;
