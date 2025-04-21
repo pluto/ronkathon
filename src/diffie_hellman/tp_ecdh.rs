@@ -38,7 +38,7 @@ pub fn compute_local_pair(
 /// and `q_c`.
 ///
 /// The protocol relies on the bilinearity of the pairing function as well as modular exponentiation
-/// to compute the shared sercret. We first compute the pairing with the input points, then
+/// to compute the shared secret. We first compute the pairing with the input points, then
 /// exponentate the result to the power of the local secret `d_a`.
 ///
 /// ## Arguments
