@@ -15,6 +15,8 @@
 
 #![allow(incomplete_features)]
 #![feature(effects)]
+#![feature(bigint_helper_methods)]
+#![feature(const_bigint_helper_methods)]
 #![feature(const_trait_impl)]
 #![feature(const_mut_refs)]
 #![feature(const_for)]
