@@ -21,7 +21,7 @@ Public Key = $(e, n)$
 ## Decryption
 - $m = c^d \mod n$
 
-See the examples in the tests.rs file
+For a complete working example of RSA key generation, encryption, and decryption, see the [examples](https://github.com/pluto/ronkathon/blob/main/src/encryption/asymmetric/rsa/tests.rs) in the `tests.rs` file.
 
 ## Security Assumptions
 The security of RSA relies on the assumption that it is computationally infeasible to factor large composite numbers into their prime factors, known as the factoring assumption. This difficulty underpins the RSA problem, which involves computing eth roots modulo  n  without the private key.
