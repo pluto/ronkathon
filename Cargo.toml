@@ -17,7 +17,7 @@ regex        ="1.11.1"
 num-traits   ="0.2.19"
 
 [dev-dependencies]
-rstest               ="0.24"
+rstest               ="0.25"
 pretty_assertions    ="1.4"
 sha2                 ="0.10"
 ark-ff               ={ version="0.5", features=["std"] }
