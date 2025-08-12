@@ -12,7 +12,7 @@ jobs:
       MDBOOK_KATEX_VERSION: 0.9.2
       MDBOOK_LINKCHECK_VERSION: 0.7.7
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@main
