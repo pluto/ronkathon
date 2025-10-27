@@ -1,5 +1,5 @@
 use super::*;
-
+use crate::curve::pluto_curve::{PlutoBaseCurve, PlutoExtendedCurve};
 /// Creates a deterministic private key for testing using seed
 fn create_test_private_key(seed: u64) -> BlsPrivateKey<PlutoBaseCurve> {
   BlsPrivateKey::generate_deterministic(seed)
@@ -23,6 +23,29 @@ fn test_invalid_signature() {
   assert!(pk.verify(msg, &tampered_sig).is_err(), "Tampered signature should fail verification");
 }
 
+#[test]
+fn test_aggregate_empty_signatures_returns_error() {
+    let empty_sigs: Vec<BlsSignature<PlutoExtendedCurve>> = vec![];
+    let result = BlsSignature::<PlutoExtendedCurve>::aggregate(&empty_sigs);
+    
+    assert!(result.is_err());
+    match result {
+        Err(BlsError::EmptySignatureList) => {},
+        _ => panic!("Expected EmptySignatureList error"),
+    }
+}
+
+#[test]
+fn test_aggregate_single_signature() {
+    let sk = BlsPrivateKey::<PlutoBaseCurve>::generate_deterministic(42);
+    let msg = b"test";
+    // Specify BOTH curve types: sign<TargetCurve>
+    let sig = sk.sign::<PlutoExtendedCurve>(msg).unwrap();
+    
+    let result = BlsSignature::<PlutoExtendedCurve>::aggregate(&[sig.clone()]);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), sig);
+}
 #[test]
 fn test_aggregate_signatures() {
   let msg = b"Hello, BLS!";
