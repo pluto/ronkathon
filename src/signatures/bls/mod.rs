@@ -36,6 +36,7 @@ pub enum BlsError {
   Other(String),
   /// Invalid point encountered.
   InvalidPoint,
+  EmptySignatureList
 }
 
 /// BLS private key.
@@ -50,6 +51,7 @@ pub struct BlsPublicKey<C: EllipticCurve> {
 }
 
 /// BLS signature.
+#[derive(Debug, Clone, PartialEq)] 
 pub struct BlsSignature<C: EllipticCurve> {
   sig: AffinePoint<C>,
 }
@@ -379,20 +381,34 @@ impl<C: EllipticCurve> BlsPublicKey<C> {
 impl<C: EllipticCurve> BlsSignature<C>
 where <C as EllipticCurve>::BaseField: FieldExt
 {
-  /// Aggregates multiple BLS signatures into a single signature.
-  ///
-  /// This function sums the individual signature points. All signatures must be on the same
-  /// message.
+  
+  /// /// Aggregates multiple BLS signatures into a single signature.
+///
+/// # Arguments
+/// * `signatures` - A non-empty slice of signatures to aggregate
+///
+/// # Returns
+/// * `Ok(BlsSignature)` - The aggregated signature
+/// * `Err(BlsError::EmptySignatureList)` - If the input slice is empty
+///
+/// # Examples
+/// ```
+/// let sigs = vec![sig1, sig2, sig3];
+/// let aggregated = BlsSignature::aggregate(&sigs)?;
+/// ```
   pub fn aggregate(signatures: &[BlsSignature<C>]) -> Result<BlsSignature<C>, BlsError> {
+    // CHANGE THIS LINE ONLY (from Other to EmptySignatureList)
     if signatures.is_empty() {
-      return Err(BlsError::Other("No signatures to aggregate".into()));
+        return Err(BlsError::EmptySignatureList);
     }
+    
+    // KEEP THE ORIGINAL CODE BELOW (DON'T CHANGE IT)
     let mut agg = signatures[0].sig;
     for sig in signatures.iter().skip(1) {
       agg += sig.sig;
     }
     Ok(BlsSignature { sig: agg })
-  }
+}
 }
 
 /// Verifies an aggregated BLS signature for a single common message:
