@@ -255,11 +255,30 @@ mod tests {
     }
     assert_eq!(result, q);
 
-    // to keep the support disjoint, a random element `S` on extended curve is used, which shouldn't
-    // be equal to P, -Q, P-Q
+    // to keep the support disjoint, a random element `S` on extended curve is used. The functions
+    // in the Miller loop for f_{r,P} only have zeros and poles at multiples of P, so the points it
+    // is evaluated at (Q+S and S) can't be multiples of P, and likewise the points f_{r,Q} is
+    // evaluated at (-S and P-S) can't be multiples of Q. Otherwise a zero and a pole are skipped
+    // together in the loop and the result is wrong. This also rules out S = P, -Q and P-Q.
+    let multiples = |point: AffinePoint<PlutoExtendedCurve>| {
+      let mut multiple = AffinePoint::Infinity;
+      (0..R)
+        .map(|_| {
+          let current = multiple;
+          multiple += point;
+          current
+        })
+        .collect::<Vec<_>>()
+    };
+    let (p_multiples, q_multiples) = (multiples(p), multiples(q));
+
     let mut rng = rand::thread_rng();
     let mut s = rng.gen::<AffinePoint<PlutoExtendedCurve>>();
-    while s == p || s == -q || s == p - q {
+    while p_multiples.contains(&(q + s))
+      || p_multiples.contains(&s)
+      || q_multiples.contains(&-s)
+      || q_multiples.contains(&(p - s))
+    {
       s = rng.gen::<AffinePoint<PlutoExtendedCurve>>();
     }
 
