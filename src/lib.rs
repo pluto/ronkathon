@@ -35,6 +35,7 @@ pub mod hmac;
 pub mod kzg;
 pub mod multi_var_poly;
 pub mod polynomial;
+pub mod primality;
 pub mod shamir;
 pub mod signatures;
 pub mod sumcheck;
