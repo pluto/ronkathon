@@ -8,6 +8,8 @@
 #![doc = include_str!("./README.md")]
 #[cfg(test)] mod tests;
 
+use rand::Rng;
+
 #[allow(dead_code)]
 /// Computes the modular inverse of e mod totient
 const fn mod_inverse(e: u64, totient: u64) -> u64 {
@@ -86,13 +88,23 @@ const fn generate_e(p: usize, q: usize) -> u64 {
   panic!("Failed to find coprime e; totient should be greater than 1")
 }
 
-/// Generates a random prime number bigger than 1_000_000
+/// Generates a random prime number between 1_000_000 and 2_000_000 that is different from
+/// `first_prime`, so that two calls give the two distinct primes of a key:
+/// ```
+/// use ronkathon::encryption::asymmetric::rsa::random_prime;
+///
+/// let p = random_prime(0);
+/// let q = random_prime(p);
+/// assert_ne!(p, q);
+/// ```
 pub fn random_prime(first_prime: usize) -> usize {
-  let mut n = 1_000_000;
-  while !is_prime(n) && n != first_prime {
-    n += 1;
+  let mut rng = rand::thread_rng();
+  loop {
+    let n = rng.gen_range(1_000_000..2_000_000);
+    if n != first_prime && is_prime(n) {
+      return n;
+    }
   }
-  n
 }
 
 /// Primality testing in a constant function for compile time checks
