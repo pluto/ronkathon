@@ -26,11 +26,12 @@ exclude=[
   'github\.com/arkworks-rs',
 ]
 
-# TODO (autoparallel): there's a bunch to fix with this
-# [preprocessor.keeper]
-# command     ="mdbook-keeper"
-# manifest_dir="."
-# externs     =["ronkathon", "rand"]
+[preprocessor.keeper]
+command     ="mdbook-keeper"
+# a warning instead of an error where mdbook-keeper isn't installed
+optional    =true
+manifest_dir="."
+externs     =["ronkathon", "rand"]
 
 [output.html]
 default-theme       ="dark"

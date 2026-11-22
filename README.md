@@ -83,10 +83,11 @@ In particular, the `math/field.sage` computes roots of unity in the `PlutoField`
 
 ## Building mdBook
 
-To locally build/serve the [mdBook](https://github.com/rust-lang/mdBook) site, install mdBook and [mdbook-katex](https://github.com/lzanini/mdbook-katex):
+To locally build/serve the [mdBook](https://github.com/rust-lang/mdBook) site, install mdBook, [mdbook-katex](https://github.com/lzanini/mdbook-katex) and [mdbook-keeper](https://github.com/tfpk/mdbook-keeper), which compiles and runs the Rust snippets in the book like doctests:
 ```ignore
 cargo install mdbook
 cargo install mdbook-katex
+cargo install mdbook-keeper
 ```
 
 To build, run:

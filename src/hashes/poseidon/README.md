@@ -91,13 +91,25 @@ sage poseidon_constants.sage 1 0 7 16 3 10 0x65
 Here's an example to use [Poseidon](./mod.rs) struct for hashing input of length `WIDTH`. Note that input is padded with extra zeroes if length is not equal to width.
 
 ```rust
-use ronkathon::{hashes::poseidon::Poseidon, field::prime::PlutoBaseField}; // can be any field that implements FiniteField trait
+use ronkathon::{
+  algebra::field::{prime::PlutoBaseField, Field},
+  hashes::poseidon::Poseidon,
+}; // can be any field that implements FiniteField trait
 
 const WIDTH: usize = 10;
 const ALPHA: usize = 5;
 const NUM_P: usize = 16;
 const NUM_F: usize = 8;
 
+# // Stand-in for the constants from the sage script above: simple round constants, and a Cauchy
+# // matrix 1 / (x_i + y_j), which is MDS.
+# fn load_constants<F: Field>() -> (Vec<F>, Vec<Vec<F>>) {
+#   let rc = (0..(NUM_F + NUM_P) * WIDTH).map(F::from).collect();
+#   let mds = (0..WIDTH)
+#     .map(|i| (0..WIDTH).map(|j| F::from(i + WIDTH + j).inverse().unwrap()).collect())
+#     .collect();
+#   (rc, mds)
+# }
 # pub fn main() {
 // load round constants and mds matrix
 let (rc, mds) = load_constants::<PlutoBaseField>();
@@ -119,27 +131,46 @@ Another example using Sponge API for arbitrary length element hashing. Simplex s
 
 ```rust
 use rand::Rng;
-use ronkathon::{field::prime::PlutoBaseField, hashes::poseidon::sponge::PoseidonSponge};
+use ronkathon::{
+  algebra::field::{prime::PlutoBaseField, Field},
+  hashes::poseidon::sponge::{Init, PoseidonSponge},
+};
 
 const WIDTH: usize = 10;
 const ALPHA: usize = 5;
 const NUM_P: usize = 16;
 const NUM_F: usize = 8;
+const RATE: usize = 6;
 
+# // Stand-in for the constants from the sage script above: simple round constants, and a Cauchy
+# // matrix 1 / (x_i + y_j), which is MDS.
+# fn load_constants<F: Field>() -> (Vec<F>, Vec<Vec<F>>) {
+#   let rc = (0..(NUM_F + NUM_P) * WIDTH).map(F::from).collect();
+#   let mds = (0..WIDTH)
+#     .map(|i| (0..WIDTH).map(|j| F::from(i + WIDTH + j).inverse().unwrap()).collect())
+#     .collect();
+#   (rc, mds)
+# }
 # pub fn main() {
-let size = rng.gen::<u32>();
+let mut rng = rand::thread_rng();
+let size = rng.gen_range(1..100);
 
 // create any state
-let input = std::iter::repeat(PlutoBaseField::ONE).take(size).collect();
+let input: Vec<PlutoBaseField> = std::iter::repeat(PlutoBaseField::ONE).take(size).collect();
 
 let (rc, mds) = load_constants::<PlutoBaseField>();
 
-let mut pluto_poseidon_sponge = PoseidonSponge::new(WIDTH, ALPHA, NUM_P, NUM_F, rate, rc, mds);
+let pluto_poseidon_sponge =
+  PoseidonSponge::<PlutoBaseField, Init>::new(WIDTH, ALPHA, NUM_P, NUM_F, RATE, rc, mds);
 
+// absorb the input, `RATE` elements at a time
+let mut pluto_poseidon_sponge = pluto_poseidon_sponge.start_absorbing();
 let absorb_res = pluto_poseidon_sponge.absorb(&input);
 assert!(absorb_res.is_ok());
 
-let pluto_result = pluto_poseidon_sponge.squeeze(squeeze_size);
+// squeeze out an output of any length
+let mut pluto_poseidon_sponge = pluto_poseidon_sponge.start_squeezing();
+let pluto_result = pluto_poseidon_sponge.squeeze(15);
 assert!(pluto_result.is_ok());
 # }
 ```
