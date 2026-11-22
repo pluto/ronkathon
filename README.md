@@ -28,6 +28,7 @@ Ronkathon is a collection of cryptographic primitives implemented in Rust. It is
 - [KZG Commitments](src/kzg/README.md)
 - [Reed-Solomon Codes](src/codes/README.md)
 - [Merkle Proofs](src/tree/README.md)
+- [Primality Testing](src/primality/README.md)
 - [DSL](src/compiler/README.md)
 
 ### Signatures

@@ -21,4 +21,5 @@
 - [HMAC](src/hmac/README.md)
 - [KZG](src/kzg/README.md)
 - [Merkle Trees](src/tree/README.md)
+- [Primality Testing](src/primality/README.md)
 - [Sumcheck](src/sumcheck/README.md)
