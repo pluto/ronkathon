@@ -82,9 +82,20 @@ fn test_random_prime() {
   assert!(prime >= 1_000_000);
 }
 
+/// The prime passed in is skipped, so `random_prime(p)` never gives `p` again.
 #[test]
-fn test_random_prime_generation() {
-  let prime = random_prime(2);
-  assert!(is_prime(prime));
-  assert!(prime >= 1_000_000);
+fn random_prime_skips_first_prime() {
+  for _ in 0..20 {
+    let first = random_prime(0);
+    assert_ne!(random_prime(first), first);
+  }
+  // 1_000_003 is the first prime above 1_000_000
+  assert_ne!(random_prime(1_000_003), 1_000_003);
+}
+
+#[test]
+fn random_prime_is_random() {
+  let primes: std::collections::HashSet<usize> = (0..20).map(|_| random_prime(0)).collect();
+  assert!(primes.len() > 1, "20 calls all gave {primes:?}");
+  assert!(primes.iter().all(|&p| is_prime(p) && (1_000_000..2_000_000).contains(&p)));
 }
