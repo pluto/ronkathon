@@ -39,3 +39,5 @@ create_mdbook
 book
 mdbook
 docs
+# mdbook-keeper builds the book snippets here
+doctest_cache
