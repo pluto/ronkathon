@@ -4,6 +4,7 @@
         - [Binary Towers](src/algebra/field/binary_towers/README.md)
     - [Group](src/algebra/group/README.md)
 - [Codes](src/codes/README.md)
+- [Commitment Schemes](src/commitments/README.md)
 - [Compiler](src/compiler/README.md)
 - [Curve](src/curve/README.md)
 - [Signature Algorithms](src/signatures/README.md)

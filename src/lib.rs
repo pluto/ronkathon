@@ -26,6 +26,7 @@
 
 pub mod algebra;
 pub mod codes;
+pub mod commitments;
 pub mod compiler;
 pub mod curve;
 pub mod diffie_hellman;
