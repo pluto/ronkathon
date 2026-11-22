@@ -98,6 +98,14 @@ mdbook build
 
 If you want to serve locally, run `mdbook serve`.
 
+## Benchmarks
+
+Benchmarks for the hash functions, the symmetric ciphers and the field, curve and polynomial arithmetic are in `benches/` and use [criterion](https://github.com/bheisler/criterion.rs). To run all of them, or a single file:
+```ignore
+cargo bench
+cargo bench --bench hashes
+```
+
 ## License
 
 Licensed under the Apache License, Version 2.0 ([LICENSE-APACHE](./LICENSE) or http://www.apache.org/licenses/LICENSE-2.0)
