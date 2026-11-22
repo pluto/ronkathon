@@ -41,8 +41,9 @@ fn attacker<'a>(key: &Key<128>, iv: &Block, ciphertext: Vec<u8>) -> &'a [u8] {
   // attacker receives ciphertext from encryption oracle
   let encrypted = cbc2.encrypt(key, &pwned_message);
 
-  // attacker has gained knowledge about initial message
-  if c1 == encrypted {
+  // attacker has gained knowledge about initial message: the first block matches (the second one
+  // is the block of padding)
+  if c1 == &encrypted[..16] {
     messages[0]
   } else {
     messages[1]

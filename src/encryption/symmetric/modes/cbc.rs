@@ -48,17 +48,19 @@ impl<C: Encryption + BlockOperations> CBC<C> {
   /// let ciphertext = cbc.encrypt(&key, plaintext);
   /// ```
   ///
-  /// **Note**: plaintext is padded using PKCS#7, if not a multiple of [`BlockCipher::BLOCK_SIZE`].
+  /// **Note**: plaintext is always padded using PKCS#7, so the ciphertext is one to
+  /// [`BlockCipher::BLOCK_SIZE`] bytes longer than the plaintext. A plaintext that is already a
+  /// multiple of the block size gets a full block of padding, so that [`CBC::decrypt`] can always
+  /// tell the padding apart from the message.
   pub fn encrypt(&self, key: &C::Key, plaintext: &[u8]) -> Vec<u8> {
     let mut ciphertext = Vec::new();
     let mut prev_ciphertext = self.iv;
 
-    // pad plaintext using PKCS#7 padding scheme
+    // pad plaintext using PKCS#7 padding scheme: `n` bytes of value `n`, where `n` is between 1 and
+    // the block size
     let mut plaintext = plaintext.to_vec();
-    if plaintext.len() % C::BLOCK_SIZE != 0 {
-      let length = C::BLOCK_SIZE - (plaintext.len() % C::BLOCK_SIZE);
-      plaintext.extend(std::iter::repeat(length as u8).take(length));
-    }
+    let length = C::BLOCK_SIZE - (plaintext.len() % C::BLOCK_SIZE);
+    plaintext.extend(std::iter::repeat(length as u8).take(length));
     let value = C::new(key.clone());
     for chunk in plaintext.chunks(C::BLOCK_SIZE) {
       let cipher = match value {
@@ -99,11 +101,12 @@ impl<C: Encryption + BlockOperations> CBC<C> {
   /// let ciphertext = cbc.encrypt(&key, plaintext);
   /// let decrypted = cbc.decrypt(&key, &ciphertext);
   ///
-  /// assert_eq!(*plaintext, decrypted[..plaintext.len()]);
+  /// assert_eq!(plaintext.as_slice(), decrypted);
   /// ```
   ///
-  /// **Note**: decrypted plaintext will be multiple of [`BlockCipher::Block`]. It's user's
-  /// responsibility to truncate to original plaintext's length
+  /// **Note**: the PKCS#7 padding added by [`CBC::encrypt`] is removed, so the original plaintext
+  /// is returned. Panics if the ciphertext doesn't end in valid padding, e.g. because it was
+  /// decrypted with the wrong key or IV.
   pub fn decrypt(&self, key: &C::Key, ciphertext: &[u8]) -> Vec<u8> {
     assert!(ciphertext.len() % C::BLOCK_SIZE == 0, "ciphertext is not a multiple of block size");
 
@@ -123,11 +126,15 @@ impl<C: Encryption + BlockOperations> CBC<C> {
       plaintext.extend_from_slice(decrypted.as_ref());
     }
 
-    // remove PKCS#7 padding by checking the last byte and removing all intermediate bytes
-    let last_byte = plaintext[plaintext.len() - 1];
-    if plaintext[plaintext.len() - last_byte as usize] == last_byte {
-      plaintext.truncate(plaintext.len() - last_byte as usize);
-    }
+    // remove PKCS#7 padding: the last byte gives the padding length `n`, and all of the last `n`
+    // bytes must be equal to `n`
+    let length = plaintext.last().copied().unwrap_or(0) as usize;
+    assert!(
+      (1..=C::BLOCK_SIZE).contains(&length)
+        && plaintext[plaintext.len() - length..].iter().all(|&byte| byte as usize == length),
+      "invalid PKCS#7 padding"
+    );
+    plaintext.truncate(plaintext.len() - length);
 
     plaintext
   }
@@ -174,6 +181,50 @@ mod tests {
       assert_eq!(plaintext.len(), decrypted.len());
       assert_eq!(plaintext, decrypted);
     }
+  }
+
+  /// Every length from empty to three blocks, so that both partial and full blocks of padding
+  /// are covered.
+  #[rstest]
+  fn every_length_round_trips(rand_key: Key<128>, rand_iv: Block) {
+    let cbc = CBC::<AES<128>>::new(rand_iv);
+
+    for length in 0..=48 {
+      let plaintext = rand_message(length);
+      let ciphertext = cbc.encrypt(&rand_key, &plaintext);
+
+      assert_eq!(ciphertext.len(), (length / 16 + 1) * 16);
+      assert_eq!(cbc.decrypt(&rand_key, &ciphertext), plaintext);
+    }
+  }
+
+  /// A block-aligned message whose end looks like padding (`0x01`) or like no valid padding at
+  /// all (`0x00`) must come back unchanged. Random messages hit these cases now and then (#218).
+  #[rstest]
+  #[case::ends_in_one(0x01)]
+  #[case::ends_in_zero(0x00)]
+  #[case::ends_in_large_byte(0xff)]
+  fn aligned_message_round_trips(rand_key: Key<128>, rand_iv: Block, #[case] last_byte: u8) {
+    let cbc = CBC::<AES<128>>::new(rand_iv);
+
+    let mut plaintext = rand_message(32);
+    plaintext[31] = last_byte;
+
+    let ciphertext = cbc.encrypt(&rand_key, &plaintext);
+    assert_eq!(cbc.decrypt(&rand_key, &ciphertext), plaintext);
+  }
+
+  #[rstest]
+  #[should_panic(expected = "invalid PKCS#7 padding")]
+  fn wrong_iv_panics_on_padding(rand_key: Key<128>, rand_iv: Block) {
+    let cbc = CBC::<AES<128>>::new(rand_iv);
+    let ciphertext = cbc.encrypt(&rand_key, b"Hello World!");
+
+    // the last byte of the last block decides the padding length, so flip the IV byte that
+    // lands on it after decryption of a single block
+    let mut wrong_iv = rand_iv;
+    wrong_iv.0[15] ^= 0xff;
+    CBC::<AES<128>>::new(wrong_iv).decrypt(&rand_key, &ciphertext);
   }
 
   #[rstest]
