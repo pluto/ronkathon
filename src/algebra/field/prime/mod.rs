@@ -73,13 +73,17 @@ impl<const P: usize> const Field for PrimeField<P> {
 
   fn pow(self, power: usize) -> Self {
     if power == 0 {
-      Self::ONE
-    } else if power == 1 {
-      self
-    } else if power % 2 == 0 {
-      Self::new((self.pow(power / 2).value * self.pow(power / 2).value) % Self::ORDER)
+      return Self::ONE;
+    }
+
+    // square-and-multiply: compute the half power once, so this takes log(power) steps. Reduce
+    // after every product so that no more than two values below `P` are ever multiplied.
+    let half = self.pow(power / 2);
+    let square = (half.value * half.value) % Self::ORDER;
+    if power % 2 == 0 {
+      Self::new(square)
     } else {
-      Self::new((self.pow(power / 2).value * self.pow(power / 2).value * self.value) % Self::ORDER)
+      Self::new((square * self.value) % Self::ORDER)
     }
   }
 }
@@ -381,6 +385,49 @@ mod tests {
       PlutoPrime::Base => inverse_of_inverse_check::<{ PlutoPrime::Base as usize }>(),
       PlutoPrime::Scalar => inverse_of_inverse_check::<{ PlutoPrime::Scalar as usize }>(),
     }
+  }
+
+  fn pow_matches_repeated_mul_check<const P: usize>() {
+    for value in 0..P {
+      let element = PrimeField::<P>::new(value);
+      let mut expected = PrimeField::<P>::ONE;
+      for power in 0..2 * P {
+        assert_eq!(element.pow(power), expected, "{value}^{power} mod {P}");
+        expected *= element;
+      }
+    }
+  }
+
+  #[rstest]
+  #[case(PlutoPrime::Base)]
+  #[case(PlutoPrime::Scalar)]
+  fn pow_matches_repeated_mul(#[case] prime: PlutoPrime) {
+    match prime {
+      PlutoPrime::Base => pow_matches_repeated_mul_check::<{ PlutoPrime::Base as usize }>(),
+      PlutoPrime::Scalar => pow_matches_repeated_mul_check::<{ PlutoPrime::Scalar as usize }>(),
+    }
+  }
+
+  /// `pow` takes log(power) steps, so even the largest exponent returns right away. By Fermat's
+  /// little theorem, only the exponent modulo `P - 1` matters.
+  #[test]
+  fn pow_huge_exponent() {
+    let element = PlutoBaseField::new(3);
+    assert_eq!(element.pow(usize::MAX), element.pow(usize::MAX % (PlutoBaseField::ORDER - 1)));
+  }
+
+  /// No more than two values below `P` are multiplied at once, so a prime just below 2^32 doesn't
+  /// overflow a 64-bit `usize`.
+  #[test]
+  fn pow_large_prime() {
+    const P: usize = 4_294_967_291; // largest prime below 2^32
+    let minus_one = PrimeField::<P>::new(P - 1);
+    assert_eq!(minus_one.pow(3), minus_one);
+    assert_eq!(PrimeField::<P>::new(2).pow(P - 1), PrimeField::<P>::ONE);
+    assert_eq!(
+      PrimeField::<P>::new(2).inverse().unwrap() * PrimeField::<P>::new(2),
+      PrimeField::<P>::ONE
+    );
   }
 
   #[should_panic]
