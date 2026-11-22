@@ -127,15 +127,12 @@ impl<const P: usize> fmt::Display for PrimeField<P> {
 }
 
 impl<const P: usize> Distribution<PrimeField<P>> for Standard {
+  /// Samples a uniformly random element. `gen_range` rejects as few draws as possible, while
+  /// drawing 28 bits and rejecting everything at or above `P` would take millions of tries for a
+  /// small prime like 17.
   #[inline]
   fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PrimeField<P> {
-    loop {
-      let next_u31 = (rng.next_u32() >> 4) as usize;
-      let is_canonical = next_u31 < PrimeField::<P>::ORDER;
-      if is_canonical {
-        return PrimeField::<P> { value: next_u31 };
-      }
-    }
+    PrimeField::<P> { value: rng.gen_range(0..P) }
   }
 }
 
@@ -405,5 +402,28 @@ mod tests {
   #[case(PlutoBaseField::new(0), (PlutoBaseField::new(0), PlutoBaseField::new(0)))]
   fn square_root(#[case] a: PlutoBaseField, #[case] expected: (PlutoBaseField, PlutoBaseField)) {
     assert_eq!(a.sqrt().unwrap(), expected);
+  }
+
+  fn sample_is_uniform_check<const P: usize>() {
+    let mut rng = rand::thread_rng();
+    let draws = 1000 * P;
+    let mut counts = vec![0_usize; P];
+    for _ in 0..draws {
+      counts[rng.gen::<PrimeField<P>>().value] += 1;
+    }
+    // every element should come up about 1000 times, allow a generous margin
+    for (value, count) in counts.into_iter().enumerate() {
+      assert!((700..1300).contains(&count), "{value} drawn {count} times out of {draws}");
+    }
+  }
+
+  #[rstest]
+  #[case(PlutoPrime::Base)]
+  #[case(PlutoPrime::Scalar)]
+  fn sample_is_uniform(#[case] prime: PlutoPrime) {
+    match prime {
+      PlutoPrime::Base => sample_is_uniform_check::<{ PlutoPrime::Base as usize }>(),
+      PlutoPrime::Scalar => sample_is_uniform_check::<{ PlutoPrime::Scalar as usize }>(),
+    }
   }
 }
