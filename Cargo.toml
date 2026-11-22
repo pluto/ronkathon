@@ -25,6 +25,7 @@ ark-crypto-primitives={ version="0.5", features=["sponge"] }
 des                  ="0.8"
 chacha20             ="0.9"
 hex-literal          ="0.4"
+criterion            ={ version="0.5", default-features=false, features=["cargo_bench_support"] }
 
 [[bin]]
 name="hmac_sha256_bin"
@@ -38,3 +39,15 @@ name="symmetric_group"
 
 [[example]]
 name="merkle_tree"
+
+[[bench]]
+harness=false
+name   ="algebra"
+
+[[bench]]
+harness=false
+name   ="hashes"
+
+[[bench]]
+harness=false
+name   ="symmetric"
